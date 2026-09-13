@@ -1,0 +1,6 @@
+{
+  "name": "ระบบบริหารจัดการและจัดพิมพ์ข้อสอบ คณะวิทยาศาสตร์",
+  "description": "ระบบบริหารจัดการและติดตามกระบวนการจัดส่ง ตรวจสอบ และพิมพ์ข้อสอบ คณะวิทยาศาสตร์ ตามข้อกำหนด URS และ ER-Diagram",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
