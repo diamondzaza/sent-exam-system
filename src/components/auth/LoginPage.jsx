@@ -2,10 +2,9 @@
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: LoginPage.jsx
  * หน้าที่ของหน้านี้: หน้าล็อกอิน — จอแบ่ง 2 ส่วน (แผงซ้ายแนะนำจุดเด่นของระบบ,
- *   แผงขวาเป็นฟอร์มล็อกอิน) พร้อมปุ่ม Quick Login สำหรับบัญชีตัวอย่างทั้ง 5 บัญชี
+ *   แผงขวาเป็นฟอร์มล็อกอิน) ยืนยันตัวตนจริงผ่าน Supabase Auth
+ *   (อีเมล + รหัสผ่าน) แล้วดึงโปรไฟล์จากตาราง users เพื่อกำหนดบทบาท
  * ผู้ใช้งาน: ผู้ที่ยังไม่ได้เข้าสู่ระบบ (ทุกบทบาท)
- * หมายเหตุ: โหมดสาธิต — รหัสผ่านยังไม่ถูกตรวจสอบจริง พิมพ์ชื่อผู้ใช้ให้ตรงเท่านั้น
- *   (เมื่อเชื่อมต่อ Supabase Auth แล้วจะตรวจรหัสผ่านจริง)
  * ─────────────────────────────────────────────────────────
  */
 'use client';
@@ -14,17 +13,56 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Lock, KeyRound, UploadCloud, Printer, ShieldCheck, LogIn, } from 'lucide-react';
-export const LoginPage = ({ users, onLogin }) => {
-    const [username, setUsername] = useState('');
+import { Lock, KeyRound, UploadCloud, Printer, ShieldCheck, LogIn, AlertCircle, } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+
+// แปลข้อความ error ของ Supabase เป็นภาษาไทย
+const ERROR_MESSAGES = {
+  invalid_credentials: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+  email_not_confirmed: 'บัญชีนี้ยังไม่ได้ยืนยันอีเมล — ติดต่อผู้ดูแลระบบ',
+  too_many_requests: 'พยายามหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่',
+};
+const getErrorMessage = (code) => ERROR_MESSAGES[code] || 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
+
+export const LoginPage = ({ onLogin }) => {
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    // กดปุ่มเดียวเข้าสู่ระบบทันที: ถ้า username ตรงกับบัญชีในระบบใช้บัญชีนั้น
-    // มิฉะนั้นเข้าด้วยบัญชีเริ่มต้น (บัญชีแรกของระบบ)
-    const handleCustomLogin = (e) => {
+    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = async (e) => {
         e.preventDefault();
-        const matchedUser = users.find((u) => u.username.toLowerCase() === username.trim().toLowerCase());
-        onLogin(matchedUser || users[0]);
+        setError(null);
+        setLoading(true);
+        try {
+            const supabase = createClient();
+            const { data, error: authError } = await supabase.auth.signInWithPassword({
+                email: email.trim(),
+                password,
+            });
+            if (authError) {
+                setError(getErrorMessage(authError.code));
+                return;
+            }
+            // ดึงโปรไฟล์จากตาราง users (id ตรงกับบัญชี Auth)
+            const { data: profile, error: profileError } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', data.user.id)
+                .single();
+            if (profileError || !profile) {
+                await supabase.auth.signOut();
+                setError('ไม่พบข้อมูลผู้ใช้ในระบบ — ติดต่อผู้ดูแลระบบ');
+                return;
+            }
+            onLogin(profile);
+        } catch {
+            setError('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+        } finally {
+            setLoading(false);
+        }
     };
+
     return (<div className="min-h-screen flex flex-col lg:flex-row bg-slate-950">
       {/* Left: Brand Panel */}
       <div className="relative lg:w-1/2 bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 text-white flex flex-col justify-center overflow-hidden">
@@ -107,56 +145,36 @@ export const LoginPage = ({ users, onLogin }) => {
 
           {/* Form */}
           <div className="p-6">
-            <form onSubmit={handleCustomLogin} className="space-y-4 text-xs">
+            <form onSubmit={handleLogin} className="space-y-4 text-xs">
               <div className="space-y-1.5">
-                <Label htmlFor="login-username">ชื่อผู้ใช้งาน (Username)</Label>
-                <Input id="login-username" type="text" placeholder="เช่น somchai.t หรือ av.staff1" value={username} onChange={(e) => setUsername(e.target.value)}/>
+                <Label htmlFor="login-email">อีเมล (Email)</Label>
+                <Input id="login-email" type="email" placeholder="เช่น somchai.j@sci.ac.th" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email"/>
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="login-password">รหัสผ่าน (Password)</Label>
-                <Input id="login-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}/>
+                <Input id="login-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password"/>
                 <p className="mt-1.5 text-[10px] text-slate-400 flex items-center space-x-1">
                   <KeyRound className="w-3 h-3"/>
-                  <span>บัญชีทดลอง ไม่ต้องใช้รหัสผ่าน</span>
+                  <span>ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบ</span>
                 </p>
               </div>
 
-              <Button type="submit" className="w-full py-2.5">
+              {error && (<div className="flex items-start space-x-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-rose-700">
+                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0"/>
+                  <span className="leading-relaxed">{error}</span>
+                </div>)}
+
+              <Button type="submit" className="w-full py-2.5" disabled={loading}>
                 <LogIn className="w-4 h-4"/>
-                <span>เข้าสู่ระบบ</span>
+                <span>{loading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}</span>
               </Button>
             </form>
           </div>
 
-          {/* เลือกบัญชีเข้าใช้งานทันที */}
           <div className="px-6 pb-6">
-            <div className="border-t border-slate-200 pt-4 space-y-2.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                หรือเลือกบัญชีเข้าใช้งาน
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {users.map((user) => {
-            let shortRole = 'อาจารย์';
-            if (user.role === 'AudioVisual')
-                shortRole = 'โสตฯ';
-            if (user.role === 'Operations')
-                shortRole = 'ฝ่ายจัดสอบ';
-            if (user.role === 'Admin')
-                shortRole = 'แอดมิน';
-            return (<button key={user.id} onClick={() => onLogin(user)} className="p-2.5 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/40 text-left transition-all flex items-center space-x-2.5 group">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center border border-indigo-200 shrink-0">
-                        {user.name.charAt(0)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-slate-800 group-hover:text-indigo-900 leading-tight">
-                          {shortRole}
-                        </p>
-                        <p className="text-[10px] text-slate-500 truncate">{user.name}</p>
-                      </div>
-                    </button>);
-        })}
-              </div>
+            <div className="border-t border-slate-200 pt-4 text-[10px] text-slate-400 text-center">
+              ระบบยืนยันตัวตนผ่าน Supabase Auth — ข้อมูลการเข้าใช้งานถูกบันทึกเพื่อความปลอดภัย
             </div>
           </div>
         </Card>

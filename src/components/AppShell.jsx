@@ -38,6 +38,7 @@ import { useExams } from '@/hooks/useExams';
 import { useAuditLogs } from '@/hooks/useAuditLogs';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { createClient } from '@/lib/supabase/client';
 export default function AppShell() {
     // Persistence state (hooks persist ลง localStorage ด้วยคีย์ sci_exam_* ตัวเดิม)
     const [users, setUsers] = useUsers();
@@ -46,18 +47,34 @@ export default function AppShell() {
     const [exams, setExams] = useExams();
     const [auditLogs, setAuditLogs] = useAuditLogs();
     const [notifications, setNotifications] = useNotifications();
-    // Auth session state
-    const [isAuthenticated, setIsAuthenticated] = useAuthSession();
+    // Auth session state (Supabase Auth จริง — 'loading' | 'authenticated' | 'guest')
+    const authStatus = useAuthSession();
     // Modal states
     const [uploadModalData, setUploadModalData] = useState(null);
     const [previewExam, setPreviewExam] = useState(null);
     const [envelopeExam, setEnvelopeExam] = useState(null);
     const [toastMessage, setToastMessage] = useState(null);
-    // Login (REQ-0001) — set the session user and record a LOGIN audit entry
-    // attributed to the user who just logged in (not to the previous session)
+    // ดึงโปรไฟล์จากตาราง users ทุกครั้งที่มี session (กัน localStorage cache เก่าไม่ตรงกับฐานข้อมูล)
+    React.useEffect(() => {
+        if (authStatus !== 'authenticated')
+            return;
+        const supabase = createClient();
+        supabase.auth.getUser().then(async ({ data }) => {
+            if (!data.user)
+                return;
+            const { data: profile } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', data.user.id)
+                .single();
+            if (profile)
+                setCurrentUser(profile);
+        });
+    }, [authStatus, setCurrentUser]);
+    // Login (REQ-0001) — รับโปรไฟล์จาก LoginPage (ยืนยันตัวตนผ่าน Supabase Auth แล้ว)
+    // session จะเปลี่ยนเป็น 'authenticated' ผ่าน onAuthStateChange เอง
     const handleLogin = (user) => {
         setCurrentUser(user);
-        setIsAuthenticated(true);
         showToast(`เข้าสู่ระบบในฐานะ: ${user.name} (${user.role})`);
         const newLog = {
             id: `LOG-${Date.now().toString().slice(-5)}`,
@@ -73,9 +90,10 @@ export default function AppShell() {
         };
         setAuditLogs((prev) => [newLog, ...prev]);
     };
-    // Logout — return to the login page (the session user is kept for convenience)
-    const handleLogout = () => {
-        setIsAuthenticated(false);
+    // Logout — ออกจากระบบจริง (ลบ session ที่ Supabase), status จะกลับเป็น 'guest' เอง
+    const handleLogout = async () => {
+        const supabase = createClient();
+        await supabase.auth.signOut();
     };
     const toastTimer = useRef(undefined);
     const showToast = (msg) => {
@@ -84,14 +102,6 @@ export default function AppShell() {
         toastTimer.current = window.setTimeout(() => {
             setToastMessage(null);
         }, 4000);
-    };
-    // Switch Active User
-    const handleSwitchUser = (userId) => {
-        const target = users.find((u) => u.id === userId);
-        if (target) {
-            setCurrentUser(target);
-            showToast(`สลับเข้าสู่ระบบในฐานะ: ${target.name} (${target.role})`);
-        }
     };
     // Add Security Audit Log helper
     const addAuditLog = (action, subjectId, subjectName, details) => {
@@ -273,8 +283,15 @@ export default function AppShell() {
         showToast('ทำเครื่องหมายอ่านการแจ้งเตือนทั้งหมดแล้ว');
     };
     // Login gate (REQ-0001): show the login page until the user is authenticated
-    if (!isAuthenticated) {
-        return <LoginPage users={users} onLogin={handleLogin}/>;
+    // ระหว่างตรวจ session กับ Supabase — แสดงจอโหลด (กันหน้ากะพริบ)
+    if (authStatus === 'loading') {
+        return (<div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <p className="font-display text-sm text-slate-500">กำลังตรวจสอบการเข้าสู่ระบบ...</p>
+      </div>);
+    }
+    // Login gate (REQ-0001) — Supabase Auth
+    if (authStatus === 'guest') {
+        return <LoginPage onLogin={handleLogin}/>;
     }
     return (<div className="min-h-screen flex flex-col bg-slate-100/70 text-slate-900 font-sans antialiased">
       {/* Toast Notification */}
@@ -286,7 +303,7 @@ export default function AppShell() {
         </div>)}
 
       {/* Main App Header */}
-      <Header currentUser={currentUser} allUsers={users} notifications={notifications} onSwitchUser={handleSwitchUser} onOpenLoginModal={handleLogout} onMarkNotificationRead={handleMarkNotificationRead} onMarkAllNotificationsRead={handleMarkAllNotificationsRead}/>
+      <Header currentUser={currentUser} notifications={notifications} onLogout={handleLogout} onMarkNotificationRead={handleMarkNotificationRead} onMarkAllNotificationsRead={handleMarkAllNotificationsRead}/>
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">

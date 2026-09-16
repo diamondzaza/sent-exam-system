@@ -13,7 +13,7 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bell, CheckCheck, LogOut, Info, CheckCircle, AlertTriangle, } from 'lucide-react';
-export const Header = ({ currentUser, allUsers, notifications, onSwitchUser, onOpenLoginModal, onMarkNotificationRead, onMarkAllNotificationsRead, }) => {
+export const Header = ({ currentUser, notifications, onLogout, onMarkNotificationRead, onMarkAllNotificationsRead, }) => {
     const [showNotifMenu, setShowNotifMenu] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     // แสดงเฉพาะการแจ้งเตือนที่ออกถึงบทบาทของผู้ใช้ปัจจุบัน (หรือแบบทั่วไป)
@@ -126,27 +126,10 @@ export const Header = ({ currentUser, allUsers, notifications, onSwitchUser, onO
                     </div>
                   </div>
 
-                  <div className="space-y-1 text-xs">
-                    <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-1">
-                      สลับบัญชีผู้ใช้
-                    </div>
-                    {allUsers.map((u) => (<button key={u.id} onClick={() => {
-                    onSwitchUser(u.id);
-                    setShowUserMenu(false);
-                }} className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between transition-colors ${u.id === currentUser.id
-                    ? 'bg-indigo-50 text-indigo-700 font-bold'
-                    : 'text-slate-700 hover:bg-slate-100'}`}>
-                        <span className="truncate">{u.name}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">
-                          {u.role === 'Teacher' ? 'อาจารย์' : u.role === 'AudioVisual' ? 'โสตฯ' : u.role === 'Operations' ? 'จัดสอบ' : 'แอดมิน'}
-                        </span>
-                      </button>))}
-                  </div>
-
                   <div className="pt-2 border-t border-slate-100">
                     <button onClick={() => {
                 setShowUserMenu(false);
-                onOpenLoginModal();
+                onLogout();
             }} className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors flex items-center space-x-2">
                       <LogOut className="w-3.5 h-3.5"/>
                       <span>ออกจากระบบ</span>

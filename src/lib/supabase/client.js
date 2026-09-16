@@ -1,10 +1,15 @@
 /**
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: client.js (lib/supabase)
- * หน้าที่ของไฟล์นี้: จุดกลางสำหรับเชื่อมต่อ Supabase ในอนาคต —
- *   ตอนนี้ยังเป็น placeholder (อ่าน env และตรวจว่าตั้งค่าหรือยัง)
+ * หน้าที่ของไฟล์นี้: สร้าง Supabase client สำหรับฝั่ง browser (client components) —
+ *   ใช้ทุกที่ที่เรียก Supabase จากหน้าเว็บ เช่น ล็อกอิน, อ่านตาราง
+ *   session เก็บใน cookies ผ่าน @supabase/ssr เพื่อให้ middleware/API ใช้ร่วมได้
+ * วิธีใช้:  import { createClient } from '@/lib/supabase/client';
+ *           const supabase = createClient();
  * ─────────────────────────────────────────────────────────
  */
+
+import { createBrowserClient } from '@supabase/ssr';
 
 /** URL ของโปรเจกต์ Supabase (ตั้งค่าใน .env.local) */
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
@@ -12,24 +17,11 @@ export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 /** Anon key — ปลอดภัยกับฝั่ง client (ถูกจำกัดด้วย RLS) */
 export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
-/** Service role key — ใช้เฉพาะฝั่ง server (API routes) เท่านั้น ห้ามเผยแพร่ */
-export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-
 /** ตรวจว่าตั้งค่า env ของ Supabase ครบหรือยัง */
 export function isSupabaseConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
 
-/*
- * ── เมื่อพร้อมเชื่อมต่อจริง ──
- *
- * 1. ติดตั้ง:            npm install @supabase/supabase-js
- * 2. ตั้งค่า .env.local:  NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY
- * 3. สร้าง client:
- *
- *    import { createClient } from '@supabase/supabase-js';
- *    export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
- *
- * 4. สลับ implementation ใน src/lib/repositories/index.js
- *    และตามขั้นตอนใน supabase/README.md
- */
+export function createClient() {
+  return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
