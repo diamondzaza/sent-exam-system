@@ -9,13 +9,25 @@ out/
 build/
 dist/
 
+# deployment
+.vercel/
+
+# env — ความลับทั้งหมด (key ของ Supabase) ห้ามขึ้น GitHub
+.env
+.env.local
+.env*.local
+!.env.example
+
+# editor / IDE
+.vscode/
+.idea/
+
+# claude code — ค่า permissions ส่วนตัวของเครื่องนี้
+.claude/settings.local.json
+
 # misc
 .DS_Store
 *.log
-
-# env
-.env*
-!.env.example
 
 # typescript incremental build
 *.tsbuildinfo
