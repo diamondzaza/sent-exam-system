@@ -1,18 +1,26 @@
+'use client';
+
 /**
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: page.tsx
- * หน้าที่ของหน้านี้: หน้าแรกของแอป — placeholder ชั่วคราว
- *   (Step 3 จะเชื่อมต่อ AppShell ซึ่งเป็นตัวจัดการ login + หน้าจอตามบทบาท)
- * ผู้ใช้งาน: ทุกบทบาท
+ * หน้าที่ของหน้านี้: หน้าแรกของแอป — หน้าจอหลักทั้งหมดของระบบ (AppShell)
+ * ผู้ใช้งาน: ทุกบทบาท (Teacher / AudioVisual / Operations / Admin)
+ * หมายเหตุ: ใช้ mounted guard เพื่อรอจนฝั่ง client พร้อมก่อนเรนเดอร์ AppShell
+ *   เพราะ AppShell อ่านค่าเริ่มต้นจาก localStorage ตอน mount (SSR ไม่มี localStorage)
  * ─────────────────────────────────────────────────────────
  */
 
+import { useEffect, useState } from 'react';
+import AppShell from '@/components/AppShell';
+
 export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <p className="font-display text-xl text-slate-700">
-        ระบบบริหารจัดการและจัดพิมพ์ข้อสอบ — กำลังย้ายไป Next.js
-      </p>
-    </div>
-  );
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return <AppShell />;
 }

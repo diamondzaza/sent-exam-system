@@ -1,6 +1,23 @@
+/**
+ * ─────────────────────────────────────────────────────────
+ * ชื่อไฟล์: TeacherView.tsx
+ * หน้าที่ของหน้านี้: แดชบอร์ดสำหรับอาจารย์ผู้สอน — เลือกรายวิชาที่สอนแบบ 2 ขั้นตอน,
+ *   จัดส่ง/อัปโหลดไฟล์ข้อสอบ, ติดตามสถานะข้อสอบด้วย progress tracker 5 ขั้น,
+ *   ยกเลิกการส่ง (ก่อนพิมพ์เท่านั้น), เพิ่มรายวิชาใหม่ และพิมพ์ใบปะหน้าซองข้อสอบ
+ * ผู้ใช้งาน: อาจารย์ผู้สอน (Teacher)
+ * ฟีเจอร์หลัก:
+ *   1. การ์ดรายวิชาพร้อมสถานะข้อสอบล่าสุด (STATUS_LABELS)
+ *   2. ปุ่มจัดส่งข้อสอบ / อัปโหลดใหม่ (PDF/DOCX ไม่เกิน 25MB)
+ *   3. ดูตัวอย่างข้อสอบ, พิมพ์ใบปะหน้า, ยกเลิกการส่ง
+ * หมายเหตุ: มีเงื่อนไขพิเศษ hardcoded — อาจารย์ T001 เห็นทุกรายวิชา (โหมดสาธิต)
+ * ─────────────────────────────────────────────────────────
+ */
+
+'use client';
+
 import React, { useState } from 'react';
-import { CourseEntity, ExamEntity, UserAccount } from '../types/entities';
-import { STATUS_LABELS } from '../lib/statusLabels';
+import { CourseEntity, ExamEntity, UserAccount } from '@/types/entities';
+import { STATUS_LABELS } from '@/lib/statusLabels';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

@@ -1,5 +1,18 @@
+/**
+ * ─────────────────────────────────────────────────────────
+ * ชื่อไฟล์: ExamPreviewModal.tsx
+ * หน้าที่ของหน้านี้: ตัวอย่างเอกสารข้อสอบ (โหมดสาธิต) — หัวกระดาษ CONFIDENTIAL,
+ *   แบนเนอร์รหัส Audit, เนื้อข้อสอบตัวอย่าง 2 หน้าพร้อมปุ่มเปลี่ยนหน้า,
+ *   ลายน้ำดิจิทัลแบบทแยงซ้ำ (ชื่อผู้ใช้ + เวลา + IP) เพื่อป้องกันการหลุดรอบ,
+ *   ปุ่มดาวน์โหลด (บันทึก audit log) และสั่งพิมพ์
+ * ผู้ใช้งาน: ทุกบทบาท — เปิดผ่าน AppShell
+ * ─────────────────────────────────────────────────────────
+ */
+
+'use client';
+
 import React, { useState } from 'react';
-import { ExamEntity, UserAccount } from '../types/entities';
+import { ExamEntity, UserAccount } from '@/types/entities';
 import {
   FileText,
   ShieldCheck,

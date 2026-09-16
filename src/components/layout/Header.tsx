@@ -1,5 +1,18 @@
+/**
+ * ─────────────────────────────────────────────────────────
+ * ชื่อไฟล์: Header.tsx
+ * หน้าที่ของหน้านี้: แถบหัวเว็บแบบ sticky — โลโก้คณะวิทยาศาสตร์ + ชื่อระบบ,
+ *   กระดิ่งแจ้งเตือน (dropdown เฉพาะแจ้งเตือนที่ตรงกับบทบาท, ตัวนับ unread,
+ *   ทำเครื่องหมายอ่านแล้วทีละรายการ/ทั้งหมด) และเมนูผู้ใช้ (โปรไฟล์, สลับบัญชี
+ *   เพื่อทดสอบหลายบทบาท, ล็อกเอาต์)
+ * ผู้ใช้งาน: ทุกบทบาทหลังเข้าสู่ระบบ
+ * ─────────────────────────────────────────────────────────
+ */
+
+'use client';
+
 import React, { useState } from 'react';
-import { UserAccount, AppNotification } from '../types/entities';
+import { UserAccount, AppNotification } from '@/types/entities';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

@@ -1,5 +1,18 @@
+/**
+ * ─────────────────────────────────────────────────────────
+ * ชื่อไฟล์: LoginPage.tsx
+ * หน้าที่ของหน้านี้: หน้าล็อกอิน — จอแบ่ง 2 ส่วน (แผงซ้ายแนะนำจุดเด่นของระบบ,
+ *   แผงขวาเป็นฟอร์มล็อกอิน) พร้อมปุ่ม Quick Login สำหรับบัญชีตัวอย่างทั้ง 5 บัญชี
+ * ผู้ใช้งาน: ผู้ที่ยังไม่ได้เข้าสู่ระบบ (ทุกบทบาท)
+ * หมายเหตุ: โหมดสาธิต — รหัสผ่านยังไม่ถูกตรวจสอบจริง พิมพ์ชื่อผู้ใช้ให้ตรงเท่านั้น
+ *   (เมื่อเชื่อมต่อ Supabase Auth แล้วจะตรวจรหัสผ่านจริง)
+ * ─────────────────────────────────────────────────────────
+ */
+
+'use client';
+
 import React, { useState } from 'react';
-import { UserAccount } from '../types/entities';
+import { UserAccount } from '@/types/entities';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

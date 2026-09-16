@@ -1,5 +1,21 @@
+/**
+ * ─────────────────────────────────────────────────────────
+ * ชื่อไฟล์: AdminView.tsx
+ * หน้าที่ของหน้านี้: แดชบอร์ดผู้ดูแลระบบ — 3 แท็บ:
+ *   1. User Management — ตารางผู้ใช้ ค้นหา/กรองบทบาท เพิ่ม/แก้ไข/ลบ
+ *      เปิด-ปิดสถานะบัญชี (REQ-0002, REQ-0003)
+ *   2. Security Audit Logs — ตารางบันทึกเหตุการณ์ความปลอดภัยทั้ง 9 ประเภท
+ *      พร้อมค้นหาและกรอง (เข้าใช้, ดู, ดาวน์โหลด, พิมพ์, อัปโหลด, อัปเดตสถานะ ฯลฯ)
+ *   3. Security Policies — สวิตช์นโยบายความปลอดภัย (ลายน้ำ, OTP ดาวน์โหลด,
+ *      จำกัด IP) — ยังเป็น local state ไม่ได้บันทึกถาวร
+ * ผู้ใช้งาน: ผู้ดูแลระบบ (Admin)
+ * ─────────────────────────────────────────────────────────
+ */
+
+'use client';
+
 import React, { useState } from 'react';
-import { UserAccount, SecurityAuditLog, UserRole } from '../types/entities';
+import { UserAccount, SecurityAuditLog, UserRole } from '@/types/entities';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

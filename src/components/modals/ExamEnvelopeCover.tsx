@@ -1,5 +1,19 @@
+/**
+ * ─────────────────────────────────────────────────────────
+ * ชื่อไฟล์: ExamEnvelopeCover.tsx
+ * หน้าที่ของหน้านี้: ใบปะหน้าซองข้อสอบมาตรฐานคณะวิทยาศาสตร์ — จัดรูปแบบเพื่อพิมพ์จริง:
+ *   ตรา CONFIDENTIAL, ตารางรายละเอียดข้อสอบ, จำนวนชุด (ปกติ + สำรอง),
+ *   เครื่องเขียนที่อนุญาต และตารางลงนามส่งมอบ 4 ขั้นตอน
+ * ผู้ใช้งาน: Teacher / AudioVisual / Operations — เปิดผ่าน AppShell
+ * หมายเหตุ: พิมพ์เฉพาะใบปะหน้าโดยเพิ่ม class printing-envelope ที่ <body>
+ *   (REQ-0013) — CSS จะซ่อนส่วนอื่นทั้งหมด (ดู globals.css @media print)
+ * ─────────────────────────────────────────────────────────
+ */
+
+'use client';
+
 import React from 'react';
-import { ExamEntity } from '../types/entities';
+import { ExamEntity } from '@/types/entities';
 import { Printer, X, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

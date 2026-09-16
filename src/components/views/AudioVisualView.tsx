@@ -1,6 +1,20 @@
+/**
+ * ─────────────────────────────────────────────────────────
+ * ชื่อไฟล์: AudioVisualView.tsx
+ * หน้าที่ของหน้านี้: หน้างานสำหรับหน่วยเทคโนโลยีการศึกษา (โสตทัศน์) — การ์ด KPI
+ *   ของ pipeline (รอตรวจ / กำลังพิมพ์ / พิมพ์แล้ว / ส่งมอบแล้ว), ค้นหา + กรองสถานะ,
+ *   เลือกรายวิชาจากตาราง แล้วดำเนินการในคิวผลิต: ตรวจสอบผ่าน (VERIFIED),
+ *   ปฏิเสธพร้อมเหตุผล (REJECTED), เริ่มพิมพ์ (PRINTING), พิมพ์เสร็จ (PRINTED),
+ *   ส่งมอบฝ่ายดำเนินการ (DELIVERED_OD)
+ * ผู้ใช้งาน: เจ้าหน้าที่หน่วยโสตทัศน์ (AudioVisual)
+ * ─────────────────────────────────────────────────────────
+ */
+
+'use client';
+
 import React, { useState } from 'react';
-import { ExamEntity, UserAccount, ExamStatus, CourseEntity } from '../types/entities';
-import { STATUS_LABELS } from '../lib/statusLabels';
+import { ExamEntity, UserAccount, ExamStatus, CourseEntity } from '@/types/entities';
+import { STATUS_LABELS } from '@/lib/statusLabels';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

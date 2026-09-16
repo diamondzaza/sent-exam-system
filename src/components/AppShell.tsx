@@ -1,4 +1,24 @@
 /**
+ * ─────────────────────────────────────────────────────────
+ * ชื่อไฟล์: AppShell.tsx
+ * หน้าที่ของหน้านี้: แกนกลางของแอป (App Shell) — จัดการ state หลักทั้งหมดของระบบ
+ *   (ผู้ใช้, บัญชีปัจจุบัน, รายวิชา, ข้อสอบ, audit logs, notifications)
+ *   บันทึกข้อมูลลง localStorage, ตรวจสอบการล็อกอิน, บันทึก audit trail + แจ้งเตือน
+ *   อัตโนมัติเมื่อเกิดเหตุการณ์, และสลับหน้าจอตามบทบาทผู้ใช้
+ * ผู้ใช้งาน: ทุกบทบาท (Teacher / AudioVisual / Operations / Admin)
+ * ฟีเจอร์หลัก:
+ *   1. Login gate — แสดง LoginPage จนกว่าจะล็อกอิน (REQ-0001)
+ *   2. ส่งข้อสอบใหม่ / อัปโหลดซ้ำ / ยกเลิกการส่ง (REQ-0004, REQ-0006)
+ *   3. อัปเดตสถานะข้อสอบ 8 สถานะ + audit log + notification (REQ-0010)
+ *   4. จัดการผู้ใช้: เพิ่ม / แก้ไข / ลบ / เปิด-ปิดสถานะ (REQ-0002, REQ-0003)
+ *   5. Modal รวม: อัปโหลด, ตัวอย่างข้อสอบ, ใบปะหน้าซองข้อสอบ
+ * หมายเหตุ: state ถูก persist ลง localStorage ด้วยคีย์ sci_exam_* (ยังไม่ใช่ Supabase)
+ * ─────────────────────────────────────────────────────────
+ */
+
+'use client';
+
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -11,23 +31,23 @@ import {
   SecurityAuditLog,
   AppNotification,
   ExamStatus,
-} from './types/entities';
+} from '@/types/entities';
 import {
   INITIAL_USERS,
   INITIAL_COURSES,
   INITIAL_EXAMS,
   INITIAL_AUDIT_LOGS,
   INITIAL_NOTIFICATIONS,
-} from './data/mockData';
-import { Header } from './components/Header.tsx';
-import { LoginPage } from './components/LoginPage.tsx';
-import { ExamEnvelopeCover } from './components/ExamEnvelopeCover.tsx';
-import { ExamPreviewModal } from './components/ExamPreviewModal.tsx';
-import { ExamUploadModal } from './components/ExamUploadModal.tsx';
-import { TeacherView } from './components/TeacherView.tsx';
-import { AudioVisualView } from './components/AudioVisualView.tsx';
-import { OperationsView } from './components/OperationsView.tsx';
-import { AdminView } from './components/AdminView.tsx';
+} from '@/data/mockData';
+import { Header } from '@/components/layout/Header';
+import { LoginPage } from '@/components/auth/LoginPage';
+import { ExamEnvelopeCover } from '@/components/modals/ExamEnvelopeCover';
+import { ExamPreviewModal } from '@/components/modals/ExamPreviewModal';
+import { ExamUploadModal } from '@/components/modals/ExamUploadModal';
+import { TeacherView } from '@/components/views/TeacherView';
+import { AudioVisualView } from '@/components/views/AudioVisualView';
+import { OperationsView } from '@/components/views/OperationsView';
+import { AdminView } from '@/components/views/AdminView';
 import { ShieldCheck, Info, CheckCircle2 } from 'lucide-react';
 
 // Safe localStorage read: corrupt/truncated JSON falls back to seed data

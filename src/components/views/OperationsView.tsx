@@ -1,6 +1,19 @@
+/**
+ * ─────────────────────────────────────────────────────────
+ * ชื่อไฟล์: OperationsView.tsx
+ * หน้าที่ของหน้านี้: หน้างานสำหรับฝ่ายดำเนินการสอบ — การ์ด KPI (ข้อสอบทั้งหมด /
+ *   รอรับมอบ / พร้อมสอบ / กำลังพิมพ์), ค้นหา + กรองตามสถานะและวันสอบ,
+ *   ตารางแสดงห้องสอบ เวลา และผู้คุมสอบ, ปุ่มรับมอบซองเข้าห้องมั่นคง
+ *   (DELIVERED_OD → READY_FOR_EXAM), พิมพ์ใบปะหน้า และพิมพ์รายงานรวม (window.print)
+ * ผู้ใช้งาน: เจ้าหน้าที่ฝ่ายดำเนินการสอบ (Operations)
+ * ─────────────────────────────────────────────────────────
+ */
+
+'use client';
+
 import React, { useState } from 'react';
-import { ExamEntity, UserAccount, ExamStatus } from '../types/entities';
-import { STATUS_LABELS } from '../lib/statusLabels';
+import { ExamEntity, UserAccount, ExamStatus } from '@/types/entities';
+import { STATUS_LABELS } from '@/lib/statusLabels';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

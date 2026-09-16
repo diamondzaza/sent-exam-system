@@ -1,6 +1,21 @@
+/**
+ * ─────────────────────────────────────────────────────────
+ * ชื่อไฟล์: ExamUploadModal.tsx
+ * หน้าที่ของหน้านี้: ฟอร์มจัดส่งข้อสอบ (modal) — กรอกรายละเอียดการสอบ
+ *   (ประเภท/วัน/เวลา/ห้อง), จำนวนหน้า ยอดพิมพ์ และชุดสำรอง, หมายเหตุซอง,
+ *   เลือกเครื่องเขียน/อุปกรณ์ที่อนุญาต (chip picker), drag-and-drop ไฟล์
+ *   PDF/DOCX ไม่เกิน 25MB และยืนยันข้อตกลงความปลอดภัยก่อนส่ง
+ * ผู้ใช้งาน: อาจารย์ผู้สอน (Teacher) — เปิดผ่าน AppShell ทั้งกรณีส่งใหม่และอัปโหลดซ้ำ
+ * หมายเหตุ: ยังไม่อัปโหลดไฟล์จริง — เก็บเฉพาะชื่อไฟล์และขนาด
+ *   (เมื่อเชื่อมต่อ Supabase Storage แล้วจะอัปโหลดไฟล์จริง)
+ * ─────────────────────────────────────────────────────────
+ */
+
+'use client';
+
 import React, { useState } from 'react';
-import { CourseEntity, ExamEntity } from '../types/entities';
-import { INITIAL_TEACHERS } from '../data/mockData';
+import { CourseEntity, ExamEntity } from '@/types/entities';
+import { INITIAL_TEACHERS } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
