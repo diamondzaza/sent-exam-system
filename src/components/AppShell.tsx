@@ -23,7 +23,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   UserAccount,
   CourseEntity,
@@ -32,13 +32,6 @@ import {
   AppNotification,
   ExamStatus,
 } from '@/types/entities';
-import {
-  INITIAL_USERS,
-  INITIAL_COURSES,
-  INITIAL_EXAMS,
-  INITIAL_AUDIT_LOGS,
-  INITIAL_NOTIFICATIONS,
-} from '@/data/mockData';
 import { Header } from '@/components/layout/Header';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { ExamEnvelopeCover } from '@/components/modals/ExamEnvelopeCover';
@@ -49,53 +42,25 @@ import { AudioVisualView } from '@/components/views/AudioVisualView';
 import { OperationsView } from '@/components/views/OperationsView';
 import { AdminView } from '@/components/views/AdminView';
 import { ShieldCheck, Info, CheckCircle2 } from 'lucide-react';
+import { useUsers } from '@/hooks/useUsers';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useCourses } from '@/hooks/useCourses';
+import { useExams } from '@/hooks/useExams';
+import { useAuditLogs } from '@/hooks/useAuditLogs';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useAuthSession } from '@/hooks/useAuthSession';
 
-// Safe localStorage read: corrupt/truncated JSON falls back to seed data
-// instead of throwing during first render (which would white-screen the app).
-function loadStored<T>(key: string, fallback: T, validate?: (v: any) => boolean): T {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    if (parsed === null || parsed === undefined || (validate && !validate(parsed))) {
-      return fallback;
-    }
-    return parsed;
-  } catch {
-    return fallback;
-  }
-}
-
-export default function App() {
-  // Persistence state
-  const [users, setUsers] = useState<UserAccount[]>(() =>
-    loadStored('sci_exam_users', INITIAL_USERS, Array.isArray)
-  );
-
-  const [currentUser, setCurrentUser] = useState<UserAccount>(() =>
-    loadStored('sci_exam_curr_user', INITIAL_USERS[0], (v) => v && typeof v.id === 'string') // defaults to Teacher (สมชาย)
-  );
-
-  const [courses, setCourses] = useState<CourseEntity[]>(() =>
-    loadStored('sci_exam_courses', INITIAL_COURSES, Array.isArray)
-  );
-
-  const [exams, setExams] = useState<ExamEntity[]>(() =>
-    loadStored('sci_exam_records', INITIAL_EXAMS, Array.isArray)
-  );
-
-  const [auditLogs, setAuditLogs] = useState<SecurityAuditLog[]>(() =>
-    loadStored('sci_exam_logs', INITIAL_AUDIT_LOGS, Array.isArray)
-  );
-
-  const [notifications, setNotifications] = useState<AppNotification[]>(() =>
-    loadStored('sci_exam_notifs', INITIAL_NOTIFICATIONS, Array.isArray)
-  );
+export default function AppShell() {
+  // Persistence state (hooks persist ลง localStorage ด้วยคีย์ sci_exam_* ตัวเดิม)
+  const [users, setUsers] = useUsers();
+  const [currentUser, setCurrentUser] = useCurrentUser();
+  const [courses, setCourses] = useCourses();
+  const [exams, setExams] = useExams();
+  const [auditLogs, setAuditLogs] = useAuditLogs();
+  const [notifications, setNotifications] = useNotifications();
 
   // Auth session state
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() =>
-    loadStored('sci_exam_auth', false, (v) => typeof v === 'boolean')
-  );
+  const [isAuthenticated, setIsAuthenticated] = useAuthSession();
 
   // Modal states
   const [uploadModalData, setUploadModalData] = useState<{
@@ -106,35 +71,6 @@ export default function App() {
   const [previewExam, setPreviewExam] = useState<ExamEntity | null>(null);
   const [envelopeExam, setEnvelopeExam] = useState<ExamEntity | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Sync to localStorage
-  useEffect(() => {
-    localStorage.setItem('sci_exam_users', JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    localStorage.setItem('sci_exam_curr_user', JSON.stringify(currentUser));
-  }, [currentUser]);
-
-  useEffect(() => {
-    localStorage.setItem('sci_exam_courses', JSON.stringify(courses));
-  }, [courses]);
-
-  useEffect(() => {
-    localStorage.setItem('sci_exam_records', JSON.stringify(exams));
-  }, [exams]);
-
-  useEffect(() => {
-    localStorage.setItem('sci_exam_logs', JSON.stringify(auditLogs));
-  }, [auditLogs]);
-
-  useEffect(() => {
-    localStorage.setItem('sci_exam_notifs', JSON.stringify(notifications));
-  }, [notifications]);
-
-  useEffect(() => {
-    localStorage.setItem('sci_exam_auth', JSON.stringify(isAuthenticated));
-  }, [isAuthenticated]);
 
   // Login (REQ-0001) — set the session user and record a LOGIN audit entry
   // attributed to the user who just logged in (not to the previous session)
