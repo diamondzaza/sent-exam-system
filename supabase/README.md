@@ -7,12 +7,11 @@
 
 | ไฟล์ | หน้าที่ |
 |---|---|
-| `schema.sql` | ตาราง + enum + Row Level Security ทั้ง 5 ตาราง (users, courses, exams, audit_logs, notifications) |
-| `src/lib/supabase/client.ts` | จุดเดียวสำหรับสร้าง Supabase client (ตอนนี้เป็น placeholder) |
-| `src/lib/supabase/database.types.ts` | TypeScript types ของตาราง ใช้กับ `createClient<Database>()` |
-| `src/lib/repositories/types.ts` | interface ของชั้นจัดเก็บข้อมูล (UserRepository, ExamRepository ฯลฯ) |
-| `src/lib/repositories/local.ts` | implementation ปัจจุบัน (localStorage) |
-| `src/lib/repositories/index.ts` | factory — **จุดเดียวที่ต้องแก้ตอนสลับไป Supabase** |
+| `supabase/schema.sql` | ตาราง + enum + Row Level Security ทั้ง 5 ตาราง (users, courses, exams, audit_logs, notifications) |
+| `src/lib/supabase/client.js` | จุดเดียวสำหรับสร้าง Supabase client (ตอนนี้เป็น placeholder) |
+| `src/lib/repositories/types.js` | interface ของชั้นจัดเก็บข้อมูล (UserRepository, ExamRepository ฯลฯ) |
+| `src/lib/repositories/local.js` | implementation ปัจจุบัน (localStorage) |
+| `src/lib/repositories/index.js` | factory — **จุดเดียวที่ต้องแก้ตอนสลับไป Supabase** |
 
 ## ขั้นตอนเชื่อมต่อ
 
@@ -26,9 +25,9 @@
    SUPABASE_SERVICE_ROLE_KEY=eyJ...   # ใช้เฉพาะฝั่ง server เท่านั้น
    ```
 5. **ติดตั้งไลบรารี** — `npm install @supabase/supabase-js`
-6. **เปิด client** —  uncomment ส่วนสร้าง client ใน `src/lib/supabase/client.ts`
-7. **เขียน implementation** — สร้าง `src/lib/repositories/supabase.ts` ที่ implement
-   interface ทุกตัวใน `types.ts` แล้วสลับ factory ใน `repositories/index.ts`
+6. **เปิด client** —  uncomment ส่วนสร้าง client ใน `src/lib/supabase/client.js`
+7. **เขียน implementation** — สร้าง `src/lib/repositories/supabase.js` ที่ implement
+   interface ทุกตัวใน `types.js` แล้วสลับ factory ใน `repositories/index.js`
 8. **ย้าย state จาก hooks ไปใช้ repository** ทีละส่วน (เริ่มจาก exams ซึ่งเป็น entity หลัก)
 
 ## ข้อควรระวังด้านความปลอดภัย

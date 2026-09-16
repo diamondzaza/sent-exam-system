@@ -15,7 +15,6 @@ npm install        # ติดตั้ง dependencies
 npm run dev        # รันโหมดพัฒนา → http://localhost:3000
 npm run build      # สร้าง production build
 npm run start      # รัน production build
-npm run lint       # ตรวจ TypeScript
 ```
 
 ## บัญชีทดลอง (โหมดสาธิต)
@@ -35,24 +34,24 @@ npm run lint       # ตรวจ TypeScript
 ```
 src/
 ├── app/                    # Next.js App Router
-│   ├── layout.tsx          # Root layout — ภาษาไทย, ฟอนต์, metadata
-│   ├── page.tsx            # หน้าแรก → AppShell (mounted guard)
+│   ├── layout.jsx          # Root layout — ภาษาไทย, ฟอนต์, metadata
+│   ├── page.jsx            # หน้าแรก → AppShell (mounted guard)
 │   └── globals.css         # ธีม (Tailwind v4) + สไตล์สั่งพิมพ์
 ├── components/
-│   ├── AppShell.tsx        # แกนกลาง — state หลัก + handlers + สลับหน้าตามบทบาท
-│   ├── auth/LoginPage.tsx  # หน้าล็อกอิน
-│   ├── layout/Header.tsx   # แถบหัวเว็บ + แจ้งเตือน + สลับบัญชี
+│   ├── AppShell.jsx        # แกนกลาง — state หลัก + handlers + สลับหน้าตามบทบาท
+│   ├── auth/LoginPage.jsx  # หน้าล็อกอิน
+│   ├── layout/Header.jsx   # แถบหัวเว็บ + แจ้งเตือน + สลับบัญชี
 │   ├── views/              # หน้าจอตามบทบาท (Teacher/AudioVisual/Operations/Admin)
 │   ├── modals/             # อัปโหลดข้อสอบ, ตัวอย่างข้อสอบ, ใบปะหน้าซอง
 │   └── ui/                 # UI primitives (shadcn-style)
 ├── hooks/                  # useExams, useUsers, ... (persist ลง localStorage)
-├── data/mockData.ts        # ข้อมูลตัวอย่าง (seed)
+├── data/mockData.js        # ข้อมูลตัวอย่าง (seed)
 ├── lib/
-│   ├── repositories/       # ชั้นจัดเก็บข้อมูล — interface + localStorage impl
-│   ├── supabase/           # placeholder client + database types
-│   ├── statusLabels.ts     # ข้อความ/สีของสถานะข้อสอบ 8 สถานะ
-│   └── utils.ts            # cn() helper
-└── types/entities.ts       # Entity ทั้งหมดของระบบ
+│   ├── repositories/       # ชั้นจัดเก็บข้อมูล — interface เอกสาร + localStorage impl
+│   ├── supabase/           # placeholder client
+│   ├── statusLabels.js     # ข้อความ/สีของสถานะข้อสอบ 8 สถานะ
+│   └── utils.js            # cn() helper
+└── types/entities.js       # เอกสารรูปร่างข้อมูลทั้งหมด (JSDoc) ของระบบ
 supabase/                   # schema.sql + คู่มือเชื่อมต่อ
 ```
 
@@ -60,7 +59,9 @@ supabase/                   # schema.sql + คู่มือเชื่อม�
 
 ## เทคโนโลยี
 
-- **Next.js 15** (App Router) + **React 19** + **TypeScript**
+- **Next.js 15** (App Router) + **React 19** — เขียนด้วย **JavaScript ล้วน** (ไม่มี TypeScript)
+- รูปร่างข้อมูล (entity) อธิบายด้วย **JSDoc** ใน [src/types/entities.js](src/types/entities.js)
+  — VS Code อ่าน JSDoc แล้วช่วย autocomplete ได้
 - **Tailwind CSS v4** + shadcn-style UI primitives
 - ฟอนต์ Anuphan (หัวข้อ) / Sarabun (เนื้อหา) ผ่าน `next/font`
 
@@ -68,4 +69,4 @@ supabase/                   # schema.sql + คู่มือเชื่อม�
 
 โครงสร้างแยกชั้นข้อมูล (repository pattern) ไว้รองรับแล้ว — ขั้นตอนเชื่อมต่อจริง
 ดูที่ [supabase/README.md](supabase/README.md): ตาราง + RLS พร้อมใน `supabase/schema.sql`
-สลับ implementation ที่จุดเดียว (`src/lib/repositories/index.ts`)
+สลับ implementation ที่จุดเดียว (`src/lib/repositories/index.js`)
