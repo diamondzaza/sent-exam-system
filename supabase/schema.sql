@@ -4,8 +4,7 @@
 --
 -- วิธีใช้: สร้างโปรเจกต์ที่ https://supabase.com แล้วรัน SQL นี้ใน
 --   SQL Editor ของ Supabase Dashboard
--- ตารางออกแบบให้ตรงกับ src/lib/supabase/database.types.ts และ
---   src/types/entities.ts
+-- ตารางออกแบบให้ตรงกับ src/types/entities.js (JSDoc) และ mockData.js
 -- ═══════════════════════════════════════════════════════════
 
 -- ── Enum types ──
@@ -150,8 +149,12 @@ create policy "audit_admin_read" on audit_logs for select using (is_role('Admin'
 create policy "audit_insert" on audit_logs for insert with check (auth.role() = 'authenticated');
 
 -- notifications: อ่านเฉพาะที่ตรงบทบาทตัวเอง / ทำเครื่องหมายอ่านแล้วได้
+-- (หมายเหตุ: target_role เป็น enum ไม่มีค่า 'ALL' จึงต้องแปลงเป็น text ก่อนเทียบ)
 create policy "notif_read" on notifications for select
-  using (target_role = 'ALL' or target_role::text = (auth.jwt() -> 'user_metadata' ->> 'role'));
+  using (
+    target_role::text = 'ALL'
+    or target_role::text = (auth.jwt() -> 'user_metadata' ->> 'role')
+  );
 create policy "notif_update_read" on notifications for update using (auth.role() = 'authenticated');
 
 -- ═══════════════════════════════════════════════════════════
