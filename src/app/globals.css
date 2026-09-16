@@ -26,8 +26,9 @@
 }
 
 @theme inline {
-  --font-sans: 'Sarabun', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: 'Anuphan', 'Sarabun', ui-sans-serif, system-ui, sans-serif;
+  /* ฟอนต์ผูกกับ CSS variable จาก next/font ใน src/app/layout.tsx */
+  --font-sans: var(--font-sarabun), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-anuphan), var(--font-sarabun), ui-sans-serif, system-ui, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -57,7 +58,7 @@
 
 @layer base {
   body {
-    font-family: 'Sarabun', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sarabun), ui-sans-serif, system-ui, -apple-system, sans-serif;
   }
 }
 
