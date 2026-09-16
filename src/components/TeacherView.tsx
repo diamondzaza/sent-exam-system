@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { CourseEntity, ExamEntity, UserAccount } from '../types.ts';
-import { STATUS_LABELS } from '../mockData.ts';
+import { CourseEntity, ExamEntity, UserAccount } from '../types/entities';
+import { STATUS_LABELS } from '../lib/statusLabels';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

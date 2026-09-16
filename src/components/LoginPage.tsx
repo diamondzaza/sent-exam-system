@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserAccount } from '../types.ts';
+import { UserAccount } from '../types/entities';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

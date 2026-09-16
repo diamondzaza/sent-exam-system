@@ -1,15 +1,24 @@
+/**
+ * ─────────────────────────────────────────────────────────
+ * ชื่อไฟล์: mockData.ts
+ * หน้าที่ของไฟล์นี้: ข้อมูลตัวอย่าง (seed data) สำหรับใช้งานก่อนเชื่อมต่อฐานข้อมูลจริง —
+ *   ผู้ใช้เริ่มต้น 5 บัญชี, รายวิชา 4 วิชา, ข้อสอบ 4 รายการ,
+ *   audit logs และ notifications ตัวอย่าง
+ * หมายเหตุ: เมื่อเชื่อมต่อ Supabase แล้ว ไฟล์นี้จะถูกแทนที่ด้วยข้อมูลจากฐานข้อมูล
+ * ─────────────────────────────────────────────────────────
+ */
+
 import {
   UserAccount,
   TeacherEntity,
   CourseEntity,
   ExamEntity,
-  ExamStatus,
   AudioVisualDeptEntity,
   OperationsDeptEntity,
   AdminEntity,
   SecurityAuditLog,
   AppNotification,
-} from './types.ts';
+} from '../types/entities';
 
 export const INITIAL_USERS: UserAccount[] = [
   {
@@ -330,46 +339,3 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
     relatedExamNo: 'EX-2567-004',
   },
 ];
-
-export const STATUS_LABELS: Record<ExamStatus, { label: string; badgeClass: string; step: number }> = {
-  DRAFT: {
-    label: 'ยังไม่ได้ส่งข้อสอบ',
-    badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
-    step: 1,
-  },
-  SUBMITTED: {
-    label: 'ส่งแล้ว (รอโสตฯ ตรวจสอบ)',
-    badgeClass: 'bg-amber-50 text-amber-800 border-amber-300',
-    step: 2,
-  },
-  REJECTED: {
-    label: 'ขอให้อัปโหลดใหม่ (ส่งกลับแก้ไข)',
-    badgeClass: 'bg-rose-50 text-rose-800 border-rose-300',
-    step: 2,
-  },
-  VERIFIED: {
-    label: 'ตรวจสอบผ่านแล้ว',
-    badgeClass: 'bg-blue-50 text-blue-800 border-blue-300',
-    step: 3,
-  },
-  PRINTING: {
-    label: 'กำลังจัดพิมพ์',
-    badgeClass: 'bg-indigo-50 text-indigo-800 border-indigo-300 animate-pulse',
-    step: 4,
-  },
-  PRINTED: {
-    label: 'พิมพ์และบรรจุซองแล้ว',
-    badgeClass: 'bg-purple-50 text-purple-800 border-purple-300',
-    step: 5,
-  },
-  DELIVERED_OD: {
-    label: 'ส่งมอบฝ่ายดำเนินการสอบแล้ว',
-    badgeClass: 'bg-teal-50 text-teal-800 border-teal-300',
-    step: 6,
-  },
-  READY_FOR_EXAM: {
-    label: 'พร้อมสอบ (ในห้องมั่นคง)',
-    badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-300',
-    step: 7,
-  },
-};

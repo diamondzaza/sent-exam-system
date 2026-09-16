@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserAccount, AppNotification } from '../types.ts';
+import { UserAccount, AppNotification } from '../types/entities';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ExamEntity, UserAccount, ExamStatus } from '../types.ts';
-import { STATUS_LABELS } from '../mockData.ts';
+import { ExamEntity, UserAccount, ExamStatus } from '../types/entities';
+import { STATUS_LABELS } from '../lib/statusLabels';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

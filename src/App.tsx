@@ -11,14 +11,14 @@ import {
   SecurityAuditLog,
   AppNotification,
   ExamStatus,
-} from './types.ts';
+} from './types/entities';
 import {
   INITIAL_USERS,
   INITIAL_COURSES,
   INITIAL_EXAMS,
   INITIAL_AUDIT_LOGS,
   INITIAL_NOTIFICATIONS,
-} from './mockData.ts';
+} from './data/mockData';
 import { Header } from './components/Header.tsx';
 import { LoginPage } from './components/LoginPage.tsx';
 import { ExamEnvelopeCover } from './components/ExamEnvelopeCover.tsx';

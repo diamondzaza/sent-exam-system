@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExamEntity, UserAccount } from '../types.ts';
+import { ExamEntity, UserAccount } from '../types/entities';
 import {
   FileText,
   ShieldCheck,

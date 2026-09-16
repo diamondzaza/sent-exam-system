@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExamEntity } from '../types.ts';
+import { ExamEntity } from '../types/entities';
 import { Printer, X, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
