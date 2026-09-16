@@ -27,7 +27,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
     const [roleFilter, setRoleFilter] = useState('ALL');
     const [showAddUserModal, setShowAddUserModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
-    // Form fields for Add/Edit User
+    // Form fields for Add/Edit User (password ใช้ตอนสร้างบัญชี หรือเปลี่ยนรหัสผ่านตอนแก้ไข)
     const [formData, setFormData] = useState({
         username: '',
         name: '',
@@ -35,6 +35,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
         email: '',
         tel: '',
         department: 'สาขาวิชาวิทยาการคอมพิวเตอร์ คณะวิทยาศาสตร์',
+        password: '',
     });
     // Logs Search & Filter
     const [searchLog, setSearchLog] = useState('');
@@ -68,6 +69,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
             email: '',
             tel: '',
             department: 'คณะวิทยาศาสตร์',
+            password: '',
         });
         setShowAddUserModal(true);
     };
@@ -80,6 +82,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
             email: u.email,
             tel: u.tel,
             department: u.department,
+            password: '',
         });
         setShowAddUserModal(true);
     };
@@ -94,10 +97,9 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
             });
         }
         else {
+            // สร้างบัญชีจริง — server จะสร้างบัญชี Auth (ล็อกอินได้) + โปรไฟล์
+            // และกำหนด id เป็น uuid เอง (ไม่สร้าง id เองอีกต่อไป)
             const newUser = {
-                // Timestamp-based id: a random 3-digit id can collide with an existing
-                // user and corrupt every id-keyed action (toggle/delete/update)
-                id: `USR-${Date.now().toString(36)}`,
                 ...formData,
                 status: 'active',
             };
@@ -421,14 +423,24 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="mb-1">อีเมลติดต่อ</Label>
-                  <Input type="email" placeholder="somkiat@sci.ac.th" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}/>
+                  <Label className="mb-1">อีเมลสำหรับล็อกอิน *</Label>
+                  <Input type="email" placeholder="somkiat@sci.ac.th" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required/>
                 </div>
 
                 <div>
                   <Label className="mb-1">เบอร์โทรศัพท์</Label>
                   <Input type="text" placeholder="081-xxx-xxxx" value={formData.tel} onChange={(e) => setFormData({ ...formData, tel: e.target.value })}/>
                 </div>
+              </div>
+
+              <div>
+                <Label className="mb-1">
+                  {editingUser ? 'รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)' : 'รหัสผ่านสำหรับล็อกอิน *'}
+                </Label>
+                <Input type="password" placeholder="อย่างน้อย 6 ตัวอักษร" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required={!editingUser} minLength={6}/>
+                {!editingUser && (<p className="mt-1 text-[10px] text-slate-400">
+                    ผู้ใช้จะล็อกอินด้วยอีเมลด้านบน + รหัสผ่านนี้ทันทีหลังบันทึก
+                  </p>)}
               </div>
 
               <div>

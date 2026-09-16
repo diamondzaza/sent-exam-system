@@ -40,13 +40,13 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { createClient } from '@/lib/supabase/client';
 export default function AppShell() {
-    // Persistence state (hooks persist ลง localStorage ด้วยคีย์ sci_exam_* ตัวเดิม)
-    const [users, setUsers] = useUsers();
+    // ข้อมูลจากฐานข้อมูลผ่าน API (refresh = ดึงค่าล่าสุดจาก server)
+    const [users, , refreshUsers] = useUsers();
     const [currentUser, setCurrentUser] = useCurrentUser();
-    const [courses, setCourses] = useCourses();
-    const [exams, setExams] = useExams();
-    const [auditLogs, setAuditLogs] = useAuditLogs();
-    const [notifications, setNotifications] = useNotifications();
+    const [courses, , refreshCourses] = useCourses();
+    const [exams, , refreshExams] = useExams();
+    const [auditLogs, , refreshAuditLogs] = useAuditLogs();
+    const [notifications, setNotifications, refreshNotifications] = useNotifications();
     // Auth session state (Supabase Auth จริง — 'loading' | 'authenticated' | 'guest')
     const authStatus = useAuthSession();
     // Modal states
@@ -76,19 +76,16 @@ export default function AppShell() {
     const handleLogin = (user) => {
         setCurrentUser(user);
         showToast(`เข้าสู่ระบบในฐานะ: ${user.name} (${user.role})`);
-        const newLog = {
-            id: `LOG-${Date.now().toString().slice(-5)}`,
-            timestamp: new Date().toLocaleString('th-TH'),
-            userId: user.id,
-            userName: user.name,
-            role: user.role,
-            action: 'LOGIN',
-            subjectId: user.id,
-            subjectName: user.name,
-            ipAddress: `192.168.1.${Math.floor(Math.random() * 40) + 10}`,
-            details: `เข้าสู่ระบบสำเร็จในบทบาท ${user.role}`,
-        };
-        setAuditLogs((prev) => [newLog, ...prev]);
+        fetch('/api/audit-logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'LOGIN',
+                subjectId: user.id,
+                subjectName: user.name,
+                details: `เข้าสู่ระบบสำเร็จในบทบาท ${user.role}`,
+            }),
+        });
     };
     // Logout — ออกจากระบบจริง (ลบ session ที่ Supabase), status จะกลับเป็น 'guest' เอง
     const handleLogout = async () => {
@@ -103,94 +100,104 @@ export default function AppShell() {
             setToastMessage(null);
         }, 4000);
     };
-    // Add Security Audit Log helper
+    // Add Security Audit Log helper — เหตุการณ์ที่เกิดฝั่ง browser
+    // (เปิดดู/ดาวน์โหลด/พิมพ์) บันทึกผ่าน API เข้าฐานข้อมูล
     const addAuditLog = (action, subjectId, subjectName, details) => {
-        const newLog = {
-            id: `LOG-${Date.now().toString().slice(-5)}`,
-            timestamp: new Date().toLocaleString('th-TH'),
-            userId: currentUser.id,
-            userName: currentUser.name,
-            role: currentUser.role,
-            action,
-            subjectId,
-            subjectName,
-            ipAddress: `192.168.1.${Math.floor(Math.random() * 40) + 10}`,
-            details,
-        };
-        setAuditLogs((prev) => [newLog, ...prev]);
-    };
-    // Add Notification helper
-    const addNotification = (title, message, targetRole, type = 'info', relatedExamNo) => {
-        const newNotif = {
-            id: `N-${Date.now()}`,
-            title,
-            message,
-            timestamp: 'เมื่อสักครู่',
-            targetRole,
-            type,
-            isRead: false,
-            relatedExamNo,
-        };
-        setNotifications((prev) => [newNotif, ...prev]);
+        fetch('/api/audit-logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, subjectId, subjectName, details }),
+        });
     };
     // Teacher Handlers
     const handleOpenUploadModal = (course, existingExam, isReupload = false) => {
         setUploadModalData({ course, existingExam, isReupload });
     };
-    const handleSubmitExamUpload = (examData, isReupload) => {
+    const handleSubmitExamUpload = async (examData, isReupload) => {
         if (!uploadModalData)
             return;
-        if (isReupload && uploadModalData.existingExam) {
-            // Re-upload (REQ-0006) — clear the previous round's verification metadata
-            setExams((prev) => prev.map((e) => e.E_No === uploadModalData.existingExam.E_No
-                ? { ...e, ...examData, checked_by: undefined, verified_date: undefined, rejection_reason: undefined }
-                : e));
-            addAuditLog('REUPLOAD_EXAM', examData.Subject_ID || '', examData.Subject_Name || '', `อาจารย์อัปโหลดไฟล์ใหม่แทนที่เดิม: ${examData.file_name} (${examData.file_size})`);
-            addNotification('อาจารย์อัปโหลดข้อสอบฉบับใหม่', `อาจารย์ได้อัปโหลดไฟล์ใหม่ของวิชา ${examData.Subject_ID} ${examData.Subject_Name} กรุณาตรวจสอบใหม่อีกครั้ง`, 'AudioVisual', 'info', uploadModalData.existingExam.E_No);
-            showToast(`อัปโหลดไฟล์ข้อสอบฉบับใหม่วิชา ${examData.Subject_ID} เรียบร้อยแล้ว`);
+        const eNo = uploadModalData.existingExam?.E_No;
+        let res;
+        if (isReupload && eNo) {
+            // Re-upload (REQ-0006) — ล้างข้อมูลการตรวจสอบของรอบก่อน (ส่ง null ไปล้างคอลัมน์)
+            res = await fetch(`/api/exams/${encodeURIComponent(eNo)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    updates: {
+                        ...examData,
+                        checked_by: null,
+                        verified_date: null,
+                        rejection_reason: null,
+                    },
+                    audit: {
+                        action: 'REUPLOAD_EXAM',
+                        subjectId: examData.Subject_ID || '',
+                        subjectName: examData.Subject_Name || '',
+                        details: `อาจารย์อัปโหลดไฟล์ใหม่แทนที่เดิม: ${examData.file_name} (${examData.file_size})`,
+                    },
+                    notify: {
+                        title: 'อาจารย์อัปโหลดข้อสอบฉบับใหม่',
+                        message: `อาจารย์ได้อัปโหลดไฟล์ใหม่ของวิชา ${examData.Subject_ID} ${examData.Subject_Name} กรุณาตรวจสอบใหม่อีกครั้ง`,
+                        targetRole: 'AudioVisual',
+                        type: 'info',
+                        relatedExamNo: eNo,
+                    },
+                }),
+            });
         }
         else {
-            // New upload (REQ-0004)
-            const fullExam = examData;
-            setExams((prev) => [fullExam, ...prev]);
-            addAuditLog('UPLOAD_EXAM', fullExam.Subject_ID, fullExam.Subject_Name, `อัปโหลดข้อสอบใหม่เข้าสู่ระบบ: ${fullExam.file_name} (${fullExam.file_size}) ยอดพิมพ์ ${fullExam.total_copies} ชุด`);
-            addNotification('ข้อสอบใหม่รอการตรวจสอบ', `อาจารย์ ${currentUser.name} ได้จัดส่งข้อสอบวิชา ${fullExam.Subject_ID} เข้าสู่ระบบแล้ว`, 'AudioVisual', 'info', fullExam.E_No);
-            showToast(`จัดส่งข้อสอบวิชา ${fullExam.Subject_ID} เข้าสู่ระบบสำเร็จ`);
+            // New upload (REQ-0004) — server บันทึก audit log + แจ้งเตือนโสตฯ ให้เอง
+            res = await fetch('/api/exams', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(examData),
+            });
         }
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || 'บันทึกข้อมูลไม่สำเร็จ');
+            return;
+        }
+        await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
+        showToast(isReupload
+            ? `อัปโหลดไฟล์ข้อสอบฉบับใหม่วิชา ${examData.Subject_ID} เรียบร้อยแล้ว`
+            : `จัดส่งข้อสอบวิชา ${examData.Subject_ID} เข้าสู่ระบบสำเร็จ`);
         setUploadModalData(null);
     };
-    const handleRemoveExam = (examNo) => {
+    const handleRemoveExam = async (examNo) => {
         const targetExam = exams.find((e) => e.E_No === examNo);
         if (!targetExam)
             return;
-        setExams((prev) => prev.filter((e) => e.E_No !== examNo));
-        addAuditLog('DELETE_EXAM', targetExam.Subject_ID, targetExam.Subject_Name, `อาจารย์ยกเลิกการส่งข้อสอบรหัส ${targetExam.E_No} ออกจากระบบ`);
-        addNotification('ยกเลิกการส่งข้อสอบ', `ข้อสอบวิชา ${targetExam.Subject_ID} ได้รับการยกเลิกการส่งโดยอาจารย์ผู้สอน`, 'AudioVisual', 'warning');
+        const res = await fetch(`/api/exams/${encodeURIComponent(examNo)}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || 'ลบข้อสอบไม่สำเร็จ');
+            return;
+        }
+        await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
         showToast(`ยกเลิกการส่งข้อสอบวิชา ${targetExam.Subject_ID} เรียบร้อยแล้ว`);
     };
-    const handleAddNewCourse = (newCourse) => {
-        setCourses((prev) => [newCourse, ...prev]);
+    const handleAddNewCourse = async (newCourse) => {
+        const res = await fetch('/api/courses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newCourse),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || 'เพิ่มรายวิชาไม่สำเร็จ');
+            return;
+        }
+        await refreshCourses();
         showToast(`เพิ่มรายวิชา ${newCourse.Course_id} (${newCourse.Course_Name}) สำเร็จ`);
     };
     // AudioVisual / Operations Status Update Handler (REQ-0010)
-    const handleUpdateExamStatus = (examNo, newStatus, note) => {
-        setExams((prev) => prev.map((e) => {
-            if (e.E_No === examNo) {
-                return {
-                    ...e,
-                    status: newStatus,
-                    checked_by: newStatus === 'VERIFIED' ? currentUser.name : e.checked_by,
-                    verified_date: newStatus === 'VERIFIED' ? new Date().toLocaleString('th-TH') : e.verified_date,
-                    print_date: newStatus === 'PRINTED' ? new Date().toLocaleString('th-TH') : e.print_date,
-                    rejection_reason: newStatus === 'REJECTED' ? note : undefined,
-                };
-            }
-            return e;
-        }));
+    // — server อัปเดตข้อสอบ + บันทึก audit log + แจ้งเตือนในครั้งเดียว
+    const handleUpdateExamStatus = async (examNo, newStatus, note) => {
         const exam = exams.find((e) => e.E_No === examNo);
         const subjectId = exam ? exam.Subject_ID : '';
         const subjectName = exam ? exam.Subject_Name : '';
-        addAuditLog('UPDATE_STATUS', subjectId, subjectName, `ปรับสถานะเป็น [${newStatus}] โดย ${currentUser.name}: ${note || ''}`);
         let notifTitle = 'สถานะข้อสอบได้รับการปรับปรุง';
         let notifType = 'info';
         if (newStatus === 'VERIFIED') {
@@ -217,7 +224,38 @@ export default function AppShell() {
             notifTitle = 'ข้อสอบถูกส่งกลับแก้ไข';
             notifType = 'warning';
         }
-        addNotification(notifTitle, `วิชา ${subjectId} ${subjectName} : ${note || 'สถานะอัปเดตเป็น ' + newStatus}`, 'ALL', notifType, examNo);
+        const res = await fetch(`/api/exams/${encodeURIComponent(examNo)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                updates: {
+                    status: newStatus,
+                    checked_by: newStatus === 'VERIFIED' ? currentUser.name : undefined,
+                    verified_date: newStatus === 'VERIFIED' ? new Date().toLocaleString('th-TH') : undefined,
+                    print_date: newStatus === 'PRINTED' ? new Date().toLocaleString('th-TH') : undefined,
+                    rejection_reason: newStatus === 'REJECTED' ? note : undefined,
+                },
+                audit: {
+                    action: 'UPDATE_STATUS',
+                    subjectId,
+                    subjectName,
+                    details: `ปรับสถานะเป็น [${newStatus}] โดย ${currentUser.name}: ${note || ''}`,
+                },
+                notify: {
+                    title: notifTitle,
+                    message: `วิชา ${subjectId} ${subjectName} : ${note || 'สถานะอัปเดตเป็น ' + newStatus}`,
+                    targetRole: 'ALL',
+                    type: notifType,
+                    relatedExamNo: examNo,
+                },
+            }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || 'อัปเดตสถานะไม่สำเร็จ');
+            return;
+        }
+        await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
         showToast(`อัปเดตสถานะวิชา ${subjectId} เรียบร้อยแล้ว`);
     };
     // Preview & Download & Print handlers
@@ -243,43 +281,93 @@ export default function AppShell() {
         showToast(`ส่งคำสั่งพิมพ์ข้อสอบวิชา ${exam.Subject_ID} เข้าเครื่องพิมพ์เรียบร้อย`);
         window.print();
     };
-    // User Management Handlers (REQ-0002, REQ-0003)
-    const handleAddUser = (newUser) => {
-        setUsers((prev) => [newUser, ...prev]);
-        showToast(`เพิ่มผู้ใช้ ${newUser.name} เรียบร้อยแล้ว`);
+    // User Management Handlers (REQ-0002, REQ-0003) — ทำงานผ่าน API บนฐานข้อมูลจริง
+    const handleAddUser = async (newUser) => {
+        const res = await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newUser),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || 'เพิ่มผู้ใช้ไม่สำเร็จ');
+            return;
+        }
+        await refreshUsers();
+        showToast(`เพิ่มผู้ใช้ ${newUser.name} เรียบร้อยแล้ว (ล็อกอินได้ทันทีด้วยอีเมลนี้)`);
     };
-    const handleUpdateUser = (updatedUser) => {
-        setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    const handleUpdateUser = async (updatedUser) => {
+        // password เป็นช่องเสริมของฟอร์ม — ส่งไปเฉพาะเมื่อกรอก (เปลี่ยนรหัสผ่าน)
+        const { password, ...profile } = updatedUser;
+        const res = await fetch('/api/users', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...profile, password: password || undefined }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || 'แก้ไขผู้ใช้ไม่สำเร็จ');
+            return;
+        }
+        await refreshUsers();
         if (currentUser.id === updatedUser.id) {
-            setCurrentUser(updatedUser);
+            const data = await res.json();
+            if (data.user)
+                setCurrentUser(data.user);
         }
         showToast(`แก้ไขข้อมูล ${updatedUser.name} สำเร็จ`);
     };
-    const handleToggleUserStatus = (userId) => {
-        setUsers((prev) => prev.map((u) => {
-            if (u.id === userId) {
-                const newStatus = u.status === 'active' ? 'inactive' : 'active';
-                return { ...u, status: newStatus };
-            }
-            return u;
-        }));
+    const handleToggleUserStatus = async (userId) => {
+        const target = users.find((u) => u.id === userId);
+        const newStatus = target?.status === 'active' ? 'inactive' : 'active';
+        const res = await fetch('/api/users', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: userId, status: newStatus }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || 'เปลี่ยนสถานะไม่สำเร็จ');
+            return;
+        }
+        await refreshUsers();
         showToast(`เปลี่ยนสถานะผู้ใช้เรียบร้อย`);
     };
-    const handleDeleteUser = (userId) => {
+    const handleDeleteUser = async (userId) => {
         if (userId === currentUser.id) {
             showToast('ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้');
             return;
         }
-        setUsers((prev) => prev.filter((u) => u.id !== userId));
+        const res = await fetch('/api/users', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: userId }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || 'ลบผู้ใช้ไม่สำเร็จ');
+            return;
+        }
+        await refreshUsers();
         showToast(`ลบผู้ใช้ออกจากระบบเรียบร้อย`);
     };
     const handleMarkNotificationRead = (notifId) => {
         setNotifications((prev) => prev.map((n) => (n.id === notifId ? { ...n, isRead: true } : n)));
+        fetch('/api/notifications', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: notifId }),
+        });
     };
     const handleMarkAllNotificationsRead = () => {
         setNotifications((prev) => prev.map((n) => !n.targetRole || n.targetRole === 'ALL' || n.targetRole === currentUser.role
             ? { ...n, isRead: true }
             : n));
+        fetch('/api/notifications', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ all: true }),
+        });
         showToast('ทำเครื่องหมายอ่านการแจ้งเตือนทั้งหมดแล้ว');
     };
     // Login gate (REQ-0001): show the login page until the user is authenticated

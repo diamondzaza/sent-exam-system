@@ -40,6 +40,15 @@ const ACCOUNTS = [
     location: null,
   },
   {
+    username: 'prasit.k',
+    role: 'Teacher',
+    name: 'ผศ.ประสิทธิ์ คงมั่น',
+    email: 'prasit.k@sci.ac.th',
+    tel: '086-333-4444',
+    department: 'สาขาวิชาฟิสิกส์ประยุกต์ คณะวิทยาศาสตร์',
+    location: null,
+  },
+  {
     username: 'av.staff1',
     role: 'AudioVisual',
     name: 'นายกิตติศักดิ์ ช่างพิมพ์ (หน่วยโสตฯ)',
