@@ -1,26 +1,28 @@
 /**
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: AdminView.jsx
- * หน้าที่ของหน้านี้: แดชบอร์ดผู้ดูแลระบบ — 3 แท็บ:
+ * หน้าที่ของหน้านี้: แดชบอร์ดผู้ดูแลระบบ — 4 แท็บ:
  *   1. User Management — ตารางผู้ใช้ ค้นหา/กรองบทบาท เพิ่ม/แก้ไข/ลบ
  *      เปิด-ปิดสถานะบัญชี (REQ-0002, REQ-0003)
  *   2. Security Audit Logs — ตารางบันทึกเหตุการณ์ความปลอดภัยทั้ง 9 ประเภท
  *      พร้อมค้นหาและกรอง (เข้าใช้, ดู, ดาวน์โหลด, พิมพ์, อัปโหลด, อัปเดตสถานะ ฯลฯ)
- *   3. Security Policies — สวิตช์นโยบายความปลอดภัย (ลายน้ำ, OTP ดาวน์โหลด,
+ *   3. Account Requests — คำขอเปิดบัญชีจากผู้สมัครภายนอก (หน้า /request-account)
+ *      อนุมัติ = สร้างบัญชีจริงพร้อมรหัสผ่านเริ่มต้น / ปฏิเสธ
+ *   4. Security Policies — สวิตช์นโยบายความปลอดภัย (ลายน้ำ, OTP ดาวน์โหลด,
  *      จำกัด IP) — ยังเป็น local state ไม่ได้บันทึกถาวร
  * ผู้ใช้งาน: ผู้ดูแลระบบ (Admin)
  * ─────────────────────────────────────────────────────────
  */
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Users, Shield, Search, UserPlus, ShieldAlert, Sliders, Edit2, Trash2, X, } from 'lucide-react';
-export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUser, onToggleUserStatus, onDeleteUser, }) => {
+import { Users, Shield, Search, UserPlus, ShieldAlert, Sliders, Edit2, Trash2, X, ClipboardList, Check, XCircle, AlertCircle, } from 'lucide-react';
+export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUser, onToggleUserStatus, onDeleteUser, onRefreshUsers, }) => {
     const [activeTab, setActiveTab] = useState('USERS');
     // User Management State
     const [searchUser, setSearchUser] = useState('');
@@ -40,6 +42,82 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
     // Logs Search & Filter
     const [searchLog, setSearchLog] = useState('');
     const [logActionFilter, setLogActionFilter] = useState('ALL');
+    // Account Requests State (แท็บคำขอเปิดบัญชี)
+    const [accountRequests, setAccountRequests] = useState([]);
+    const [approvingReq, setApprovingReq] = useState(null);
+    const [approvePassword, setApprovePassword] = useState('');
+    const [approveRole, setApproveRole] = useState('Teacher');
+    const [reqError, setReqError] = useState('');
+    const [reqLoading, setReqLoading] = useState(false);
+
+    const refreshAccountRequests = async () => {
+        try {
+            const res = await fetch('/api/account-requests');
+            if (!res.ok)
+                throw new Error(String(res.status));
+            const data = await res.json();
+            setAccountRequests(data.requests ?? []);
+        }
+        catch {
+            // เชื่อมต่อไม่ได้ — แสดงรายการว่าง
+        }
+    };
+    useEffect(() => {
+        refreshAccountRequests();
+    }, []);
+
+    const pendingRequests = accountRequests.filter((r) => r.status === 'pending');
+    const reviewedRequests = accountRequests.filter((r) => r.status !== 'pending');
+
+    const handleApproveRequest = async () => {
+        if (!approvingReq)
+            return;
+        setReqError('');
+        setReqLoading(true);
+        try {
+            const res = await fetch('/api/account-requests', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: approvingReq.id,
+                    action: 'approve',
+                    password: approvePassword,
+                    role: approveRole,
+                }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                setReqError(err.error || 'อนุมัติไม่สำเร็จ');
+                return;
+            }
+            await Promise.all([refreshAccountRequests(), onRefreshUsers?.()]);
+            setApprovingReq(null);
+            setApprovePassword('');
+        }
+        finally {
+            setReqLoading(false);
+        }
+    };
+    const handleRejectRequest = async (req) => {
+        setReqError('');
+        setReqLoading(true);
+        try {
+            const res = await fetch('/api/account-requests', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: req.id, action: 'reject' }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                setReqError(err.error || 'ปฏิเสธไม่สำเร็จ');
+                return;
+            }
+            await refreshAccountRequests();
+        }
+        finally {
+            setReqLoading(false);
+        }
+    };
     // Security Policy Toggles
     const [watermarkEnabled, setWatermarkEnabled] = useState(true);
     const [requireOTPDownload, setRequireOTPDownload] = useState(true);
@@ -152,6 +230,14 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
           <span className="bg-rose-100 text-rose-800 px-2 py-0.2 rounded-full text-[10px]">
             {auditLogs.length}
           </span>
+        </button>
+
+        <button onClick={() => setActiveTab('REQUESTS')} className={`${tabBaseClass} ${activeTab === 'REQUESTS' ? tabActiveClass : tabInactiveClass}`}>
+          <ClipboardList className="w-4 h-4"/>
+          <span>คำขอเปิดบัญชี</span>
+          {pendingRequests.length > 0 && (<span className="bg-emerald-100 text-emerald-800 px-2 py-0.2 rounded-full text-[10px] font-bold">
+              {pendingRequests.length}
+            </span>)}
         </button>
 
         <button onClick={() => setActiveTab('SECURITY_POLICIES')} className={`${tabBaseClass} ${activeTab === 'SECURITY_POLICIES' ? tabActiveClass : tabInactiveClass}`}>
@@ -334,6 +420,121 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
         </div>)}
 
       {/* TAB 3: SECURITY POLICIES */}
+      {/* TAB 3: ACCOUNT REQUESTS */}
+      {activeTab === 'REQUESTS' && (<div className="space-y-4">
+          {reqError && (<div className="flex items-start space-x-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-700">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0"/>
+              <span>{reqError}</span>
+            </div>)}
+
+          {/* คำขอรอพิจารณา */}
+          <div className="flex items-center justify-between">
+            <h3 className="font-display font-bold text-sm text-slate-900">
+              รอพิจารณา <span className="text-slate-400 font-normal">({pendingRequests.length})</span>
+            </h3>
+            <Button variant="ghost" size="sm" onClick={refreshAccountRequests} className="text-indigo-600 hover:text-indigo-800 text-xs">
+              รีเฟรช
+            </Button>
+          </div>
+
+          {pendingRequests.length === 0 && (<Card className="p-8 text-center text-xs text-slate-400">
+              ไม่มีคำขอเปิดบัญชีที่รอพิจารณา
+            </Card>)}
+
+          {pendingRequests.map((req) => (<Card key={req.id} className="p-4 space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="font-bold text-sm text-slate-900">{req.name}</p>
+                  <p className="text-xs text-slate-500">
+                    ชื่อผู้ใช้ที่ขอ: <span className="font-mono font-semibold text-slate-700">{req.username}</span> • อีเมล: <span className="font-mono text-slate-700">{req.email}</span>
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {req.tel && <>โทร: {req.tel} • </>}{req.department && <>สังกัด: {req.department} • </>}
+                    ยื่นเมื่อ {new Date(req.created_at).toLocaleString('th-TH')}
+                  </p>
+                  {req.reason && (<p className="text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+                      เหตุผล: {req.reason}
+                    </p>)}
+                </div>
+                <div className="flex items-center space-x-2 shrink-0">
+                  <Button size="sm" onClick={() => { setApprovingReq(req); setApprovePassword(''); setApproveRole('Teacher'); setReqError(''); }} disabled={reqLoading} className="bg-emerald-600 hover:bg-emerald-700">
+                    <Check className="w-3.5 h-3.5"/>
+                    <span>อนุมัติ</span>
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleRejectRequest(req)} disabled={reqLoading} className="text-rose-600 hover:bg-rose-50">
+                    <XCircle className="w-3.5 h-3.5"/>
+                    <span>ปฏิเสธ</span>
+                  </Button>
+                </div>
+              </div>
+            </Card>))}
+
+          {/* พิจารณาแล้ว */}
+          {reviewedRequests.length > 0 && (<div className="pt-4">
+              <h3 className="font-display font-bold text-sm text-slate-900 mb-2">
+                พิจารณาแล้ว <span className="text-slate-400 font-normal">({reviewedRequests.length})</span>
+              </h3>
+              <Card className="divide-y divide-slate-100">
+                {reviewedRequests.map((req) => (<div key={req.id} className="p-3 flex items-center justify-between gap-3 text-xs">
+                    <div className="min-w-0">
+                      <span className="font-semibold text-slate-800">{req.name}</span>
+                      <span className="text-slate-400"> • {req.email} • </span>
+                      <span className="text-slate-400">{new Date(req.created_at).toLocaleString('th-TH')}</span>
+                    </div>
+                    <Badge className={`shrink-0 rounded ${req.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-rose-50 text-rose-700 border-rose-300'}`}>
+                      {req.status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธแล้ว'}
+                    </Badge>
+                  </div>))}
+              </Card>
+            </div>)}
+
+          {/* Modal อนุมัติ — ตั้งบทบาท + รหัสผ่านเริ่มต้น */}
+          {approvingReq && (<div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+                <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-display font-semibold text-sm">อนุมัติบัญชีใหม่</h3>
+                    <p className="text-[11px] text-slate-400">{approvingReq.name} ({approvingReq.email})</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setApprovingReq(null)} className="text-slate-400 hover:text-white hover:bg-slate-800" aria-label="ปิด">
+                    <X className="w-4 h-4"/>
+                  </Button>
+                </div>
+                <div className="p-5 space-y-4 text-xs">
+                  {reqError && (<div className="flex items-start space-x-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
+                      <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0"/>
+                      <span>{reqError}</span>
+                    </div>)}
+                  <div>
+                    <Label className="mb-1">บทบาทในระบบ</Label>
+                    <Select value={approveRole} onChange={(e) => setApproveRole(e.target.value)}>
+                      <option value="Teacher">อาจารย์ผู้สอน (Teacher)</option>
+                      <option value="AudioVisual">ฝ่ายโสตฯ (AudioVisual)</option>
+                      <option value="Operations">ฝ่ายดำเนินการสอบ (Operations)</option>
+                      <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="mb-1">รหัสผ่านเริ่มต้น (แจ้งผู้ใช้โดยตรง) *</Label>
+                    <Input type="text" value={approvePassword} onChange={(e) => setApprovePassword(e.target.value)} placeholder="อย่างน้อย 6 ตัวอักษร" minLength={6}/>
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      ระบบจะสร้างบัญชีล็อกอินด้วยอีเมล {approvingReq.email} + รหัสผ่านนี้ทันที
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-200">
+                    <Button variant="outline" size="sm" onClick={() => setApprovingReq(null)}>
+                      ยกเลิก
+                    </Button>
+                    <Button size="sm" onClick={handleApproveRequest} disabled={reqLoading || approvePassword.length < 6} className="bg-emerald-600 hover:bg-emerald-700">
+                      <Check className="w-3.5 h-3.5"/>
+                      <span>{reqLoading ? 'กำลังสร้างบัญชี...' : 'ยืนยันอนุมัติ'}</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>)}
+        </div>)}
+
       {activeTab === 'SECURITY_POLICIES' && (<Card className="p-6 space-y-6">
           <div>
             <h3 className="font-display text-base font-bold text-slate-900">

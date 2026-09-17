@@ -173,8 +173,14 @@ export const LoginPage = ({ onLogin }) => {
           </div>
 
           <div className="px-6 pb-6">
-            <div className="border-t border-slate-200 pt-4 text-[10px] text-slate-400 text-center">
-              ระบบยืนยันตัวตนผ่าน Supabase Auth — ข้อมูลการเข้าใช้งานถูกบันทึกเพื่อความปลอดภัย
+            <div className="border-t border-slate-200 pt-4 text-center space-y-2">
+              <a href="/request-account" className="inline-flex items-center space-x-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                <UserPlus className="w-3.5 h-3.5"/>
+                <span>ยังไม่มีบัญชี? — ขอสมัครบัญชีจากผู้ดูแลระบบ</span>
+              </a>
+              <p className="text-[10px] text-slate-400">
+                ระบบยืนยันตัวตนผ่าน Supabase Auth — ข้อมูลการเข้าใช้งานถูกบันทึกเพื่อความปลอดภัย
+              </p>
             </div>
           </div>
         </Card>

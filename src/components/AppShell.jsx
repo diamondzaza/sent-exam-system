@@ -440,7 +440,7 @@ export default function AppShell() {
 
         {currentUser.role === 'Operations' && (<OperationsView currentUser={currentUser} exams={exams} onOpenEnvelope={handlePrintEnvelope} onUpdateExamStatus={handleUpdateExamStatus}/>)}
 
-        {currentUser.role === 'Admin' && (<AdminView currentUser={currentUser} users={users} auditLogs={auditLogs} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onToggleUserStatus={handleToggleUserStatus} onDeleteUser={handleDeleteUser}/>)}
+        {currentUser.role === 'Admin' && (<AdminView currentUser={currentUser} users={users} auditLogs={auditLogs} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onToggleUserStatus={handleToggleUserStatus} onDeleteUser={handleDeleteUser} onRefreshUsers={refreshUsers}/>)}
       </main>
 
       {/* Footer */}
