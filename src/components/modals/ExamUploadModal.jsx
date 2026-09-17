@@ -112,7 +112,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             status: 'SUBMITTED',
             file_name: fileName,
             file_size: fileSize,
-            upload_date: new Date().toLocaleString('th-TH'),
+            upload_date: new Date().toISOString(), // ISO — DB เป็น timestamptz (แสดงผลไทยตอนอ่าน)
             envelope_notes: envelopeNotes,
             allowed_materials: selectedMaterials,
             proctors: [course.teacher_name, 'กรรมการคุมสอบร่วมประจำห้อง'],

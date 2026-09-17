@@ -257,8 +257,8 @@ export default function AppShell() {
                 updates: {
                     status: newStatus,
                     checked_by: newStatus === 'VERIFIED' ? currentUser.name : undefined,
-                    verified_date: newStatus === 'VERIFIED' ? new Date().toLocaleString('th-TH') : undefined,
-                    print_date: newStatus === 'PRINTED' ? new Date().toLocaleString('th-TH') : undefined,
+                    verified_date: newStatus === 'VERIFIED' ? new Date().toISOString() : undefined,
+                    print_date: newStatus === 'PRINTED' ? new Date().toISOString() : undefined,
                     rejection_reason: newStatus === 'REJECTED' ? note : undefined,
                 },
                 audit: {

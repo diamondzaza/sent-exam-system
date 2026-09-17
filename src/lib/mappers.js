@@ -38,6 +38,18 @@ export function examToDb(e) {
     };
 }
 
+/** แปลง timestamp จากฐานข้อมูล (ISO) เป็นข้อความไทยสำหรับแสดงผล */
+function fmtDateTime(value) {
+    if (!value)
+        return undefined;
+    try {
+        return new Date(value).toLocaleString('th-TH');
+    }
+    catch {
+        return value;
+    }
+}
+
 export function examFromDb(r) {
     return {
         E_No: r.e_no,
@@ -58,10 +70,10 @@ export function examFromDb(r) {
         status: r.status,
         file_name: r.file_name ?? undefined,
         file_size: r.file_size ?? undefined,
-        upload_date: r.upload_date ?? undefined,
+        upload_date: fmtDateTime(r.upload_date),
         checked_by: r.checked_by ?? undefined,
-        verified_date: r.verified_date ?? undefined,
-        print_date: r.print_date ?? undefined,
+        verified_date: fmtDateTime(r.verified_date),
+        print_date: fmtDateTime(r.print_date),
         envelope_notes: r.envelope_notes ?? undefined,
         allowed_materials: r.allowed_materials ?? undefined,
         rejection_reason: r.rejection_reason ?? undefined,
