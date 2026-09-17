@@ -113,14 +113,14 @@ export default function AppShell() {
     const handleOpenUploadModal = (course, existingExam, isReupload = false) => {
         setUploadModalData({ course, existingExam, isReupload });
     };
-    const handleSubmitExamUpload = async (examData, isReupload) => {
+    const handleSubmitExamUpload = async (examData, isReupload, fileObject) => {
         if (!uploadModalData)
             return;
-        const eNo = uploadModalData.existingExam?.E_No;
+        const existingNo = uploadModalData.existingExam?.E_No;
         let res;
-        if (isReupload && eNo) {
+        if (isReupload && existingNo) {
             // Re-upload (REQ-0006) — ล้างข้อมูลการตรวจสอบของรอบก่อน (ส่ง null ไปล้างคอลัมน์)
-            res = await fetch(`/api/exams/${encodeURIComponent(eNo)}`, {
+            res = await fetch(`/api/exams/${encodeURIComponent(existingNo)}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -141,7 +141,7 @@ export default function AppShell() {
                         message: `อาจารย์ได้อัปโหลดไฟล์ใหม่ของวิชา ${examData.Subject_ID} ${examData.Subject_Name} กรุณาตรวจสอบใหม่อีกครั้ง`,
                         targetRole: 'AudioVisual',
                         type: 'info',
-                        relatedExamNo: eNo,
+                        relatedExamNo: existingNo,
                     },
                 }),
             });
@@ -158,6 +158,24 @@ export default function AppShell() {
             const err = await res.json().catch(() => ({}));
             showToast(err.error || 'บันทึกข้อมูลไม่สำเร็จ');
             return;
+        }
+        // เติมเบอร์โทรจากบัญชีผู้ใช้จริง (หากฟอร์มไม่ได้ส่งมา)
+        if (!examData.teacher_tel) {
+            examData.teacher_tel = currentUser.tel;
+        }
+        // อัปโหลดไฟล์จริงขึ้น Supabase Storage (ถ้ามีเลือกไว้)
+        const eNo = existingNo ?? (await res.json())?.exam?.E_No;
+        if (fileObject && eNo) {
+            const fd = new FormData();
+            fd.append('file', fileObject);
+            fd.append('e_no', eNo);
+            const uploadRes = await fetch('/api/exams/upload', { method: 'POST', body: fd });
+            if (!uploadRes.ok) {
+                const err = await uploadRes.json().catch(() => ({}));
+                showToast(err.error || 'อัปโหลดไฟล์ไม่สำเร็จ — ลองแก้ไขรายการอีกครั้ง');
+                await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
+                return;
+            }
         }
         await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
         showToast(isReupload
@@ -263,9 +281,22 @@ export default function AppShell() {
         addAuditLog('VIEW_EXAM', exam.Subject_ID, exam.Subject_Name, `เปิดดูตัวอย่างข้อสอบและตรวจสอบลายน้ำดิจิทัล`);
         setPreviewExam(exam);
     };
-    const handleDownloadLogged = (exam) => {
+    // ดาวน์โหลดไฟล์ข้อสอบจริง — ขอ Signed URL จาก API (หมดอายุ 1 ชม.) แล้วเปิดแท็บใหม่
+    const handleDownloadLogged = async (exam) => {
         addAuditLog('DOWNLOAD_EXAM', exam.Subject_ID, exam.Subject_Name, `ดาวน์โหลดไฟล์ข้อสอบต้นฉบับ ${exam.file_name} ออกจากระบบ (เข้ารหัส Audit ID)`);
-        showToast(`บันทึก Security Audit Trail การดาวน์โหลดเรียบร้อย`);
+        try {
+            const res = await fetch(`/api/exams/${encodeURIComponent(exam.E_No)}/file`);
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                showToast(err.error || 'ดาวน์โหลดไม่สำเร็จ');
+                return;
+            }
+            const data = await res.json();
+            window.open(data.url, '_blank', 'noopener');
+        }
+        catch {
+            showToast('เกิดข้อผิดพลาดในการดาวน์โหลด');
+        }
     };
     const handlePrintEnvelope = (exam) => {
         setEnvelopeExam(exam);

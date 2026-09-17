@@ -6,13 +6,12 @@
  *   เลือกเครื่องเขียน/อุปกรณ์ที่อนุญาต (chip picker), drag-and-drop ไฟล์
  *   PDF/DOCX ไม่เกิน 25MB และยืนยันข้อตกลงความปลอดภัยก่อนส่ง
  * ผู้ใช้งาน: อาจารย์ผู้สอน (Teacher) — เปิดผ่าน AppShell ทั้งกรณีส่งใหม่และอัปโหลดซ้ำ
- * หมายเหตุ: ยังไม่อัปโหลดไฟล์จริง — เก็บเฉพาะชื่อไฟล์และขนาด
- *   (เมื่อเชื่อมต่อ Supabase Storage แล้วจะอัปโหลดไฟล์จริง)
+ * หมายเหตุ: ไฟล์ที่เลือกเก็บเป็น File object จริง แล้วส่งต่อให้ AppShell
+ *   อัปโหลดขึ้น Supabase Storage ผ่าน /api/exams/upload
  * ─────────────────────────────────────────────────────────
  */
 'use client';
 import React, { useState } from 'react';
-import { INITIAL_TEACHERS } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,6 +33,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
     // check actually runs; only seed from an existing exam on re-upload.
     const [fileName, setFileName] = useState(existingExam?.file_name || '');
     const [fileSize, setFileSize] = useState(existingExam?.file_size || '');
+    const [fileObject, setFileObject] = useState(null); // ไฟล์จริง (ส่งขึ้น Supabase Storage)
     const [isDragging, setIsDragging] = useState(false);
     const [fileUploaded, setFileUploaded] = useState(Boolean(existingExam?.file_name));
     const [securityAgreed, setSecurityAgreed] = useState(true);
@@ -67,6 +67,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
         }
         setFileName(file.name);
         setFileSize(`${(file.size / (1024 * 1024)).toFixed(1)} MB`);
+        setFileObject(file);
         setFileUploaded(true);
         setErrorMsg('');
     };
@@ -100,7 +101,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             term: course.term,
             teacher_id: course.teacher_id,
             teacher_name: course.teacher_name,
-            teacher_tel: INITIAL_TEACHERS.find((t) => t.T_ID === course.teacher_id)?.T_Tel || '',
+            teacher_tel: '', // AppShell เติมจากบัญชีผู้ใช้ที่ล็อกอินอยู่
             exam_type: examType,
             E_Date: examDate,
             E_Time: examTime,
@@ -116,7 +117,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             allowed_materials: selectedMaterials,
             proctors: [course.teacher_name, 'กรรมการคุมสอบร่วมประจำห้อง'],
         };
-        onSubmitExam(payload, isReupload);
+        onSubmitExam(payload, isReupload, fileObject);
     };
     return (<div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
