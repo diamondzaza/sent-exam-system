@@ -15,7 +15,7 @@ create table account_requests (
   reason       text,
   status       text not null default 'pending'
                check (status in ('pending', 'approved', 'rejected')),
-  reviewed_by  uuid references users(id),
+  reviewed_by  text references users(id),
   reviewed_at  timestamptz,
   created_at   timestamptz not null default now()
 );
