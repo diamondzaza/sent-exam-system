@@ -38,6 +38,7 @@ import { useExams } from '@/hooks/useExams';
 import { useAuditLogs } from '@/hooks/useAuditLogs';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { createClient } from '@/lib/supabase/client';
 export default function AppShell() {
     // ข้อมูลจากฐานข้อมูลผ่าน API (refresh = ดึงค่าล่าสุดจาก server)
@@ -71,6 +72,13 @@ export default function AppShell() {
                 setCurrentUser(profile);
         });
     }, [authStatus, setCurrentUser]);
+    // Realtime — ฟังการเปลี่ยนแปลงในฐานข้อมูล แล้วดึงข้อมูลใหม่ทันที
+    // (อาจารย์ส่งข้อสอบ → โสตฯ เห็นทันที ไม่ต้องรีเฟรชหน้า)
+    useRealtimeSync(authStatus === 'authenticated', {
+        onExamsChange: refreshExams,
+        onNotificationsChange: refreshNotifications,
+        onAuditLogsChange: refreshAuditLogs,
+    });
     // Login (REQ-0001) — รับโปรไฟล์จาก LoginPage (ยืนยันตัวตนผ่าน Supabase Auth แล้ว)
     // session จะเปลี่ยนเป็น 'authenticated' ผ่าน onAuthStateChange เอง
     const handleLogin = (user) => {
