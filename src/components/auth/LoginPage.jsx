@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Lock, KeyRound, UploadCloud, Printer, ShieldCheck, LogIn, AlertCircle, } from 'lucide-react';
+import { Lock, KeyRound, UploadCloud, Printer, ShieldCheck, LogIn, AlertCircle, UserPlus, } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 // แปลข้อความ error ของ Supabase เป็นภาษาไทย
