@@ -1,10 +1,11 @@
 /**
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: mockData.js
- * หน้าที่ของไฟล์นี้: ข้อมูลตัวอย่าง (seed data) สำหรับใช้งานก่อนเชื่อมต่อฐานข้อมูลจริง —
- *   ผู้ใช้เริ่มต้น 5 บัญชี, รายวิชา 4 วิชา, ข้อสอบ 4 รายการ,
- *   audit logs และ notifications ตัวอย่าง
- * หมายเหตุ: เมื่อเชื่อมต่อ Supabase แล้ว ไฟล์นี้จะถูกแทนที่ด้วยข้อมูลจากฐานข้อมูล
+ * หน้าที่ของไฟล์นี้: ข้อมูลเริ่มต้น (seed data) ของระบบ — ไม่ใช่ mock ของแอปอีกต่อไป
+ *   1. scripts/seed-data.js ใช้เป็นแหล่งข้อมูลสำหรับเติมตาราง Supabase
+ *      (รัน: node --env-file=.env.local scripts/seed-data.js)
+ *   2. useCurrentUser ใช้ INITIAL_USERS[0] เป็น fallback ตอนเปิดแอปครั้งแรก
+ *   ข้อมูลที่แอปแสดงจริงมาจากฐานข้อมูล Supabase ผ่าน API ทั้งหมด
  * ─────────────────────────────────────────────────────────
  */
 export const INITIAL_USERS = [
@@ -59,32 +60,6 @@ export const INITIAL_USERS = [
         tel: '02-555-2000 ต่อ 1001',
         department: 'ศูนย์เทคโนโลยีสารสนเทศ คณะวิทยาศาสตร์',
         status: 'active',
-    },
-];
-export const INITIAL_TEACHERS = [
-    {
-        T_ID: 'T001',
-        T_Name: 'สมชาย',
-        T_Lname: 'ใจดี',
-        T_Email: 'somchai.j@sci.ac.th',
-        T_Tel: '081-234-5678',
-        Department: 'สาขาวิชาวิทยาการคอมพิวเตอร์',
-    },
-    {
-        T_ID: 'T002',
-        T_Name: 'วารี',
-        T_Lname: 'สุขสวัสดิ์',
-        T_Email: 'waree.s@sci.ac.th',
-        T_Tel: '089-987-6543',
-        Department: 'สาขาวิชาคณิตศาสตร์และสถิติ',
-    },
-    {
-        T_ID: 'T003',
-        T_Name: 'ประสิทธิ์',
-        T_Lname: 'คงมั่น',
-        T_Email: 'prasit.k@sci.ac.th',
-        T_Tel: '086-333-4444',
-        Department: 'สาขาวิชาฟิสิกส์ประยุกต์',
     },
 ];
 export const INITIAL_COURSES = [
@@ -237,56 +212,6 @@ export const INITIAL_EXAMS = [
         envelope_notes: 'จัดส่งซองข้อสอบปิดผนึกพร้อมลายเซ็นกำกับปากซองให้ฝ่ายดำเนินการสอบเรียบร้อยแล้ว',
         allowed_materials: ['ปากกาลูกลื่น'],
         proctors: ['ผศ.ประสิทธิ์ คงมั่น', 'อาจารย์สมใจ บุญชู'],
-    },
-];
-export const INITIAL_AUDIT_LOGS = [
-    {
-        id: 'LOG-101',
-        timestamp: '2026-09-08 16:45:10',
-        userId: 'T002',
-        userName: 'รศ.ดร.วารี สุขสวัสดิ์',
-        role: 'Teacher',
-        action: 'UPLOAD_EXAM',
-        subjectId: 'MA102',
-        subjectName: 'แคลคูลัส 2 สำหรับวิทยาศาสตร์',
-        ipAddress: '192.168.10.45',
-        details: 'อัปโหลดไฟล์ข้อสอบต้นฉบับ MA102_Calculus2_ExamPaper.pdf (ขนาด 3.1 MB) พร้อมเข้ารหัสความปลอดภัย',
-    },
-    {
-        id: 'LOG-102',
-        timestamp: '2026-09-06 11:00:22',
-        userId: 'AVD01',
-        userName: 'นายกิตติศักดิ์ ช่างพิมพ์ (หน่วยโสตฯ)',
-        role: 'AudioVisual',
-        action: 'UPDATE_STATUS',
-        subjectId: 'CS342',
-        subjectName: 'ระบบจัดการฐานข้อมูล',
-        ipAddress: '192.168.20.12',
-        details: 'ตรวจสอบข้อสอบผ่านเกณฑ์ และเปลี่ยนสถานะเป็น [กำลังดำเนินการจัดพิมพ์] (ยอดพิมพ์ 60 ชุด + สำรอง 3)',
-    },
-    {
-        id: 'LOG-103',
-        timestamp: '2026-09-05 16:00:15',
-        userId: 'AVD01',
-        userName: 'นายกิตติศักดิ์ ช่างพิมพ์ (หน่วยโสตฯ)',
-        role: 'AudioVisual',
-        action: 'PRINT_ENVELOPE',
-        subjectId: 'CS211',
-        subjectName: 'โครงสร้างข้อมูลและขั้นตอนวิธี',
-        ipAddress: '192.168.20.12',
-        details: 'สั่งพิมพ์ใบปะหน้าซองข้อสอบและพิมพ์ข้อสอบเสร็จสิ้น พร้อมประทับตราและจัดเก็บเข้าตู้นิรภัย',
-    },
-    {
-        id: 'LOG-104',
-        timestamp: '2026-09-02 11:00:00',
-        userId: 'OD01',
-        userName: 'นางสาวธนภรณ์ อำนวยการ (ฝ่ายดำเนินการสอบ)',
-        role: 'Operations',
-        action: 'UPDATE_STATUS',
-        subjectId: 'SC101',
-        subjectName: 'วิทยาศาสตร์กายภาพและสิ่งแวดล้อม',
-        ipAddress: '192.168.30.5',
-        details: 'รับมอบซองข้อสอบปิดผนึกจากหน่วยโสตฯ และลงทะเบียนเข้าห้องมั่นคงพร้อมจัดสอบ',
     },
 ];
 export const INITIAL_NOTIFICATIONS = [

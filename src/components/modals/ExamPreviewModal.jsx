@@ -1,21 +1,43 @@
 /**
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: ExamPreviewModal.jsx
- * หน้าที่ของหน้านี้: ตัวอย่างเอกสารข้อสอบ (โหมดสาธิต) — หัวกระดาษ CONFIDENTIAL,
- *   แบนเนอร์รหัส Audit, เนื้อข้อสอบตัวอย่าง 2 หน้าพร้อมปุ่มเปลี่ยนหน้า,
- *   ลายน้ำดิจิทัลแบบทแยงซ้ำ (ชื่อผู้ใช้ + เวลา + IP) เพื่อป้องกันการหลุดรอบ,
- *   ปุ่มดาวน์โหลด (บันทึก audit log) และสั่งพิมพ์
+ * หน้าที่ของหน้านี้: ตัวอย่างเอกสารข้อสอบ — ถ้าข้อสอบมีไฟล์จริงแนบ
+ *   (จาก Supabase Storage) จะโหลด Signed URL แล้วแสดง PDF จริงใน iframe
+ *   คลุมด้วยลายน้ำดิจิทัลของผู้เปิดดู / ไฟล์ Word แสดงแจ้งเตือนให้ดาวน์โหลดแทน /
+ *   ถ้ายังไม่มีไฟล์แนบ (ข้อมูล seed) จะแสดงเอกสารตัวอย่างโหมดสาธิต 2 หน้า
+ * พร้อมหัว CONFIDENTIAL, แบนเนอร์รหัส Audit และปุ่มดาวน์โหลด (บันทึก audit log)
  * ผู้ใช้งาน: ทุกบทบาท — เปิดผ่าน AppShell
  * ─────────────────────────────────────────────────────────
  */
 'use client';
-import React, { useState } from 'react';
-import { FileText, ShieldCheck, Download, Printer, X, Lock, CheckCircle2, } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, ShieldCheck, Download, Printer, X, Lock, CheckCircle2, FileWarning, } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 export const ExamPreviewModal = ({ exam, currentUser, onClose, onDownloadLogged, onPrintRequested, }) => {
     const [activePage, setActivePage] = useState(1);
     const [downloadSuccess, setDownloadSuccess] = useState(false);
+    // โหลด Signed URL ของไฟล์จริง — ถ้าไม่มีไฟล์ (404) จะ fallback เป็นโหมดสาธิต
+    const [fileState, setFileState] = useState({ status: 'loading', url: null });
+    const isPdf = /\.(pdf)$/i.test(exam.file_name || '');
+    useEffect(() => {
+        let active = true;
+        fetch(`/api/exams/${encodeURIComponent(exam.E_No)}/file`)
+            .then(async (res) => {
+            if (!res.ok)
+                throw new Error('no file');
+            const data = await res.json();
+            if (active)
+                setFileState({ status: 'real', url: data.url });
+        })
+            .catch(() => {
+            if (active)
+                setFileState({ status: 'none', url: null });
+        });
+        return () => {
+            active = false;
+        };
+    }, [exam.E_No]);
     // Capture the watermark and audit id once per modal mount — they are security
     // identifiers and must not change between re-renders (page switches, etc.)
     const [watermarkText] = useState(() => {
@@ -89,7 +111,36 @@ export const ExamPreviewModal = ({ exam, currentUser, onClose, onDownloadLogged,
 
         {/* Document Viewer Container with Watermark */}
         <div className="flex-1 overflow-y-auto bg-slate-200 p-6 flex justify-center">
-          <div className="relative bg-white w-full max-w-3xl min-h-[750px] shadow-lg border border-slate-300 rounded-sm p-12 select-none overflow-hidden">
+          {/* กำลังโหลด Signed URL */}
+          {fileState.status === 'loading' && (<div className="self-center text-xs text-slate-500">
+              กำลังโหลดไฟล์ข้อสอบ...
+            </div>)}
+
+          {/* ไฟล์จริง — PDF แสดงใน iframe คลุมลายน้ำดิจิทัล */}
+          {fileState.status === 'real' && isPdf && (<div className="relative bg-white w-full max-w-4xl h-[800px] shadow-lg border border-slate-300 rounded-sm overflow-hidden">
+              <iframe src={fileState.url} title={`${exam.Subject_ID} - ${exam.file_name}`} className="w-full h-full"/>
+              {/* Dynamic Watermark Pattern (คลุมทับ PDF) */}
+              <div className="absolute inset-0 pointer-events-none opacity-[0.07] rotate-[-25deg] flex flex-col justify-around overflow-hidden leading-loose">
+                {Array.from({ length: 14 }).map((_, i) => (<div key={i} className="text-slate-900 font-bold text-sm tracking-widest whitespace-nowrap">
+                    {watermarkText} &nbsp;&nbsp;&nbsp;&nbsp; {watermarkText}
+                  </div>))}
+              </div>
+            </div>)}
+
+          {/* ไฟล์จริง — Word แสดงพรีวิวในเบราว์เซอร์ไม่ได้ แนะนำดาวน์โหลด */}
+          {fileState.status === 'real' && !isPdf && (<div className="self-center bg-white border border-slate-300 rounded-2xl shadow-lg p-8 max-w-md text-center space-y-3">
+              <FileWarning className="w-10 h-10 text-amber-500 mx-auto"/>
+              <p className="font-display font-semibold text-sm text-slate-900">
+                ไฟล์ข้อสอบเป็นเอกสาร Word (.docx)
+              </p>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                เบราว์เซอร์แสดงพรีวิวไฟล์ Word โดยตรงไม่ได้ — กดปุ่ม "ดาวน์โหลด" ด้านบน
+                เพื่อเปิดไฟล์ต้นฉบับด้วยโปรแกรม Word (การดาวน์โหลดถูกบันทึก Audit Log แล้ว)
+              </p>
+            </div>)}
+
+          {/* ไม่มีไฟล์แนบ (ข้อมูล seed) — แสดงเอกสารตัวอย่างโหมดสาธิต */}
+          {fileState.status === 'none' && (<div className="relative bg-white w-full max-w-3xl min-h-[750px] shadow-lg border border-slate-300 rounded-sm p-12 select-none overflow-hidden">
             {/* Dynamic Watermark Pattern */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.07] rotate-[-25deg] flex flex-col justify-around overflow-hidden leading-loose">
               {Array.from({ length: 14 }).map((_, i) => (<div key={i} className="text-slate-900 font-bold text-sm tracking-widest whitespace-nowrap">
@@ -213,7 +264,7 @@ export const ExamPreviewModal = ({ exam, currentUser, onClose, onDownloadLogged,
               </span>
               <span>รหัสสอบ: {exam.E_No}</span>
             </div>
-          </div>
+          </div>)}
         </div>
 
         {/* Modal Bottom Controls */}
