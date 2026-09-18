@@ -26,7 +26,24 @@ export async function PATCH(request, { params }) {
         if (Object.keys(dbPatch).length === 0) {
             return NextResponse.json({ error: 'ไม่มีข้อมูลที่ต้องการแก้ไข' }, { status: 400 });
         }
-        const { error: dbError } = await supabase
+        // อาจารย์ (re-upload) — RLS ไม่ให้อาจารย์ update ตาราง exams จึงตรวจ
+        // ความเป็นเจ้าของแล้วอัปเดตผ่าน admin client / โสตฯ-ดำเนินการ-แอดมิน อัปเดตผ่าน RLS ได้ตามปกติ
+        let writer = supabase;
+        if (profile.role === 'Teacher') {
+            const { data: own } = await supabase
+                .from('exams')
+                .select('teacher_id')
+                .eq('e_no', eNo)
+                .single();
+            if (!own) {
+                return NextResponse.json({ error: 'ไม่พบข้อสอบที่ระบุ' }, { status: 404 });
+            }
+            if (own.teacher_id !== user.id) {
+                return NextResponse.json({ error: 'แก้ไขได้เฉพาะข้อสอบที่ตนเองจัดส่งเท่านั้น' }, { status: 403 });
+            }
+            writer = createAdminClient();
+        }
+        const { error: dbError } = await writer
             .from('exams')
             .update(dbPatch)
             .eq('e_no', eNo);

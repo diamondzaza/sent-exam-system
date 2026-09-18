@@ -64,8 +64,10 @@ export async function POST(request) {
             return NextResponse.json({ error: `อัปโหลดไฟล์ไม่สำเร็จ: ${uploadError.message}` }, { status: 500 });
         }
 
-        // อัปเดตข้อมูลไฟล์ลงตาราง exams
-        const { error: dbError } = await supabase
+        // อัปเดตข้อมูลไฟล์ลงตาราง exams — ใช้ admin client เพราะ RLS ของตาราง exams
+        // อนุญาตให้ update เฉพาะโสตฯ/ดำเนินการ/แอดมิน (อาจารย์อัปเดตผ่าน RLS จะโดนบล็อกเงียบๆ)
+        // สิทธิ์ถูกตรวจแล้วด้านบน (requireRole Teacher/Admin)
+        const { error: dbError } = await admin
             .from('exams')
             .update({
                 file_name: file.name,
