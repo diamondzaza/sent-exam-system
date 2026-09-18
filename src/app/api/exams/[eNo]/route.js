@@ -9,8 +9,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { requireUser, requireRole } from '@/lib/api-helpers';
+import { requireUser, requireRole, createAdminClient } from '@/lib/api-helpers';
 import { examPatchToDb, auditLogToDb, notificationToDb } from '@/lib/mappers';
+
+const BUCKET = 'exam-files';
 
 export async function PATCH(request, { params }) {
     const { eNo } = await params;
@@ -56,16 +58,28 @@ export async function DELETE(request, { params }) {
     const { supabase, user, profile, error } = await requireRole(['Teacher', 'Admin']);
     if (error)
         return error;
-    // อ่านข้อสอบก่อนลบ เพื่อใช้ใน audit log
+    // อ่านข้อสอบก่อนลบ เพื่อใช้ใน audit log + ลบไฟล์ใน Storage
     const { data: exam, error: readError } = await supabase
         .from('exams')
-        .select('subject_id, subject_name')
+        .select('subject_id, subject_name, file_path')
         .eq('e_no', eNo)
         .single();
     if (readError || !exam) {
         return NextResponse.json({ error: 'ไม่พบข้อสอบที่ต้องการลบ' }, { status: 404 });
     }
-    const { error: dbError } = await supabase.from('exams').delete().eq('e_no', eNo);
+    // ปลดลิงก์การแจ้งเตือนที่อ้างอิงข้อสอบนี้ก่อน (FK) — เก็บประวัติแจ้งเตือนไว้ แค่ไม่ผูกกับแถวที่จะลบ
+    const admin = createAdminClient();
+    await admin
+        .from('notifications')
+        .update({ related_exam_no: null })
+        .eq('related_exam_no', eNo);
+    // ลบไฟล์จริงใน Storage (ถ้ามี)
+    if (exam.file_path) {
+        await admin.storage.from(BUCKET).remove([exam.file_path]);
+    }
+    // ลบผ่าน admin client — ตาราง exams ไม่มีนโยบาย DELETE ใน RLS (การลบ
+    // อนุญาตเฉพาะผ่าน API นี้ ซึ่งตรวจสิทธิ์ Teacher/Admin และบันทึก audit แล้ว)
+    const { error: dbError } = await admin.from('exams').delete().eq('e_no', eNo);
     if (dbError) {
         return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
