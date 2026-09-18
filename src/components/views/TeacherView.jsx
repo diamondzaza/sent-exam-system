@@ -3,7 +3,7 @@
  * ชื่อไฟล์: TeacherView.jsx
  * หน้าที่ของหน้านี้: แดชบอร์ดสำหรับอาจารย์ผู้สอน — เลือกรายวิชาที่สอนแบบ 2 ขั้นตอน,
  *   จัดส่ง/อัปโหลดไฟล์ข้อสอบ, ติดตามสถานะข้อสอบด้วย progress tracker 5 ขั้น,
- *   ยกเลิกการส่ง (ก่อนพิมพ์เท่านั้น), เพิ่มรายวิชาใหม่ และพิมพ์ใบปะหน้าซองข้อสอบ
+ *   ลบข้อสอบของตนเองได้ทุกสถานะ (ระบบลบไฟล์แนบ + บันทึก audit ให้อัตโนมัติ),
  * ผู้ใช้งาน: อาจารย์ผู้สอน (Teacher)
  * ฟีเจอร์หลัก:
  *   1. การ์ดรายวิชาพร้อมสถานะข้อสอบล่าสุด (STATUS_LABELS)
@@ -239,7 +239,7 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
           </div>
           <div className="text-xs text-slate-500 flex items-center space-x-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
-            <span>ยกเลิกและอัปโหลดใหม่ได้ก่อนเริ่มพิมพ์</span>
+            <span>อาจารย์ยกเลิกข้อสอบของตนเองได้ทุกสถานะ (ระบบบันทึกประวัติให้ทุกครั้ง)</span>
           </div>
         </div>
 
@@ -302,14 +302,14 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
                               <span>อัปโหลดใหม่</span>
                             </Button>)}
 
-                          {/* Cancel / Remove upload if not yet printed */}
-                          {['SUBMITTED', 'VERIFIED', 'REJECTED'].includes(exam.status) && (<Button variant="outline" size="sm" onClick={() => {
-                            if (confirm(`ยืนยันการยกเลิกการส่งข้อสอบวิชา ${course.Course_id}?`)) {
+                          {/* Delete — อาจารย์ลบข้อสอบของตนเองได้ทุกสถานะ (ระบบจะลบไฟล์แนบ + บันทึก audit) */}
+                          {(<Button variant="outline" size="sm" onClick={() => {
+                            if (confirm(`ยืนยันการลบข้อสอบวิชา ${course.Course_id} ออกจากระบบ?\n(ไฟล์แนบและประวัติที่ผูกกับรายการนี้จะถูกลบด้วย)`)) {
                                 onRemoveExam(exam.E_No);
                             }
-                        }} className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-700" title="ยกเลิกการส่งข้อสอบฉบับนี้">
+                        }} className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-700" title="ลบข้อสอบฉบับนี้ออกจากระบบ">
                               <Trash2 />
-                              <span>ยกเลิกส่ง</span>
+                              <span>ลบ</span>
                             </Button>)}
                         </>)}
                     </div>

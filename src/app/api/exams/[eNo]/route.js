@@ -61,11 +61,15 @@ export async function DELETE(request, { params }) {
     // อ่านข้อสอบก่อนลบ เพื่อใช้ใน audit log + ลบไฟล์ใน Storage
     const { data: exam, error: readError } = await supabase
         .from('exams')
-        .select('subject_id, subject_name, file_path')
+        .select('subject_id, subject_name, file_path, teacher_id')
         .eq('e_no', eNo)
         .single();
     if (readError || !exam) {
         return NextResponse.json({ error: 'ไม่พบข้อสอบที่ต้องการลบ' }, { status: 404 });
+    }
+    // อาจารย์ลบได้เฉพาะข้อสอบของตนเอง (แอดมินลบได้ทุกรายการ)
+    if (profile.role === 'Teacher' && exam.teacher_id !== user.id) {
+        return NextResponse.json({ error: 'ลบได้เฉพาะข้อสอบที่ตนเองจัดส่งเท่านั้น' }, { status: 403 });
     }
     // ปลดลิงก์การแจ้งเตือนที่อ้างอิงข้อสอบนี้ก่อน (FK) — เก็บประวัติแจ้งเตือนไว้ แค่ไม่ผูกกับแถวที่จะลบ
     const admin = createAdminClient();
