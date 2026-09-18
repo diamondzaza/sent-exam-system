@@ -11,6 +11,7 @@
  */
 'use client';
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '@/lib/supabase/client';
 import { FileText, ShieldCheck, Download, Printer, X, Lock, CheckCircle2, FileWarning, } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,7 @@ export const ExamPreviewModal = ({ exam, currentUser, onClose, onDownloadLogged,
     useEffect(() => {
         let active = true;
         // โหลด Signed URL — ถ้าล้มเหลว (เช่น deploy ช่วงเปลี่ยนเวอร์ชัน) ให้ลองซ้ำ 1 ครั้งก่อนสรุปว่าไม่มีไฟล์
-        const load = (attempt) => fetch(`/api/exams/${encodeURIComponent(exam.E_No)}/file`)
+        const load = (attempt) => authFetch(`/api/exams/${encodeURIComponent(exam.E_No)}/file`)
             .then(async (res) => {
             if (!res.ok)
                 throw new Error('no file');

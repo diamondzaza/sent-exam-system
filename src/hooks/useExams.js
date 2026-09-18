@@ -1,4 +1,5 @@
 'use client';
+import { authFetch } from '@/lib/supabase/client';
 
 /**
  * ─────────────────────────────────────────────────────────
@@ -17,7 +18,7 @@ export function useExams() {
 
     const refresh = useCallback(async () => {
         try {
-            const res = await fetch('/api/exams');
+            const res = await authFetch('/api/exams');
             if (!res.ok) throw new Error(String(res.status));
             const data = await res.json();
             setExams(data.exams ?? []);

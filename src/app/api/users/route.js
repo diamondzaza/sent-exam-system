@@ -14,8 +14,8 @@ import { NextResponse } from 'next/server';
 import { requireUser, requireRole, createAdminClient } from '@/lib/api-helpers';
 import { userToDb, userFromDb } from '@/lib/mappers';
 
-export async function GET() {
-    const { supabase, error } = await requireUser();
+export async function GET(request) {
+    const { supabase, error } = await requireUser(request);
     if (error)
         return error;
     const { data, error: dbError } = await supabase
@@ -29,7 +29,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
-    const { error } = await requireRole(['Admin']);
+    const { error } = await requireRole(['Admin'], request);
     if (error)
         return error;
     try {
@@ -76,7 +76,7 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-    const { supabase, user, error } = await requireRole(['Admin']);
+    const { supabase, user, error } = await requireRole(['Admin'], request);
     if (error)
         return error;
     try {
@@ -126,7 +126,7 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
-    const { user, error } = await requireRole(['Admin']);
+    const { user, error } = await requireRole(['Admin'], request);
     if (error)
         return error;
     try {

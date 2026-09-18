@@ -15,6 +15,7 @@
  */
 'use client';
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -52,7 +53,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
 
     const refreshAccountRequests = async () => {
         try {
-            const res = await fetch('/api/account-requests');
+            const res = await authFetch('/api/account-requests');
             if (!res.ok)
                 throw new Error(String(res.status));
             const data = await res.json();
@@ -75,7 +76,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
         setReqError('');
         setReqLoading(true);
         try {
-            const res = await fetch('/api/account-requests', {
+            const res = await authFetch('/api/account-requests', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -102,7 +103,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
         setReqError('');
         setReqLoading(true);
         try {
-            const res = await fetch('/api/account-requests', {
+            const res = await authFetch('/api/account-requests', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: req.id, action: 'reject' }),

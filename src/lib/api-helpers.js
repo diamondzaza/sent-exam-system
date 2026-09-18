@@ -1,20 +1,42 @@
 /**
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: api-helpers.js
- * หน้าที่ของไฟล์นี้: ตัวช่วยสำหรับ API routes — ตรวจ session ผู้ใช้,
- *   ตรวจบทบาท (role) และสร้าง admin client (service role) สำหรับงานที่
- *   ต้องข้าม RLS เช่น สร้างบัญชีผู้ใช้ (ใช้เฉพาะฝั่ง server เท่านั้น)
+ * หน้าที่ของไฟล์นี้: ตัวช่วยสำหรับ API routes — ตรวจสิทธิ์จาก Bearer token
+ *   ใน header (session แบบแยกต่อแท็บ) ไม่ใช่ cookie แล้ว:
+ *   • requireUser(request)      → ต้องล็อกอิน
+ *   • requireRole(roles, request) → ต้องล็อกอินและมีบทบาทที่กำหนด
+ *   • createAdminClient()       → service role (ใช้เฉพาะฝั่ง server เท่านั้น)
  * ─────────────────────────────────────────────────────────
  */
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { userFromDb } from '@/lib/mappers';
 
+/** สร้าง client ที่รันในนามผู้ใช้จาก JWT (คิวรี่ทุกอันจะถูกบังคับด้วย RLS) */
+function clientWithToken(token) {
+    return createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        {
+            global: { headers: { Authorization: `Bearer ${token}` } },
+            auth: { persistSession: false, autoRefreshToken: false },
+        }
+    );
+}
+
+function getBearer(request) {
+    const header = request.headers.get('authorization') ?? '';
+    return header.replace(/^Bearer\s+/i, '').trim();
+}
+
 /** ตรวจว่า request มาจากผู้ที่ล็อกอินหรือไม่ — คืน { supabase, user } หรือ NextResponse 401 */
-export async function requireUser() {
-    const supabase = await createClient();
+export async function requireUser(request) {
+    const token = getBearer(request);
+    if (!token) {
+        return { error: NextResponse.json({ error: 'ไม่ได้เข้าสู่ระบบ' }, { status: 401 }) };
+    }
+    const supabase = clientWithToken(token);
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
         return { error: NextResponse.json({ error: 'ไม่ได้เข้าสู่ระบบ' }, { status: 401 }) };
@@ -23,8 +45,8 @@ export async function requireUser() {
 }
 
 /** ตรวจว่าผู้ใช้มีบทบาทใดบทบาทหนึ่งที่อนุญาต — คืน { supabase, user, profile } หรือ NextResponse 401/403 */
-export async function requireRole(roles) {
-    const result = await requireUser();
+export async function requireRole(roles, request) {
+    const result = await requireUser(request);
     if (result.error)
         return result;
     const { supabase, user } = result;

@@ -10,8 +10,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { requireRole, createAdminClient } from '@/lib/api-helpers';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { requireRole } from '@/lib/api-helpers';
 import { userToDb, userFromDb } from '@/lib/mappers';
 
 /** ยื่นคำขอ — สาธารณะ */
@@ -28,7 +28,11 @@ export async function POST(request) {
             return NextResponse.json({ error: 'รูปแบบอีเมลไม่ถูกต้อง' }, { status: 400 });
         }
         // ใช้ client แบบไม่มี session (anon) — RLS อนุญาตเฉพาะ insert
-        const supabase = await createClient();
+        const supabase = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+            { auth: { persistSession: false } }
+        );
         const { error: dbError } = await supabase.from('account_requests').insert({
             username: String(body.username).trim(),
             name: String(body.name).trim(),
@@ -48,8 +52,8 @@ export async function POST(request) {
 }
 
 /** อ่านรายการคำขอ — Admin เท่านั้น */
-export async function GET() {
-    const { supabase, error } = await requireRole(['Admin']);
+export async function GET(request) {
+    const { supabase, error } = await requireRole(['Admin'], request);
     if (error)
         return error;
     const { data, error: dbError } = await supabase
@@ -64,7 +68,7 @@ export async function GET() {
 
 /** อนุมัติ / ปฏิเสธ — Admin เท่านั้น */
 export async function PATCH(request) {
-    const { supabase, user, error } = await requireRole(['Admin']);
+    const { supabase, user, error } = await requireRole(['Admin'], request);
     if (error)
         return error;
     try {

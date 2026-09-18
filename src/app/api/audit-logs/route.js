@@ -12,8 +12,8 @@ import { NextResponse } from 'next/server';
 import { requireUser, requireRole } from '@/lib/api-helpers';
 import { auditLogFromDb, auditLogToDb } from '@/lib/mappers';
 
-export async function GET() {
-    const { supabase, error } = await requireRole(['Admin']);
+export async function GET(request) {
+    const { supabase, error } = await requireRole(['Admin'], request);
     if (error)
         return error;
     const { data, error: dbError } = await supabase
@@ -28,7 +28,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
-    const { supabase, user, profile, error } = await requireUser();
+    const { supabase, user, profile, error } = await requireUser(request);
     if (error)
         return error;
     try {

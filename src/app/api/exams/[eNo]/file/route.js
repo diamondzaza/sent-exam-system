@@ -17,7 +17,7 @@ const SIGNED_URL_TTL = 60 * 60; // 1 ชั่วโมง
 
 export async function GET(request, { params }) {
     const { eNo } = await params;
-    const { supabase, error } = await requireUser();
+    const { supabase, error } = await requireUser(request);
     if (error)
         return error;
 

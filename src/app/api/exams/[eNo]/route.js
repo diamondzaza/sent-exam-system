@@ -16,7 +16,7 @@ const BUCKET = 'exam-files';
 
 export async function PATCH(request, { params }) {
     const { eNo } = await params;
-    const { supabase, user, profile, error } = await requireUser();
+    const { supabase, user, profile, error } = await requireUser(request);
     if (error)
         return error;
     try {
@@ -72,7 +72,7 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
     const { eNo } = await params;
-    const { supabase, user, profile, error } = await requireRole(['Teacher', 'Admin']);
+    const { supabase, user, profile, error } = await requireRole(['Teacher', 'Admin'], request);
     if (error)
         return error;
     // อ่านข้อสอบก่อนลบ เพื่อใช้ใน audit log + ลบไฟล์ใน Storage

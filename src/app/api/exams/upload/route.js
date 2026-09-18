@@ -22,7 +22,7 @@ function sanitizeName(name) {
 }
 
 export async function POST(request) {
-    const { supabase, error } = await requireRole(['Teacher', 'Admin']);
+    const { supabase, error } = await requireRole(['Teacher', 'Admin'], request);
     if (error)
         return error;
     try {

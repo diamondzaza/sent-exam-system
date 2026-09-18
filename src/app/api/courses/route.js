@@ -11,8 +11,8 @@ import { NextResponse } from 'next/server';
 import { requireUser, requireRole } from '@/lib/api-helpers';
 import { courseToDb, courseFromDb } from '@/lib/mappers';
 
-export async function GET() {
-    const { supabase, error } = await requireUser();
+export async function GET(request) {
+    const { supabase, error } = await requireUser(request);
     if (error)
         return error;
     const { data, error: dbError } = await supabase
@@ -26,7 +26,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
-    const { supabase, error } = await requireRole(['Teacher', 'Admin']);
+    const { supabase, error } = await requireRole(['Teacher', 'Admin'], request);
     if (error)
         return error;
     try {

@@ -40,6 +40,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { createClient } from '@/lib/supabase/client';
+import { authFetch } from '@/lib/supabase/client';
 export default function AppShell() {
     // ข้อมูลจากฐานข้อมูลผ่าน API (refresh = ดึงค่าล่าสุดจาก server)
     const [users, , refreshUsers] = useUsers();
@@ -84,7 +85,7 @@ export default function AppShell() {
     const handleLogin = (user) => {
         setCurrentUser(user);
         showToast(`เข้าสู่ระบบในฐานะ: ${user.name} (${user.role})`);
-        fetch('/api/audit-logs', {
+        authFetch('/api/audit-logs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -111,7 +112,7 @@ export default function AppShell() {
     // Add Security Audit Log helper — เหตุการณ์ที่เกิดฝั่ง browser
     // (เปิดดู/ดาวน์โหลด/พิมพ์) บันทึกผ่าน API เข้าฐานข้อมูล
     const addAuditLog = (action, subjectId, subjectName, details) => {
-        fetch('/api/audit-logs', {
+        authFetch('/api/audit-logs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action, subjectId, subjectName, details }),
@@ -128,7 +129,7 @@ export default function AppShell() {
         let res;
         if (isReupload && existingNo) {
             // Re-upload (REQ-0006) — ล้างข้อมูลการตรวจสอบของรอบก่อน (ส่ง null ไปล้างคอลัมน์)
-            res = await fetch(`/api/exams/${encodeURIComponent(existingNo)}`, {
+            res = await authFetch(`/api/exams/${encodeURIComponent(existingNo)}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -156,7 +157,7 @@ export default function AppShell() {
         }
         else {
             // New upload (REQ-0004) — server บันทึก audit log + แจ้งเตือนโสตฯ ให้เอง
-            res = await fetch('/api/exams', {
+            res = await authFetch('/api/exams', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(examData),
@@ -177,7 +178,7 @@ export default function AppShell() {
             const fd = new FormData();
             fd.append('file', fileObject);
             fd.append('e_no', eNo);
-            const uploadRes = await fetch('/api/exams/upload', { method: 'POST', body: fd });
+            const uploadRes = await authFetch('/api/exams/upload', { method: 'POST', body: fd });
             if (!uploadRes.ok) {
                 const err = await uploadRes.json().catch(() => ({}));
                 showToast(err.error || 'อัปโหลดไฟล์ไม่สำเร็จ — ลองแก้ไขรายการอีกครั้ง');
@@ -195,7 +196,7 @@ export default function AppShell() {
         const targetExam = exams.find((e) => e.E_No === examNo);
         if (!targetExam)
             return;
-        const res = await fetch(`/api/exams/${encodeURIComponent(examNo)}`, { method: 'DELETE' });
+        const res = await authFetch(`/api/exams/${encodeURIComponent(examNo)}`, { method: 'DELETE' });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             showToast(err.error || 'ลบข้อสอบไม่สำเร็จ');
@@ -205,7 +206,7 @@ export default function AppShell() {
         showToast(`ยกเลิกการส่งข้อสอบวิชา ${targetExam.Subject_ID} เรียบร้อยแล้ว`);
     };
     const handleAddNewCourse = async (newCourse) => {
-        const res = await fetch('/api/courses', {
+        const res = await authFetch('/api/courses', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newCourse),
@@ -250,7 +251,7 @@ export default function AppShell() {
             notifTitle = 'ข้อสอบถูกส่งกลับแก้ไข';
             notifType = 'warning';
         }
-        const res = await fetch(`/api/exams/${encodeURIComponent(examNo)}`, {
+        const res = await authFetch(`/api/exams/${encodeURIComponent(examNo)}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -293,7 +294,7 @@ export default function AppShell() {
     const handleDownloadLogged = async (exam) => {
         addAuditLog('DOWNLOAD_EXAM', exam.Subject_ID, exam.Subject_Name, `ดาวน์โหลดไฟล์ข้อสอบต้นฉบับ ${exam.file_name} ออกจากระบบ (เข้ารหัส Audit ID)`);
         try {
-            const res = await fetch(`/api/exams/${encodeURIComponent(exam.E_No)}/file`);
+            const res = await authFetch(`/api/exams/${encodeURIComponent(exam.E_No)}/file`);
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 showToast(err.error || 'ดาวน์โหลดไม่สำเร็จ');
@@ -322,7 +323,7 @@ export default function AppShell() {
     };
     // User Management Handlers (REQ-0002, REQ-0003) — ทำงานผ่าน API บนฐานข้อมูลจริง
     const handleAddUser = async (newUser) => {
-        const res = await fetch('/api/users', {
+        const res = await authFetch('/api/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newUser),
@@ -338,7 +339,7 @@ export default function AppShell() {
     const handleUpdateUser = async (updatedUser) => {
         // password เป็นช่องเสริมของฟอร์ม — ส่งไปเฉพาะเมื่อกรอก (เปลี่ยนรหัสผ่าน)
         const { password, ...profile } = updatedUser;
-        const res = await fetch('/api/users', {
+        const res = await authFetch('/api/users', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...profile, password: password || undefined }),
@@ -359,7 +360,7 @@ export default function AppShell() {
     const handleToggleUserStatus = async (userId) => {
         const target = users.find((u) => u.id === userId);
         const newStatus = target?.status === 'active' ? 'inactive' : 'active';
-        const res = await fetch('/api/users', {
+        const res = await authFetch('/api/users', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: userId, status: newStatus }),
@@ -377,7 +378,7 @@ export default function AppShell() {
             showToast('ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้');
             return;
         }
-        const res = await fetch('/api/users', {
+        const res = await authFetch('/api/users', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: userId }),
@@ -392,7 +393,7 @@ export default function AppShell() {
     };
     const handleMarkNotificationRead = (notifId) => {
         setNotifications((prev) => prev.map((n) => (n.id === notifId ? { ...n, isRead: true } : n)));
-        fetch('/api/notifications', {
+        authFetch('/api/notifications', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: notifId }),
@@ -402,7 +403,7 @@ export default function AppShell() {
         setNotifications((prev) => prev.map((n) => !n.targetRole || n.targetRole === 'ALL' || n.targetRole === currentUser.role
             ? { ...n, isRead: true }
             : n));
-        fetch('/api/notifications', {
+        authFetch('/api/notifications', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ all: true }),

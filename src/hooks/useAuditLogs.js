@@ -1,4 +1,5 @@
 'use client';
+import { authFetch } from '@/lib/supabase/client';
 
 /**
  * ─────────────────────────────────────────────────────────
@@ -16,7 +17,7 @@ export function useAuditLogs() {
 
     const refresh = useCallback(async () => {
         try {
-            const res = await fetch('/api/audit-logs');
+            const res = await authFetch('/api/audit-logs');
             if (!res.ok) throw new Error(String(res.status));
             const data = await res.json();
             setAuditLogs(data.logs ?? []);

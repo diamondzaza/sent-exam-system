@@ -3,14 +3,42 @@
 /**
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: useCurrentUser.js
- * หน้าที่ของไฟล์นี้: hook เก็บโปรไฟล์ผู้ใช้ที่ล็อกอินอยู่ (cache ใน localStorage
- *   เพื่อให้หน้าจอติดขึ้นเร็ว) — ค่าเริ่มต้นเป็น null ไม่มี mock user แล้ว
+ * หน้าที่ของไฟล์นี้: hook เก็บโปรไฟล์ผู้ใช้ที่ล็อกอินอยู่ —
+ *   เก็บใน sessionStorage (แยกต่อแท็บ, ปิดแท็บ = หาย) ไม่ใช่ localStorage
  *   AppShell จะดึงโปรไฟล์จริงจากตาราง users ทุกครั้งที่มี session
  * ─────────────────────────────────────────────────────────
  */
 
-import { useLocalStorageState } from './useLocalStorageState';
+import { useEffect, useState } from 'react';
+
+const KEY = 'sci_exam_curr_user';
 
 export function useCurrentUser() {
-    return useLocalStorageState('sci_exam_curr_user', null, (v) => v && typeof v.id === 'string');
+    const [currentUser, setCurrentUser] = useState(() => {
+        if (typeof window === 'undefined')
+            return null;
+        try {
+            const raw = window.sessionStorage.getItem(KEY);
+            return raw ? JSON.parse(raw) : null;
+        }
+        catch {
+            return null;
+        }
+    });
+
+    useEffect(() => {
+        try {
+            if (currentUser) {
+                window.sessionStorage.setItem(KEY, JSON.stringify(currentUser));
+            }
+            else {
+                window.sessionStorage.removeItem(KEY);
+            }
+        }
+        catch {
+            // sessionStorage ใช้ไม่ได้ — ข้าม
+        }
+    }, [currentUser]);
+
+    return [currentUser, setCurrentUser];
 }
