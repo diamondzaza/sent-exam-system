@@ -11,7 +11,7 @@ import { authFetch } from '@/lib/supabase/client';
 
 import { useCallback, useEffect, useState } from 'react';
 
-export function useUsers() {
+export function useUsers(enabled = true) {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -29,8 +29,10 @@ export function useUsers() {
     }, []);
 
     useEffect(() => {
+        if (!enabled)
+            return;
         refresh();
-    }, [refresh]);
+    }, [refresh, enabled]);
 
     return [users, setUsers, refresh, loading];
 }

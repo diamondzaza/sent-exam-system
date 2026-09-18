@@ -12,7 +12,7 @@ import { authFetch } from '@/lib/supabase/client';
 
 import { useCallback, useEffect, useState } from 'react';
 
-export function useExams() {
+export function useExams(enabled = true) {
     const [exams, setExams] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -30,8 +30,10 @@ export function useExams() {
     }, []);
 
     useEffect(() => {
+        if (!enabled)
+            return;
         refresh();
-    }, [refresh]);
+    }, [refresh, enabled]);
 
     return [exams, setExams, refresh, loading];
 }

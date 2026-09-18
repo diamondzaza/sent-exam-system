@@ -18,16 +18,22 @@ export function isSupabaseConfigured() {
     return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
 
+// Singleton — สร้าง GoTrueClient ครั้งเดียวต่อแท็บ (กัน warning Multiple GoTrueClient)
+let instance = null;
+
 export function createClient() {
-    return createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-            // เก็บ session ใน sessionStorage = ขอบเขตต่อแท็บ
-            storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
-            persistSession: true,
-            autoRefreshToken: true,
-            detectSessionInUrl: false,
-        },
-    });
+    if (!instance) {
+        instance = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                // เก็บ session ใน sessionStorage = ขอบเขตต่อแท็บ
+                storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: false,
+            },
+        });
+    }
+    return instance;
 }
 
 /**

@@ -11,7 +11,7 @@ import { authFetch } from '@/lib/supabase/client';
 
 import { useCallback, useEffect, useState } from 'react';
 
-export function useAuditLogs() {
+export function useAuditLogs(enabled = true) {
     const [auditLogs, setAuditLogs] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -29,8 +29,10 @@ export function useAuditLogs() {
     }, []);
 
     useEffect(() => {
+        if (!enabled)
+            return;
         refresh();
-    }, [refresh]);
+    }, [refresh, enabled]);
 
     return [auditLogs, setAuditLogs, refresh, loading];
 }

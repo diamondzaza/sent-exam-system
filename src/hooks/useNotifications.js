@@ -11,7 +11,7 @@ import { authFetch } from '@/lib/supabase/client';
 
 import { useCallback, useEffect, useState } from 'react';
 
-export function useNotifications() {
+export function useNotifications(enabled = true) {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -29,8 +29,10 @@ export function useNotifications() {
     }, []);
 
     useEffect(() => {
+        if (!enabled)
+            return;
         refresh();
-    }, [refresh]);
+    }, [refresh, enabled]);
 
     return [notifications, setNotifications, refresh, loading];
 }

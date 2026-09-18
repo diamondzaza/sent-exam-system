@@ -31,26 +31,20 @@ import { AudioVisualView } from '@/components/views/AudioVisualView';
 import { OperationsView } from '@/components/views/OperationsView';
 import { AdminView } from '@/components/views/AdminView';
 import { CheckCircle2 } from 'lucide-react';
-import { useUsers } from '@/hooks/useUsers';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useCourses } from '@/hooks/useCourses';
-import { useExams } from '@/hooks/useExams';
-import { useAuditLogs } from '@/hooks/useAuditLogs';
-import { useNotifications } from '@/hooks/useNotifications';
+import { createClient, authFetch } from '@/lib/supabase/client';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
-import { createClient } from '@/lib/supabase/client';
-import { authFetch } from '@/lib/supabase/client';
 export default function AppShell() {
-    // ข้อมูลจากฐานข้อมูลผ่าน API (refresh = ดึงค่าล่าสุดจาก server)
-    const [users, , refreshUsers] = useUsers();
-    const [currentUser, setCurrentUser] = useCurrentUser();
-    const [courses, , refreshCourses] = useCourses();
-    const [exams, , refreshExams] = useExams();
-    const [auditLogs, , refreshAuditLogs] = useAuditLogs();
-    const [notifications, setNotifications, refreshNotifications] = useNotifications();
     // Auth session state (Supabase Auth จริง — 'loading' | 'authenticated' | 'guest')
+    // ประกาศก่อน hooks อื่น เพราะ hooks ข้อมูลต้องใช้สถานะนี้เป็นเงื่อนไข
     const authStatus = useAuthSession();
+    // ข้อมูลจากฐานข้อมูลผ่าน API (refresh = ดึงค่าล่าสุดจาก server) — ยิงเมื่อล็อกอินแล้วเท่านั้น
+    const [users, , refreshUsers] = useUsers(authStatus === 'authenticated');
+    const [currentUser, setCurrentUser] = useCurrentUser();
+    const [courses, , refreshCourses] = useCourses(authStatus === 'authenticated');
+    const [exams, , refreshExams] = useExams(authStatus === 'authenticated');
+    const [auditLogs, , refreshAuditLogs] = useAuditLogs(authStatus === 'authenticated');
+    const [notifications, setNotifications, refreshNotifications] = useNotifications(authStatus === 'authenticated');
     // Modal states
     const [uploadModalData, setUploadModalData] = useState(null);
     const [previewExam, setPreviewExam] = useState(null);
@@ -420,6 +414,12 @@ export default function AppShell() {
     // Login gate (REQ-0001) — Supabase Auth
     if (authStatus === 'guest') {
         return <LoginPage onLogin={handleLogin}/>;
+    }
+    // ล็อกอินแล้วแต่โปรไฟล์ยังโหลดไม่เสร็จ — แสดงจอโหลด (กัน currentUser null พังหน้าจอ)
+    if (!currentUser) {
+        return (<div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <p className="font-display text-sm text-slate-500">กำลังโหลดข้อมูลผู้ใช้...</p>
+      </div>);
     }
     return (<div className="min-h-screen flex flex-col bg-slate-100/70 text-slate-900 font-sans antialiased">
       {/* Toast Notification */}

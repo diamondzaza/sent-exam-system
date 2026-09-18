@@ -30,7 +30,7 @@ function getBearer(request) {
     return header.replace(/^Bearer\s+/i, '').trim();
 }
 
-/** ตรวจว่า request มาจากผู้ที่ล็อกอินหรือไม่ — คืน { supabase, user } หรือ NextResponse 401 */
+/** ตรวจว่า request มาจากผู้ที่ล็อกอินหรือไม่ — คืน { supabase, user, profile } หรือ NextResponse 401 */
 export async function requireUser(request) {
     const token = getBearer(request);
     if (!token) {
@@ -41,7 +41,13 @@ export async function requireUser(request) {
     if (error || !data.user) {
         return { error: NextResponse.json({ error: 'ไม่ได้เข้าสู่ระบบ' }, { status: 401 }) };
     }
-    return { supabase, user: data.user };
+    // โหลดโปรไฟล์ด้วย — หลาย route ใช้ profile.name / profile.role ต่อ
+    const { data: row } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+    return { supabase, user: data.user, profile: row ? userFromDb(row) : null };
 }
 
 /** ตรวจว่าผู้ใช้มีบทบาทใดบทบาทหนึ่งที่อนุญาต — คืน { supabase, user, profile } หรือ NextResponse 401/403 */
@@ -49,16 +55,10 @@ export async function requireRole(roles, request) {
     const result = await requireUser(request);
     if (result.error)
         return result;
-    const { supabase, user } = result;
-    const { data: row, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-    if (error || !row) {
+    const { supabase, user, profile } = result;
+    if (!profile) {
         return { error: NextResponse.json({ error: 'ไม่พบข้อมูลผู้ใช้' }, { status: 403 }) };
     }
-    const profile = userFromDb(row);
     if (!roles.includes(profile.role)) {
         return { error: NextResponse.json({ error: 'ไม่มีสิทธิ์ทำรายการนี้' }, { status: 403 }) };
     }
