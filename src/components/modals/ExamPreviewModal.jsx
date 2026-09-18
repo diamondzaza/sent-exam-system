@@ -21,7 +21,8 @@ export const ExamPreviewModal = ({ exam, currentUser, onClose, onDownloadLogged,
     const isPdf = /\.(pdf)$/i.test(exam.file_name || '');
     useEffect(() => {
         let active = true;
-        fetch(`/api/exams/${encodeURIComponent(exam.E_No)}/file`)
+        // โหลด Signed URL — ถ้าล้มเหลว (เช่น deploy ช่วงเปลี่ยนเวอร์ชัน) ให้ลองซ้ำ 1 ครั้งก่อนสรุปว่าไม่มีไฟล์
+        const load = (attempt) => fetch(`/api/exams/${encodeURIComponent(exam.E_No)}/file`)
             .then(async (res) => {
             if (!res.ok)
                 throw new Error('no file');
@@ -30,9 +31,16 @@ export const ExamPreviewModal = ({ exam, currentUser, onClose, onDownloadLogged,
                 setFileState({ status: 'real', url: data.url });
         })
             .catch(() => {
-            if (active)
+            if (!active)
+                return;
+            if (attempt < 1) {
+                setTimeout(() => load(attempt + 1), 1500);
+            }
+            else {
                 setFileState({ status: 'none', url: null });
+            }
         });
+        load(0);
         return () => {
             active = false;
         };
