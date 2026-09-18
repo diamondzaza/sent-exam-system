@@ -2,8 +2,8 @@
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: ExamPreviewModal.jsx
  * หน้าที่ของหน้านี้: ตรวจสอบไฟล์ข้อสอบจริง — โหลด Signed URL จาก
- *   /api/exams/[eNo]/file แล้วแสดงไฟล์ PDF ใน iframe คลุมลายน้ำดิจิทัลของ
- *   ผู้เปิดดู / ไฟล์ Word แสดงแจ้งเตือนให้ดาวน์โหลดแทน /
+ *   /api/exams/[eNo]/file แล้วแสดงไฟล์ PDF ใน iframe พร้อมระบบ
+ *   Audit Log / ไฟล์ Word แสดงแจ้งเตือนให้ดาวน์โหลดแทน /
  *   ถ้ารายการยังไม่มีไฟล์แนบ แสดงการ์ดแจ้งเตือนให้อัปโหลดใหม่
  * พร้อมหัว CONFIDENTIAL, แบนเนอร์รหัส Audit และปุ่มดาวน์โหลด (บันทึก audit log)
  * ผู้ใช้งาน: ทุกบทบาท — เปิดผ่าน AppShell
@@ -47,10 +47,6 @@ export const ExamPreviewModal = ({ exam, currentUser, onClose, onDownloadLogged,
     }, [exam.E_No]);
     // Capture the watermark and audit id once per modal mount — they are security
     // identifiers and must not change between re-renders (page switches, etc.)
-    const [watermarkText] = useState(() => {
-        const ts = new Date().toLocaleString('th-TH');
-        return `เอกสารลับเฉพาะ คณะวิทยาศาสตร์ • เข้าดูโดย ${currentUser.name} (${currentUser.id}) • ${ts} • IP: 192.168.1.${Math.floor(Math.random() * 50) + 10}`;
-    });
     const [auditId] = useState(() => `SEC-${Date.now().toString().slice(-6)}`);
     const handleDownload = () => {
         onDownloadLogged(exam);
@@ -103,7 +99,7 @@ export const ExamPreviewModal = ({ exam, currentUser, onClose, onDownloadLogged,
           <div className="flex items-center space-x-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0"/>
             <span>
-              <strong>มาตรการป้องกันข้อสอบรั่วไหล:</strong> เอกสารมีลายน้ำระบุผู้เปิดดู และบันทึกการเรียกดู/ดาวน์โหลดทุกครั้ง
+              <strong>มาตรการป้องกันข้อสอบรั่วไหล:</strong> บันทึกการเรียกดู/ดาวน์โหลดทุกครั้ง (Audit Log) และดาวน์โหลดผ่านลิงก์ชั่วคราวที่หมดอายุ
             </span>
           </div>
           <div className="text-[11px] font-mono text-slate-600 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-300">
@@ -123,15 +119,9 @@ export const ExamPreviewModal = ({ exam, currentUser, onClose, onDownloadLogged,
               กำลังโหลดไฟล์ข้อสอบ...
             </div>)}
 
-          {/* ไฟล์จริง — PDF แสดงใน iframe คลุมลายน้ำดิจิทัล */}
-          {fileState.status === 'real' && isPdf && (<div className="relative bg-white w-full max-w-4xl h-[800px] shadow-lg border border-slate-300 rounded-sm overflow-hidden">
+          {/* ไฟล์จริง — PDF แสดงใน iframe */}
+          {fileState.status === 'real' && isPdf && (<div className="bg-white w-full max-w-4xl h-[800px] shadow-lg border border-slate-300 rounded-sm overflow-hidden">
               <iframe src={fileState.url} title={`${exam.Subject_ID} - ${exam.file_name}`} className="w-full h-full"/>
-              {/* Dynamic Watermark Pattern (คลุมทับ PDF) */}
-              <div className="absolute inset-0 pointer-events-none opacity-[0.07] rotate-[-25deg] flex flex-col justify-around overflow-hidden leading-loose">
-                {Array.from({ length: 14 }).map((_, i) => (<div key={i} className="text-slate-900 font-bold text-sm tracking-widest whitespace-nowrap">
-                    {watermarkText} &nbsp;&nbsp;&nbsp;&nbsp; {watermarkText}
-                  </div>))}
-              </div>
             </div>)}
 
           {/* ไฟล์จริง — Word แสดงพรีวิวในเบราว์เซอร์ไม่ได้ แนะนำดาวน์โหลด */}

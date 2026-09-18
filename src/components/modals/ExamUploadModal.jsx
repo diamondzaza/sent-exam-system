@@ -285,7 +285,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             <div className="flex items-start space-x-2.5">
               <input type="checkbox" id="security-agree" checked={securityAgreed} onChange={(e) => setSecurityAgreed(e.target.checked)} className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"/>
               <label htmlFor="security-agree" className="text-xs text-slate-700 leading-relaxed cursor-pointer">
-                ข้าพเจ้ารับรองว่าไฟล์นี้เป็นข้อสอบฉบับจริง และยินยอมให้ระบบใส่ลายน้ำดิจิทัลพร้อมบันทึกประวัติการเข้าถึง เพื่อป้องกันข้อสอบรั่วไหล
+                ข้าพเจ้ารับรองว่าไฟล์นี้เป็นข้อสอบฉบับจริง และยินยอมให้ระบบบันทึกประวัติการเข้าถึงทุกครั้ง (Audit Log) เพื่อป้องกันข้อสอบรั่วไหล
               </label>
             </div>
           </div>

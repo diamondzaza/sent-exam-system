@@ -286,7 +286,7 @@ export default function AppShell() {
     };
     // Preview & Download & Print handlers
     const handlePreviewExam = (exam) => {
-        addAuditLog('VIEW_EXAM', exam.Subject_ID, exam.Subject_Name, `เปิดดูตัวอย่างข้อสอบและตรวจสอบลายน้ำดิจิทัล`);
+        addAuditLog('VIEW_EXAM', exam.Subject_ID, exam.Subject_Name, `เปิดดูไฟล์ข้อสอบจริง (บันทึก Audit Log)`);
         setPreviewExam(exam);
     };
     // ดาวน์โหลดไฟล์ข้อสอบจริง — ขอ Signed URL จาก API (หมดอายุ 1 ชม.) แล้วเปิดแท็บใหม่

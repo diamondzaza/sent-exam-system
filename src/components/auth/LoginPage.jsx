@@ -110,7 +110,7 @@ export const LoginPage = ({ onLogin }) => {
             {
                 icon: ShieldCheck,
                 title: 'ป้องกันข้อสอบรั่วไหล',
-                desc: 'ลายน้ำดิจิทัลและบันทึกการเข้าถึงทุกครั้ง',
+                desc: 'บันทึก Audit Log ทุกครั้ง + ลิงก์ดาวน์โหลดหมดอายุ',
             },
         ].map((item) => (<div key={item.title} className="flex items-start space-x-3">
                 <div className="p-2 bg-indigo-500/20 text-indigo-300 rounded-lg border border-indigo-400/30 shrink-0">

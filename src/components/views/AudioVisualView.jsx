@@ -373,7 +373,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
 
                     {/* Right action toolbars */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => onPreviewExam(exam)} title="เปิดดูตัวอย่างข้อสอบพร้อมลายน้ำ">
+                      <Button variant="outline" size="sm" onClick={() => onPreviewExam(exam)} title="เปิดดูตัวอย่างไฟล์ข้อสอบ">
                         <Eye className="w-3.5 h-3.5 text-indigo-600"/>
                         <span>ตรวจข้อสอบ</span>
                       </Button>
