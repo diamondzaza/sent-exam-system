@@ -16,6 +16,44 @@ import { requireRole, createAdminClient } from '@/lib/api-helpers';
 const BUCKET = 'exam-files';
 const ALLOWED_EXT = /\.(pdf|docx?)$/i;
 
+/**
+ * GET — ออก Signed Upload URL ให้ browser อัปโหลดไฟล์ตรงเข้า Storage
+ * (PUT ไปยัง URL นี้ไม่ผ่าน Vercel function และไม่ขึ้นกับ RLS policy
+ *  เพราะ token ที่แนบมาออกโดย service role และอนุญาตเฉพาะ path นั้น)
+ * query: ?e_no=EX-xxx&name=ชื่อไฟล์.pdf
+ */
+export async function GET(request) {
+    const { user, profile, error } = await requireRole(['Teacher', 'Admin'], request);
+    if (error)
+        return error;
+    const url = new URL(request.url);
+    const eNo = (url.searchParams.get('e_no') ?? '').trim();
+    const fileName = (url.searchParams.get('name') ?? '').trim();
+    if (!eNo || !fileName) {
+        return NextResponse.json({ error: 'ต้องระบุ e_no และ name' }, { status: 400 });
+    }
+    // ตรวจว่าข้อสอบมีอยู่จริง + อาจารย์ต้องเป็นเจ้าของเท่านั้น
+    const admin = createAdminClient();
+    const { data: exam, error: readError } = await admin
+        .from('exams')
+        .select('teacher_id')
+        .eq('e_no', eNo)
+        .single();
+    if (readError || !exam) {
+        return NextResponse.json({ error: 'ไม่พบข้อสอบที่ระบุ' }, { status: 404 });
+    }
+    if (profile.role === 'Teacher' && exam.teacher_id !== user.id) {
+        return NextResponse.json({ error: 'อัปโหลดได้เฉพาะข้อสอบที่ตนเองจัดส่งเท่านั้น' }, { status: 403 });
+    }
+    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${eNo}/${safeName}`;
+    const { data: signed, error: signError } = await admin.storage.from(BUCKET).createSignedUploadUrl(path);
+    if (signError || !signed) {
+        return NextResponse.json({ error: `สร้าง upload URL ไม่สำเร็จ: ${signError?.message ?? ''}` }, { status: 500 });
+    }
+    return NextResponse.json({ url: signed.signedUrl, token: signed.token, path });
+}
+
 export async function POST(request) {
     const { error } = await requireRole(['Teacher', 'Admin'], request);
     if (error)

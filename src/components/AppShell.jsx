@@ -172,21 +172,28 @@ export default function AppShell() {
             showToast(err.error || 'บันทึกข้อมูลไม่สำเร็จ');
             return false;
         }
-        // อัปโหลดไฟล์จริง — ตรงจาก browser เข้า Supabase Storage
-        // (ไม่ผ่าน Vercel function เพราะ Vercel จำกัด request body ~4.5MB)
+        // อัปโหลดไฟล์จริง — ขอ Signed Upload URL จาก API แล้ว PUT ไฟล์
+        // ตรงเข้า Supabase Storage (ไม่ผ่าน Vercel function — เลี่ยง body limit 4.5MB)
         const eNo = existingNo ?? (await res.json())?.exam?.E_No;
         if (fileObject && eNo) {
-            const safeName = fileObject.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-            const path = `${eNo}/${safeName}`;
-            const supabase = createClient();
-            const { error: uploadError } = await supabase.storage
-                .from('exam-files')
-                .upload(path, fileObject, {
-                    contentType: fileObject.type || 'application/octet-stream',
-                    upsert: true, // อัปโหลดซ้ำแทนที่ไฟล์เดิม
-                });
-            if (uploadError) {
-                showToast(`อัปโหลดไฟล์ไม่สำเร็จ: ${uploadError.message}`);
+            const urlRes = await authFetch(`/api/exams/upload?e_no=${encodeURIComponent(eNo)}&name=${encodeURIComponent(fileObject.name)}`);
+            if (!urlRes.ok) {
+                const err = await urlRes.json().catch(() => ({}));
+                showToast(err.error || 'ขอช่องทางอัปโหลดไม่สำเร็จ');
+                await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
+                return false;
+            }
+            const { url: uploadUrl, path } = await urlRes.json();
+            const putRes = await fetch(uploadUrl, {
+                method: 'PUT',
+                headers: {
+                    'x-upsert': 'true', // อัปโหลดซ้ำแทนที่ไฟล์เดิม
+                    'Content-Type': fileObject.type || 'application/octet-stream',
+                },
+                body: fileObject,
+            });
+            if (!putRes.ok) {
+                showToast(`อัปโหลดไฟล์ไม่สำเร็จ (HTTP ${putRes.status})`);
                 await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
                 return false;
             }
