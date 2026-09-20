@@ -187,7 +187,7 @@ export default function AppShell() {
             const putRes = await fetch(uploadUrl, {
                 method: 'PUT',
                 headers: {
-                    'x-upsert': 'true', // อัปโหลดซ้ำแทนที่ไฟล์เดิม
+                    'x-upsert': 'true', 
                     'Content-Type': fileObject.type || 'application/octet-stream',
                 },
                 body: fileObject,
@@ -196,8 +196,7 @@ export default function AppShell() {
                 showToast(`อัปโหลดไฟล์ไม่สำเร็จ (HTTP ${putRes.status})`);
                 await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
                 return false;
-            }
-            // ลงทะเบียน metadata ของไฟล์ลงตาราง exams ผ่าน API
+            }       
             const regRes = await authFetch('/api/exams/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -219,7 +218,7 @@ export default function AppShell() {
         showToast(isReupload
             ? `อัปโหลดไฟล์ข้อสอบฉบับใหม่วิชา ${examData.Subject_ID} เรียบร้อยแล้ว`
             : `จัดส่งข้อสอบวิชา ${examData.Subject_ID} เข้าสู่ระบบสำเร็จ`);
-        return true;
+        return true; 
     };
     const handleRemoveExam = async (examNo) => {
         const targetExam = exams.find((e) => e.E_No === examNo);

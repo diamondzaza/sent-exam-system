@@ -1,15 +1,6 @@
-/**
- * ─────────────────────────────────────────────────────────
- * ชื่อไฟล์: ExamUploadModal.jsx
- * หน้าที่ของหน้านี้: ฟอร์มจัดส่งข้อสอบ (modal) — กรอกรายละเอียดการสอบ
- *   (ประเภท/วัน/เวลา/ห้อง), จำนวนหน้า ยอดพิมพ์ และชุดสำรอง, หมายเหตุซอง,
- *   เลือกเครื่องเขียน/อุปกรณ์ที่อนุญาต (chip picker), drag-and-drop ไฟล์
- *   PDF/DOCX ไม่เกิน 25MB และยืนยันข้อตกลงความปลอดภัยก่อนส่ง
- * ผู้ใช้งาน: อาจารย์ผู้สอน (Teacher) — เปิดผ่าน AppShell ทั้งกรณีส่งใหม่และอัปโหลดซ้ำ
- * หมายเหตุ: ไฟล์ที่เลือกเก็บเป็น File object จริง แล้วส่งต่อให้ AppShell
- *   อัปโหลดขึ้น Supabase Storage ผ่าน /api/exams/upload
- * ─────────────────────────────────────────────────────────
- */
+/*ฟอร์มจัดส่งข้อสอบ */
+
+
 'use client';
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -29,11 +20,9 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
     const [envelopeNotes, setEnvelopeNotes] = useState(existingExam?.envelope_notes || 'ข้อสอบแบ่งเป็น 2 ตอน ให้นักศึกษาทำลงในกระดาษคำถาม');
     const [selectedMaterials, setSelectedMaterials] = useState(existingExam?.allowed_materials || ['เครื่องคิดเลขวิทยาศาสตร์', 'ปากกาน้ำเงิน/ดำ', 'ดินสอ 2B']);
     const [newMaterialInput, setNewMaterialInput] = useState('');
-    // File upload state — start empty on a new upload so the required-file
-    // check actually runs; only seed from an existing exam on re-upload.
     const [fileName, setFileName] = useState(existingExam?.file_name || '');
     const [fileSize, setFileSize] = useState(existingExam?.file_size || '');
-    const [fileObject, setFileObject] = useState(null); // ไฟล์จริง (ส่งขึ้น Supabase Storage)
+    const [fileObject, setFileObject] = useState(null); // ไฟล์จริงส่งขึ้น Supabase Storage
     const [isDragging, setIsDragging] = useState(false);
     const [fileUploaded, setFileUploaded] = useState(Boolean(existingExam?.file_name));
     const [countingPages, setCountingPages] = useState(false);
@@ -75,7 +64,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
         setFileUploaded(true);
         setErrorMsg('');
         setAutoCountMsg('');
-        // นับจำนวนหน้าอัตโนมัติเฉพาะ PDF (DOCX นับในเบราว์เซอร์ไม่ได้)
+        // นับจำนวนหน้าอัตโนมัติเฉพาะ PDF 
         if (/\.pdf$/i.test(file.name)) {
             handlePageCount(file);
         }
@@ -93,7 +82,6 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
         }
     };
     // นับจำนวนหน้าของไฟล์ PDF — นับจากโครงสร้าง /Type /Page ในไฟล์
-    // (อ่านในเบราว์เซอร์ ไม่ต้องเซิร์ฟเวอร์ช่วย / ถ้านับไม่ได้คืน 0 ให้กรอกมือเอง)
     const countPdfPages = async (file) => {
         try {
             const buf = await file.arrayBuffer();
@@ -145,7 +133,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             term: course.term,
             teacher_id: course.teacher_id,
             teacher_name: course.teacher_name,
-            teacher_tel: '', // AppShell เติมจากบัญชีผู้ใช้ที่ล็อกอินอยู่
+            teacher_tel: '', 
             exam_type: examType,
             E_Date: examDate,
             E_Time: examTime,
@@ -166,7 +154,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
         try {
             const ok = await onSubmitExam(payload, isReupload, fileObject);
             if (ok) {
-                // ส่งสำเร็จ — แสดง animation สำเร็จแล้วปิดหน้าต่างเอง
+                // ส่งสำเร็จ
                 setSentSuccess(true);
                 setTimeout(() => {
                     onClose();
@@ -200,7 +188,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
           </Button>
         </div>
 
-        {/* แจ้งส่งสำเร็จ (animation) */}
+        {/* แจ้งส่งสำเร็จ*/}
         {sentSuccess && (<div className="absolute inset-0 z-20 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center space-y-4 animate-fadeIn">
             <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center">
               <CheckCircle2 className="w-12 h-12 text-emerald-600 animate-popCheck"/>
