@@ -11,7 +11,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { requireRole } from '@/lib/api-helpers';
+import { requireRole, createAdminClient } from '@/lib/api-helpers';
 import { userToDb, userFromDb } from '@/lib/mappers';
 
 /** ยื่นคำขอ — สาธารณะ */

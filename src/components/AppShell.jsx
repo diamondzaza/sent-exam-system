@@ -32,6 +32,12 @@ import { OperationsView } from '@/components/views/OperationsView';
 import { AdminView } from '@/components/views/AdminView';
 import { CheckCircle2 } from 'lucide-react';
 import { createClient, authFetch } from '@/lib/supabase/client';
+import { useUsers } from '@/hooks/useUsers';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useCourses } from '@/hooks/useCourses';
+import { useExams } from '@/hooks/useExams';
+import { useAuditLogs } from '@/hooks/useAuditLogs';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 export default function AppShell() {
