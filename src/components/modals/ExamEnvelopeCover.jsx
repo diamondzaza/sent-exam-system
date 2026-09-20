@@ -56,7 +56,7 @@ const Input = ({ label, value, onChange, className = '' }) => (
 
 /** เส้นประพร้อมค่าที่กรอก (ใช้ในแท็บใบปะหน้า) — ไม่มี textbox แสดงเป็นตัวอักษร */
 const Line = ({ value, className = '' }) => (
-    <span className={`block border-b border-dotted border-slate-600 text-center text-sm leading-snug min-h-[1.5rem] px-1 truncate ${className}`}>
+    <span className={`block border-b border-dotted border-slate-600 text-center text-sm leading-snug min-h-[1.6rem] pb-1.5 px-1 truncate ${className}`}>
         {value}
     </span>
 );
