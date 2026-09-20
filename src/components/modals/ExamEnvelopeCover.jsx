@@ -264,11 +264,6 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
                   <Line value={form.reserveSets} className="flex-1"/>
                   <span className="shrink-0">ชุด</span>
                 </div>
-                <div className="flex items-end">
-                  <span className="shrink-0">ลงชื่อ (หน้า)</span>
-                  <Dots className="flex-1"/>
-                  <span className="shrink-0 pl-4">(ลายมือตัวเขียน)</span>
-                </div>
               </div>
 
               {/* ── อุปกรณ์ที่ใช้ / คำแนะนำผู้คุมสอบ ── */}
