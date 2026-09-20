@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { UploadCloud, X, FileCheck, AlertCircle, } from 'lucide-react';
+import { UploadCloud, X, FileCheck, AlertCircle, CheckCircle2, LoaderCircle, } from 'lucide-react';
 export const ExamUploadModal = ({ course, existingExam, isReupload = false, onClose, onSubmitExam, }) => {
     const [examType, setExamType] = useState(existingExam?.exam_type || 'กลางภาค');
     const [examDate, setExamDate] = useState(existingExam?.E_Date || '2026-10-20');
@@ -36,6 +36,10 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
     const [fileObject, setFileObject] = useState(null); // ไฟล์จริง (ส่งขึ้น Supabase Storage)
     const [isDragging, setIsDragging] = useState(false);
     const [fileUploaded, setFileUploaded] = useState(Boolean(existingExam?.file_name));
+    const [countingPages, setCountingPages] = useState(false);
+    const [autoCountMsg, setAutoCountMsg] = useState('');
+    const [sending, setSending] = useState(false);
+    const [sentSuccess, setSentSuccess] = useState(false);
     const [securityAgreed, setSecurityAgreed] = useState(true);
     const [errorMsg, setErrorMsg] = useState('');
     const commonMaterials = [
@@ -70,6 +74,11 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
         setFileObject(file);
         setFileUploaded(true);
         setErrorMsg('');
+        setAutoCountMsg('');
+        // นับจำนวนหน้าอัตโนมัติเฉพาะ PDF (DOCX นับในเบราว์เซอร์ไม่ได้)
+        if (/\.pdf$/i.test(file.name)) {
+            handlePageCount(file);
+        }
     };
     const handleFileDrop = (e) => {
         e.preventDefault();
@@ -83,7 +92,42 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             acceptFile(e.target.files[0]);
         }
     };
-    const handleSubmit = (e) => {
+    // นับจำนวนหน้าของไฟล์ PDF — นับจากโครงสร้าง /Type /Page ในไฟล์
+    // (อ่านในเบราว์เซอร์ ไม่ต้องเซิร์ฟเวอร์ช่วย / ถ้านับไม่ได้คืน 0 ให้กรอกมือเอง)
+    const countPdfPages = async (file) => {
+        try {
+            const buf = await file.arrayBuffer();
+            const bytes = new Uint8Array(buf);
+            let text = '';
+            const chunk = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunk) {
+                text += String.fromCharCode(...bytes.subarray(i, i + chunk));
+            }
+            const pageMatches = text.match(/\/Type\s*\/Page[^s]/g);
+            if (pageMatches && pageMatches.length > 0) {
+                return pageMatches.length;
+            }
+            // สำรอง: ใช้ค่า /Count ที่มากที่สุดใน page tree
+            const counts = [...text.matchAll(/\/Count\s+(\d+)/g)].map((m) => parseInt(m[1], 10));
+            return counts.length ? Math.max(...counts) : 0;
+        }
+        catch {
+            return 0;
+        }
+    };
+    const handlePageCount = async (file) => {
+        setCountingPages(true);
+        const n = await countPdfPages(file);
+        setCountingPages(false);
+        if (n > 0) {
+            setTotalPages(n);
+            setAutoCountMsg(`นับจำนวนหน้าอัตโนมัติจากไฟล์: ${n} หน้า`);
+        }
+        else {
+            setAutoCountMsg('นับจำนวนหน้าอัตโนมัติไม่ได้ — กรุณากรอกเอง');
+        }
+    };
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!fileUploaded || !fileName) {
             setErrorMsg('กรุณาเลือกไฟล์ข้อสอบก่อนส่ง');
@@ -117,10 +161,25 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             allowed_materials: selectedMaterials,
             proctors: [course.teacher_name, 'กรรมการคุมสอบร่วมประจำห้อง'],
         };
-        onSubmitExam(payload, isReupload, fileObject);
+        setSending(true);
+        setErrorMsg('');
+        try {
+            const ok = await onSubmitExam(payload, isReupload, fileObject);
+            if (ok) {
+                // ส่งสำเร็จ — แสดง animation สำเร็จแล้วปิดหน้าต่างเอง
+                setSentSuccess(true);
+                setTimeout(() => {
+                    onClose();
+                }, 1600);
+                return;
+            }
+        }
+        finally {
+            setSending(false);
+        }
     };
     return (<div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-scaleIn">
         {/* Modal Header */}
         <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -140,6 +199,15 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             <X className="w-5 h-5"/>
           </Button>
         </div>
+
+        {/* แจ้งส่งสำเร็จ (animation) */}
+        {sentSuccess && (<div className="absolute inset-0 z-20 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center space-y-4 animate-fadeIn">
+            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center">
+              <CheckCircle2 className="w-12 h-12 text-emerald-600 animate-popCheck"/>
+            </div>
+            <p className="font-display text-lg font-bold text-slate-900">ส่งข้อสอบสำเร็จ!</p>
+            <p className="text-xs text-slate-500">ระบบได้ส่งข้อสอบถึงหน่วยโสตทัศน์เพื่อตรวจสอบแล้ว</p>
+          </div>)}
 
         {/* Modal Body */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-6 flex-1">
@@ -227,7 +295,16 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
 
             <div>
               <Label htmlFor="exam-pages" className="text-slate-700 mb-1">จำนวนหน้าข้อสอบ (หน้า)</Label>
-              <Input id="exam-pages" type="number" min="1" max="50" value={totalPages} onChange={(e) => setTotalPages(parseInt(e.target.value) || 1)}/>
+              <Input id="exam-pages" type="number" min="1" max="500" value={totalPages} onChange={(e) => setTotalPages(parseInt(e.target.value) || 1)}/>
+              <p className={`mt-1 text-[10px] flex items-center space-x-1 ${countingPages ? 'text-indigo-500' : autoCountMsg.includes('ไม่ได้') ? 'text-amber-500' : 'text-emerald-600'}`}>
+                {countingPages ? (<>
+                  <LoaderCircle className="w-3 h-3 animate-spin"/>
+                  <span>กำลังนับจำนวนหน้าจากไฟล์...</span>
+                </>) : autoCountMsg && (<>
+                  <CheckCircle2 className="w-3 h-3 shrink-0"/>
+                  <span>{autoCountMsg}</span>
+                </>)}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -295,9 +372,9 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             <Button type="button" variant="outline" onClick={onClose}>
               ยกเลิก
             </Button>
-            <Button type="submit">
-              <UploadCloud className="w-4 h-4"/>
-              <span>{isReupload ? 'ยืนยันอัปโหลดฉบับใหม่' : 'ยืนยันส่งข้อสอบ'}</span>
+            <Button type="submit" disabled={sending || sentSuccess}>
+              {sending ? (<LoaderCircle className="w-4 h-4 animate-spin"/>) : (<UploadCloud className="w-4 h-4"/>)}
+              <span>{sending ? 'กำลังส่งข้อสอบ...' : isReupload ? 'ยืนยันอัปโหลดฉบับใหม่' : 'ยืนยันส่งข้อสอบ'}</span>
             </Button>
           </div>
         </form>

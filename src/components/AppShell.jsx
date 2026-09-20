@@ -166,7 +166,7 @@ export default function AppShell() {
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             showToast(err.error || 'บันทึกข้อมูลไม่สำเร็จ');
-            return;
+            return false;
         }
         // เติมเบอร์โทรจากบัญชีผู้ใช้จริง (หากฟอร์มไม่ได้ส่งมา)
         if (!examData.teacher_tel) {
@@ -183,14 +183,14 @@ export default function AppShell() {
                 const err = await uploadRes.json().catch(() => ({}));
                 showToast(err.error || 'อัปโหลดไฟล์ไม่สำเร็จ — ลองแก้ไขรายการอีกครั้ง');
                 await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
-                return;
+                return false;
             }
         }
         await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
         showToast(isReupload
             ? `อัปโหลดไฟล์ข้อสอบฉบับใหม่วิชา ${examData.Subject_ID} เรียบร้อยแล้ว`
             : `จัดส่งข้อสอบวิชา ${examData.Subject_ID} เข้าสู่ระบบสำเร็จ`);
-        setUploadModalData(null);
+        return true;
     };
     const handleRemoveExam = async (examNo) => {
         const targetExam = exams.find((e) => e.E_No === examNo);
