@@ -22,6 +22,7 @@ const initialForm = {
     facultyName: '',
     section: '',
     reserveSets: '',
+    workPhone: '',
     optBooks: false,
     optCalculator: false,
     optNoRuler: false,
@@ -142,6 +143,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
                   <Input label="นศ. คณะ" value={form.facultyName} onChange={set('facultyName')}/>
                   <Input label="ตอน" value={form.section} onChange={set('section')}/>
                   <Input label="ข้อสอบสำรอง (ชุด)" value={form.reserveSets} onChange={set('reserveSets')}/>
+                  <Input label="หลังห้องทำงานใส่ โทรศัพท์/มือถือ" value={form.workPhone} onChange={set('workPhone')} className="sm:col-span-2"/>
                 </div>
               </div>
 
@@ -263,6 +265,10 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
                   <span className="shrink-0">ข้อสอบสำรอง</span>
                   <Line value={form.reserveSets} className="flex-1"/>
                   <span className="shrink-0">ชุด</span>
+                </div>
+                <div className="flex items-end">
+                  <span className="shrink-0">หลังห้องทำงานใส่ โทรศัพท์/มือถือ</span>
+                  <Line value={form.workPhone} className="flex-1"/>
                 </div>
               </div>
 
