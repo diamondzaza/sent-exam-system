@@ -257,7 +257,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
                 </div>
                 <div className="grid grid-cols-12 items-end gap-x-2">
                   <span className="col-span-2 whitespace-nowrap">ข้อสอบสำรอง</span>
-                  <Line value={form.reserveSets} className="col-span-9"/>
+                  <Line value={form.reserveSets} className="col-span-2"/>
                   <span className="col-span-1">ชุด</span>
                 </div>
               </div>
