@@ -1,227 +1,260 @@
 /**
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: ExamEnvelopeCover.jsx
- * หน้าที่ของหน้านี้: ใบปะหน้าซองข้อสอบมาตรฐานคณะวิทยาศาสตร์ — จัดรูปแบบเพื่อพิมพ์จริง:
- *   ตรา CONFIDENTIAL, ตารางรายละเอียดข้อสอบ, จำนวนชุด (ปกติ + สำรอง),
- *   เครื่องเขียนที่อนุญาต และตารางลงนามส่งมอบ 4 ขั้นตอน
+ * หน้าที่ของหน้านี้: ใบปะหน้าซองข้อสอบ ตามแบบฟอร์มมาตรฐาน (นริ. 345-211) —
+ *   โครงหัวกระดาษ: ช่องวางโลโก้ (ผู้ใช้นำมาใส่เองภายหลัง), ข้อมูลรายวิชา/การสอบ,
+ *   ตัวเลือกการเผยแพร่สำหรับผู้สอน, ข้อมูลหน่วยงานต้นสังกัด และตารางล่าง
+ *   (จำนวนนิสิต / ผู้สอน / กรรมการคุมสอบ / หมายเหตุ) — ทุกช่องเป็นช่องกรอก
+ *   เส้นประแบบเอกสารราชการ พิมพ์ได้เฉพาะใบปะหน้าผ่าน body.printing-envelope
  * ผู้ใช้งาน: Teacher / AudioVisual / Operations — เปิดผ่าน AppShell
- * หมายเหตุ: พิมพ์เฉพาะใบปะหน้าโดยเพิ่ม class printing-envelope ที่ <body>
- *   (REQ-0013) — CSS จะซ่อนส่วนอื่นทั้งหมด (ดู globals.css @media print)
  * ─────────────────────────────────────────────────────────
  */
 'use client';
-import React from 'react';
-import { Printer, X, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded, }) => {
+import { Printer, X, FileText } from 'lucide-react';
+
+const initialForm = {
+    faculty: '',
+    subjectName: '',
+    subjectCode: '',
+    examDate: '',
+    examTime: '',
+    term: '',
+    year: '',
+    room: '',
+    seatCount: '',
+    copyCount: '',
+    toFaculty: '',
+    opt1: false,
+    opt2: false,
+    opt3: false,
+    opt4: false,
+    orgUnit: '',
+    phoneFax: '',
+    registered: '',
+    seated: '',
+    teachers: [
+        { name: '', room: '', extra: '' },
+        { name: '', room: '', extra: '' },
+        { name: '', room: '', extra: '' },
+    ],
+    proctors: ['', '', ''],
+    note: '',
+};
+
+// ช่องกรอกเส้นประแบบเอกสารราชการ
+const Dot = ({ className = '' }) => <span className={`inline-block border-b border-dotted border-slate-500 ${className}`} />;
+const Field = ({ value, onChange, className = '', placeholder = '' }) => (
+    <input
+        type="text"
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`bg-transparent border-0 border-b border-dotted border-slate-500 focus:border-indigo-600 focus:outline-none text-slate-900 text-sm px-1 py-0.5 ${className}`}
+    />
+);
+
+export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
+    const [form, setForm] = useState(initialForm);
+    const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+    const setTeacher = (i, key) => (e) => {
+        const arr = form.teachers.map((t, idx) => (idx === i ? { ...t, [key]: e.target.value } : t));
+        setForm({ ...form, teachers: arr });
+    };
+    const setProctor = (i) => (e) => {
+        const arr = form.proctors.map((p, idx) => (idx === i ? e.target.value : p));
+        setForm({ ...form, proctors: arr });
+    };
     const handlePrint = () => {
-        if (onPrintRecorded) {
+        if (onPrintRecorded)
             onPrintRecorded();
-        }
-        // Isolate the envelope sheet in the printout instead of the whole dashboard
         document.body.classList.add('printing-envelope');
         window.print();
-        document.body.classList.remove('printing-envelope');
+        setTimeout(() => document.body.classList.remove('printing-envelope'), 500);
     };
-    return (<div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      {/* Control bar (hidden during print) */}
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-slate-200 overflow-hidden my-8 flex flex-col max-h-[90vh]">
-        <div className="no-print bg-slate-800 text-white px-6 py-4 flex items-center justify-between">
+    return (<div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-slate-300 overflow-hidden flex flex-col max-h-[94vh]">
+        {/* Modal Header */}
+        <div className="no-print bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30">
-              <Printer className="w-5 h-5"/>
+            <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/30">
+              <FileText className="w-5 h-5"/>
             </div>
             <div>
-              <h3 className="font-display font-semibold text-base">ใบปะหน้าซองข้อสอบ</h3>
+              <h3 className="font-display font-semibold text-base">ใบปะหน้าซองข้อสอบ (แบบ นริ. 345-211)</h3>
               <p className="text-xs text-slate-400">
-                รหัสการจัดสอบ: {exam.E_No} • {exam.Subject_ID} {exam.Subject_Name}
+                {exam ? `${exam.Subject_ID} : ${exam.Subject_Name}` : 'ตัวอย่างแบบฟอร์ม'} — กรอกข้อมูลแล้วสั่งพิมพ์ได้
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
-            <Button id="print-envelope-btn" onClick={handlePrint}>
-              <Printer className="w-4 h-4"/>
+          <div className="flex items-center space-x-2">
+            <Button onClick={handlePrint} size="sm" className="px-3.5" title="พิมพ์ใบปะหน้าซองข้อสอบ (พร้อมบันทึก Audit Log)">
+              <Printer className="w-3.5 h-3.5"/>
               <span>พิมพ์ใบปะหน้า</span>
             </Button>
-            <Button variant="ghost" size="icon" onClick={onClose} className="text-slate-400 hover:text-white hover:bg-slate-700">
+            <Button onClick={onClose} variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-slate-800" aria-label="ปิด">
               <X className="w-5 h-5"/>
             </Button>
           </div>
         </div>
 
-        {/* Printable Envelope Area */}
-        <div className="p-8 md:p-12 overflow-y-auto bg-white text-slate-900" id="printable-envelope">
-          {/* Formal Envelope Header */}
-          <div className="border-4 border-black p-6 relative">
-            {/* Top Seal Stamp */}
-            <div className="absolute top-4 right-4 border-2 border-red-700 text-red-700 font-bold px-3 py-1 text-xs tracking-wider uppercase rotate-[-3deg] bg-red-50">
-              เอกสารลับทางการสอบ (CONFIDENTIAL)
+        {/* ═══ แบบฟอร์ม (printable) ═══ */}
+        <div id="printable-envelope" className="flex-1 overflow-y-auto bg-slate-100 p-4 sm:p-6">
+          <div className="bg-white shadow border border-slate-300 mx-auto max-w-3xl px-8 py-6 text-slate-900">
+
+            {/* ── หัวกระดาษ: โลโก้ (ช่องวาง — นำภาพมาใส่เองภายหลัง) ── */}
+            <div className="flex justify-center mb-2">
+              <div className="w-24 h-24 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-300 text-center leading-tight">
+                ที่วาง<br/>โลโก้
+              </div>
             </div>
 
-            <div className="text-center pb-4 border-b-2 border-black">
-              <div className="w-14 h-14 mx-auto mb-2 border-2 border-slate-900 rounded-full flex items-center justify-center font-bold text-xs bg-slate-100">
-                SCI-LOGO
+            {/* คณะ / หน่วยงาน + รหัสแบบฟอร์ม */}
+            <div className="text-center space-y-1 mb-5">
+              <div className="flex items-center justify-center gap-2 text-lg">
+                <span className="font-semibold">คณะ</span>
+                <Field value={form.faculty} onChange={set('faculty')} className="w-64 text-center"/>
               </div>
-              <h1 className="font-display text-2xl font-bold tracking-tight text-slate-950">
-                คณะวิทยาศาสตร์
-              </h1>
-              <h2 className="font-display text-xl font-semibold text-slate-900 mt-1">
-                ใบปะหน้าซองข้อสอบ (EXAMINATION ENVELOPE)
-              </h2>
-              <p className="text-sm font-medium text-slate-700 mt-1">
-                การสอบประจำภาคการศึกษาที่ {exam.term} ปีการศึกษา {exam.Course_year} ({exam.exam_type})
+              <p className="text-xs text-slate-500">แบบ นริ. 345-211</p>
+            </div>
+
+            {/* ── ข้อมูลรายวิชา / การสอบ ── */}
+            <div className="space-y-2.5 text-sm mb-6">
+              <div className="flex items-center gap-2">
+                <span className="w-36 shrink-0">รายวิชา</span>
+                <Field value={form.subjectName} onChange={set('subjectName')} className="flex-1"/>
+                <span className="shrink-0">รหัสวิชา</span>
+                <Field value={form.subjectCode} onChange={set('subjectCode')} className="w-28 text-center"/>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-36 shrink-0">วันที่สอบ</span>
+                <Field value={form.examDate} onChange={set('examDate')} className="w-44 text-center"/>
+                <span className="shrink-0">เวลาสอบ</span>
+                <Field value={form.examTime} onChange={set('examTime')} className="flex-1 text-center"/>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-36 shrink-0">ภาคการศึกษาที่</span>
+                <Field value={form.term} onChange={set('term')} className="w-16 text-center"/>
+                <span className="shrink-0">ปีการศึกษา</span>
+                <Field value={form.year} onChange={set('year')} className="w-24 text-center"/>
+                <span className="shrink-0 ml-4">เลขที่ห้องสอบ</span>
+                <Field value={form.room ?? ''} onChange={set('room')} className="flex-1 text-center"/>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-36 shrink-0">จำนวนที่นั่งสอบ</span>
+                <Field value={form.seatCount} onChange={set('seatCount')} className="w-20 text-center"/>
+                <span className="shrink-0">ที่นั่ง</span>
+                <span className="shrink-0 ml-4">จำนวนข้อสอบ</span>
+                <Field value={form.copyCount} onChange={set('copyCount')} className="w-20 text-center"/>
+                <span className="shrink-0">ฉบับ</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-36 shrink-0">ส่งถึงคุณครูผู้คุมสอบ คณะ</span>
+                <Field value={form.toFaculty} onChange={set('toFaculty')} className="flex-1 text-center"/>
+              </div>
+            </div>
+
+            {/* ── คำแนะนำ + ตัวเลือกการเผยแพร่ ── */}
+            <div className="border-t-2 border-slate-800 pt-3 mb-5 text-sm">
+              <p className="text-center font-semibold mb-2">
+                คุณครูผู้สอนที่ส่งข้อสอบในเวลาปกติ โปรดทำเครื่องหมายลงในช่องที่ถูกต้อง
               </p>
-            </div>
-
-            {/* Exam Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 py-5 text-sm border-b-2 border-black">
-              <div>
-                <span className="font-bold text-slate-900">รหัสการจัดสอบ:</span>{' '}
-                <span className="font-mono bg-slate-100 px-2 py-0.5 rounded font-semibold">{exam.E_No}</span>
-              </div>
-              <div>
-                <span className="font-bold text-slate-900">วันที่จัดสอบ:</span>{' '}
-                <span className="font-semibold underline decoration-dotted">{exam.E_Date}</span>
-              </div>
-
-              <div>
-                <span className="font-bold text-slate-900">รหัสวิชา:</span>{' '}
-                <span className="font-mono text-base font-bold text-indigo-950">{exam.Subject_ID}</span>
-              </div>
-              <div>
-                <span className="font-bold text-slate-900">เวลาจัดสอบ:</span>{' '}
-                <span className="font-semibold">{exam.E_Time}</span>
-              </div>
-
-              <div className="md:col-span-2">
-                <span className="font-bold text-slate-900">ชื่อรายวิชา:</span>{' '}
-                <span className="text-base font-semibold">{exam.Subject_Name}</span>
-              </div>
-
-              <div>
-                <span className="font-bold text-slate-900">อาจารย์ผู้ออกข้อสอบ:</span>{' '}
-                <span>{exam.teacher_name}</span>
-              </div>
-              <div>
-                <span className="font-bold text-slate-900">เบอร์โทรติดต่อฉุกเฉิน:</span>{' '}
-                <span className="font-mono font-semibold">{exam.teacher_tel}</span>
-              </div>
-
-              <div>
-                <span className="font-bold text-slate-900">อาคารและห้องสอบ:</span>{' '}
-                <span className="font-bold text-indigo-900 underline">{exam.room}</span>
-              </div>
-              <div>
-                <span className="font-bold text-slate-900">จำนวนหน้าข้อสอบ:</span>{' '}
-                <span>{exam.total_pages} หน้า (ตรวจนับก่อนแจก)</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5 px-2">
+                {[['opt1', 'นำเข้าที่ทำการสอบได้'],
+                  ['opt2', 'ไม่บรรจุตีพิมพ์ผู้เข้าสอบได้'],
+                  ['opt3', 'นำเข้าในห้องสมุดยืมได้ คืนได้'],
+                  ['opt4', 'ห้ามนำเข้าห้องสอบเด็ดขาด']].map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form[key]}
+                        onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
+                        className="w-3.5 h-3.5 accent-indigo-600"
+                      />
+                      <span>( )</span>
+                      <span>{label}</span>
+                    </label>))}
               </div>
             </div>
 
-            {/* Copies & Counts Section */}
-            <div className="bg-slate-50 border-2 border-black my-4 p-4 rounded-xs">
-              <h3 className="font-display font-bold text-sm text-slate-900 mb-2 underline">
-                ข้อมูลการจัดพิมพ์และบรรจุซอง (หน่วยเทคโนโลยีการศึกษา)
-              </h3>
-              <div className="grid grid-cols-3 gap-4 text-center text-sm">
-                <div className="border border-slate-400 p-2 bg-white rounded">
-                  <div className="text-xs text-slate-500">จำนวน นศ. ตามทะเบียน</div>
-                  <div className="text-xl font-extrabold text-slate-900">{exam.total_copies} ชุด</div>
-                </div>
-                <div className="border border-slate-400 p-2 bg-white rounded">
-                  <div className="text-xs text-slate-500">จำนวนชุดสำรอง</div>
-                  <div className="text-xl font-extrabold text-slate-900">+{exam.copies_reserve} ชุด</div>
-                </div>
-                <div className="border-2 border-indigo-600 p-2 bg-indigo-50/50 rounded">
-                  <div className="text-xs font-semibold text-indigo-900">รวมบรรจุในซองนี้ทั้งสิ้น</div>
-                  <div className="text-2xl font-black text-indigo-700">
-                    {exam.total_copies + exam.copies_reserve} ชุด
-                  </div>
-                </div>
+            {/* ── หน่วยงานต้นสังกัด ── */}
+            <div className="space-y-2 text-sm mb-6">
+              <div className="flex items-center gap-2">
+                <span className="w-44 shrink-0">หน่วยงานต้นสังกัด</span>
+                <Field value={form.orgUnit} onChange={set('orgUnit')} className="flex-1 text-center"/>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-44 shrink-0">โทรศัพท์/โทรสาร</span>
+                <Field value={form.phoneFax} onChange={set('phoneFax')} className="flex-1 text-center"/>
               </div>
             </div>
 
-            {/* Allowed Materials & Proctors notes */}
-            <div className="border-b-2 border-black pb-4 mb-4 text-sm">
-              <div className="font-bold text-slate-950 mb-1 flex items-center space-x-1">
-                <span>อุปกรณ์ / สิ่งที่อนุญาตให้นำเข้าห้องสอบ:</span>
-              </div>
-              <div className="bg-amber-50/70 border border-amber-300 p-2.5 rounded text-slate-800 text-xs leading-relaxed">
-                {exam.allowed_materials && exam.allowed_materials.length > 0 ? (<div className="flex flex-wrap gap-2">
-                    {exam.allowed_materials.map((item, idx) => (<span key={idx} className="inline-flex items-center space-x-1 bg-white border border-amber-400 px-2 py-0.5 rounded font-medium">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600"/>
-                        <span>{item}</span>
-                      </span>))}
-                  </div>) : (<span>- ไม่อนุญาตให้นำอุปกรณ์ใดๆ เข้าห้องสอบ นอกจากเครื่องเขียนมาตรฐาน -</span>)}
-                {exam.envelope_notes && (<div className="mt-2 pt-2 border-t border-amber-200">
-                    <span className="font-semibold text-slate-900">หมายเหตุเพิ่มเติม: </span>
-                    <span>{exam.envelope_notes}</span>
-                  </div>)}
-              </div>
-            </div>
-
-            {/* Signature Handover Matrix */}
-            <div className="text-xs mt-2">
-              <h4 className="font-display font-bold text-slate-900 mb-2 uppercase tracking-wide">
-                บันทึกการส่งมอบและลงนามรับ-ส่งซองข้อสอบ
-              </h4>
-              <div className="border border-black divide-y divide-black text-[11px]">
-                {/* Step 1: โสตฯ ส่งมอบ */}
-                <div className="grid grid-cols-4 p-2 gap-2 items-center bg-slate-50">
-                  <div className="font-semibold col-span-1">1. ผู้บรรจุซองและส่งมอบ (ฝ่ายโสตฯ):</div>
-                  <div>ลงชื่อ........................................................</div>
-                  <div>({exam.checked_by || 'นายกิตติศักดิ์ ช่างพิมพ์'})</div>
-                  <div>วันที่......./......./....... เวลา............... น.</div>
+            {/* ── ตารางด้านล่าง (กรอบใหญ่) ── */}
+            <div className="border-2 border-slate-800 p-3 space-y-3 text-sm">
+              {/* จำนวนนิสิต */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <div className="flex items-center gap-2">
+                  <span>จำนวนนิสิตที่ลงทะเบียน</span>
+                  <Field value={form.registered} onChange={set('registered')} className="w-16 text-center"/>
+                  <span>คน</span>
                 </div>
-
-                {/* Step 2: ฝ่ายดำเนินการรับมอบ */}
-                <div className="grid grid-cols-4 p-2 gap-2 items-center">
-                  <div className="font-semibold col-span-1">2. ผู้รับมอบซอง (ฝ่ายดำเนินการสอบ):</div>
-                  <div>ลงชื่อ........................................................</div>
-                  <div>(นางสาวธนภรณ์ อำนวยการ)</div>
-                  <div>วันที่......./......./....... เวลา............... น.</div>
-                </div>
-
-                {/* Step 3: กรรมการคุมสอบเบิกข้อสอบ */}
-                <div className="grid grid-cols-4 p-2 gap-2 items-center bg-slate-50">
-                  <div className="font-semibold col-span-1">3. กรรมการคุมสอบ ผู้เบิกไปห้องสอบ:</div>
-                  <div>ลงชื่อ........................................................</div>
-                  <div>(......................................................)</div>
-                  <div>วันที่......./......./....... เวลา............... น.</div>
-                </div>
-
-                {/* Step 4: ส่งคืนหลังสอบเสร็จ */}
-                <div className="grid grid-cols-4 p-2 gap-2 items-center">
-                  <div className="font-semibold col-span-1">4. กรรมการคุมสอบ ผู้ส่งคืนกระดาษคำตอบ:</div>
-                  <div>ลงชื่อ........................................................</div>
-                  <div>(......................................................)</div>
-                  <div>ตรวจนับแล้วครบ.............. ซอง / ............. ฉบับ</div>
+                <div className="flex items-center gap-2">
+                  <span>จำนวนนิสิตที่นั่งสอบได้</span>
+                  <Field value={form.seated} onChange={set('seated')} className="w-16 text-center"/>
+                  <span>คน</span>
                 </div>
               </div>
-            </div>
 
-            {/* Bottom Warning Note */}
-            <div className="mt-4 pt-2 border-t border-slate-300 text-[10px] text-slate-500 flex items-center justify-between">
-              <div className="flex items-center space-x-1 text-red-600 font-semibold">
-                <ShieldAlert className="w-3.5 h-3.5"/>
-                <span>คำเตือน: ห้ามฉีกหรือแกะสติกเกอร์ผนึกปากซองก่อนเวลาสอบ 10 นาที</span>
+              {/* ตารางผู้สอน */}
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-y border-slate-800">
+                    <th className="border-x border-slate-800 px-2 py-1 w-12 font-semibold">ลำดับ</th>
+                    <th className="border-x border-slate-800 px-2 py-1 w-2/5 font-semibold">ผู้สอน</th>
+                    <th className="border-x border-slate-800 px-2 py-1 w-1/4 font-semibold">ชื่อ-สกุล</th>
+                    <th className="border-x border-slate-800 px-2 py-1 w-1/5 font-semibold">ห้องสอบ</th>
+                    <th className="border-x border-slate-800 px-2 py-1 w-20 font-semibold">จำนวนซ้ำ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {form.teachers.map((t, i) => (<tr key={i} className="border-b border-slate-400">
+                      <td className="border-x border-slate-800 px-2 py-1.5 text-center">{i + 1}.</td>
+                      <td className="border-x border-slate-800 px-1"><Field value={t.name} onChange={setTeacher(i, 'name')} className="w-full"/></td>
+                      <td className="border-x border-slate-800 px-1"><Field value={t.room} onChange={setTeacher(i, 'room')} className="w-full"/></td>
+                      <td className="border-x border-slate-800 px-1"><Field value={t.extra} onChange={setTeacher(i, 'extra')} className="w-full text-center"/></td>
+                      <td className="border-x border-slate-800"/>
+                    </tr>))}
+                </tbody>
+              </table>
+
+              {/* กรรมการคุมสอบ */}
+              <div className="space-y-1.5">
+                <p className="font-semibold">กรรมการคุมสอบ</p>
+                {form.proctors.map((p, i) => (<div key={i} className="flex items-center gap-2 pl-4">
+                    <span className="w-5">{i + 1}.</span>
+                    <Field value={p} onChange={setProctor(i)} className="flex-1"/>
+                    <span className="shrink-0">ผู้คุมสอบ</span>
+                  </div>))}
               </div>
-              <div>พิมพ์โดยระบบบริหารจัดการข้อสอบ คณะวิทยาศาสตร์</div>
+
+              {/* หมายเหตุ */}
+              <div className="flex items-center gap-2 pt-1">
+                <span className="shrink-0">หมายเหตุ</span>
+                <Field value={form.note} onChange={set('note')} className="flex-1"/>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Footer controls (no-print) */}
-        <div className="no-print bg-slate-50 border-t border-slate-200 px-6 py-4 flex items-center justify-between">
-          <p className="text-xs text-slate-500">จัดรูปแบบสำหรับกระดาษ A4 ขนาดหน้าซองข้อสอบของคณะ</p>
-          <div className="flex items-center space-x-3">
-            <Button variant="outline" onClick={onClose}>
-              ปิด
-            </Button>
-            <Button onClick={handlePrint}>
-              <Printer className="w-4 h-4"/>
-              <span>พิมพ์ใบปะหน้าซอง</span>
-            </Button>
+        {/* Modal Footer */}
+        <div className="no-print bg-white border-t border-slate-200 px-6 py-3 flex items-center justify-between">
+          <div className="text-xs text-slate-500">
+            พิมพ์ได้เฉพาะใบปะหน้า — โลโก้จะแสดงเมื่อนำภาพมาใส่ในช่องวางโลโก้
           </div>
+          <Button onClick={onClose} variant="secondary" size="sm" className="px-4">
+            ปิดหน้าต่าง
+          </Button>
         </div>
       </div>
     </div>);
