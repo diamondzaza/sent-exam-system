@@ -32,7 +32,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
             courseId: c.Course_id,
             courseName: c.Course_Name,
             teacherName: matchedExam ? matchedExam.teacher_name : c.teacher_name,
-            teacherTel: matchedExam?.teacher_tel || '081-xxx-xxxx',
+            teacherTel: matchedExam?.teacher_tel || '',
             sec: c.sec,
             studentCount: c.student_count,
             exam: matchedExam,

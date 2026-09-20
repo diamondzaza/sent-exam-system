@@ -125,6 +125,10 @@ export default function AppShell() {
     const handleSubmitExamUpload = async (examData, isReupload, fileObject) => {
         if (!uploadModalData)
             return;
+        // เติมเบอร์โทรจากบัญชีผู้ใช้จริง — ต้องทำก่อนยิง API (payload ที่ส่งไปคือที่บันทึกลง DB)
+        if (!examData.teacher_tel) {
+            examData.teacher_tel = currentUser.tel || '';
+        }
         const existingNo = uploadModalData.existingExam?.E_No;
         let res;
         if (isReupload && existingNo) {
@@ -168,20 +172,38 @@ export default function AppShell() {
             showToast(err.error || 'บันทึกข้อมูลไม่สำเร็จ');
             return false;
         }
-        // เติมเบอร์โทรจากบัญชีผู้ใช้จริง (หากฟอร์มไม่ได้ส่งมา)
-        if (!examData.teacher_tel) {
-            examData.teacher_tel = currentUser.tel;
-        }
-        // อัปโหลดไฟล์จริงขึ้น Supabase Storage (ถ้ามีเลือกไว้)
+        // อัปโหลดไฟล์จริง — ตรงจาก browser เข้า Supabase Storage
+        // (ไม่ผ่าน Vercel function เพราะ Vercel จำกัด request body ~4.5MB)
         const eNo = existingNo ?? (await res.json())?.exam?.E_No;
         if (fileObject && eNo) {
-            const fd = new FormData();
-            fd.append('file', fileObject);
-            fd.append('e_no', eNo);
-            const uploadRes = await authFetch('/api/exams/upload', { method: 'POST', body: fd });
-            if (!uploadRes.ok) {
-                const err = await uploadRes.json().catch(() => ({}));
-                showToast(err.error || 'อัปโหลดไฟล์ไม่สำเร็จ — ลองแก้ไขรายการอีกครั้ง');
+            const safeName = fileObject.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = `${eNo}/${safeName}`;
+            const supabase = createClient();
+            const { error: uploadError } = await supabase.storage
+                .from('exam-files')
+                .upload(path, fileObject, {
+                    contentType: fileObject.type || 'application/octet-stream',
+                    upsert: true, // อัปโหลดซ้ำแทนที่ไฟล์เดิม
+                });
+            if (uploadError) {
+                showToast(`อัปโหลดไฟล์ไม่สำเร็จ: ${uploadError.message}`);
+                await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
+                return false;
+            }
+            // ลงทะเบียน metadata ของไฟล์ลงตาราง exams ผ่าน API
+            const regRes = await authFetch('/api/exams/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    e_no: eNo,
+                    file_name: fileObject.name,
+                    file_size: `${(fileObject.size / (1024 * 1024)).toFixed(1)} MB`,
+                    file_path: path,
+                }),
+            });
+            if (!regRes.ok) {
+                const err = await regRes.json().catch(() => ({}));
+                showToast(err.error || 'บันทึกข้อมูลไฟล์ไม่สำเร็จ — ลองแก้ไขรายการอีกครั้ง');
                 await Promise.all([refreshExams(), refreshNotifications(), refreshAuditLogs()]);
                 return false;
             }

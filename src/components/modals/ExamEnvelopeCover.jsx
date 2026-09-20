@@ -211,7 +211,8 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
             </div>)}
 
           {/* ═══ แท็บ 2: ใบปะหน้า (เอกสาร — ค่าเป็นตัวอักษรบนเส้นประ) ═══ */}
-          {tab === 'doc' && (<div className="bg-white shadow border border-slate-300 mx-auto max-w-3xl px-8 py-8 text-slate-900 min-h-[900px]">
+          {/* id="printable-envelope" — CSS @media print ซ่อนทุกอย่างแล้วเปิดเฉพาะ element นี้ (REQ-0013) */}
+          {tab === 'doc' && (<div id="printable-envelope" className="bg-white shadow border border-slate-300 mx-auto max-w-3xl px-8 py-8 text-slate-900 min-h-[900px]">
 
               {/* ── โลโก้ (ช่องวาง — นำภาพมาใส่เองภายหลัง) ── */}
               <div className="flex justify-center mb-3">

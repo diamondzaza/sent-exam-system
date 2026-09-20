@@ -35,6 +35,10 @@ export async function POST(request) {
         if (!body.E_No || !body.Subject_ID) {
             return NextResponse.json({ error: 'ข้อมูลข้อสอบไม่ครบถ้วน' }, { status: 400 });
         }
+        // เกราะป้องกัน: เบอร์โทรว่างให้ใช้เบอร์จากบัญชีที่ล็อกอิน (กัน DB เก็บค่าว่าง)
+        if (!body.teacher_tel) {
+            body.teacher_tel = profile.tel || '';
+        }
         const { data, error: dbError } = await supabase
             .from('exams')
             .insert(examToDb(body))
