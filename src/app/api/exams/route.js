@@ -9,7 +9,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { requireUser, requireRole } from '@/lib/api-helpers';
+import { requireUser, requireRole, createAdminClient } from '@/lib/api-helpers';
 import { examToDb, examFromDb, auditLogToDb, notificationToDb } from '@/lib/mappers';
 
 export async function GET(request) {
@@ -48,6 +48,7 @@ export async function POST(request) {
             );
         }
         const exam = examFromDb(data);
+        const admin = createAdminClient();
         // Audit log (ฝั่ง server — client แก้ไขย้อนหลังไม่ได้)
         await supabase.from('audit_logs').insert(auditLogToDb({
             userId: user.id, userName: profile.name, role: profile.role,
@@ -55,8 +56,9 @@ export async function POST(request) {
             ipAddress: request.headers.get('x-forwarded-for') ?? 'unknown',
             details: `อัปโหลดข้อสอบใหม่เข้าสู่ระบบ: ${exam.file_name ?? '-'} (${exam.file_size ?? '-'}) ยอดพิมพ์ ${exam.total_copies} ชุด`,
         }));
-        // แจ้งเตือนฝ่ายโสตฯ
-        await supabase.from('notifications').insert(notificationToDb({
+        // แจ้งเตือนฝ่ายโสตฯ — ผ่าน admin client เพราะตาราง notifications
+        // ไม่มีนโยบาย INSERT ใน RLS (กัน user สร้างแจ้งเตือนเองจาก browser)
+        await admin.from('notifications').insert(notificationToDb({
             title: 'ข้อสอบใหม่รอการตรวจสอบ',
             message: `อาจารย์ ${profile.name} ได้จัดส่งข้อสอบวิชา ${exam.Subject_ID} เข้าสู่ระบบแล้ว`,
             targetRole: 'AudioVisual', type: 'info', relatedExamNo: exam.E_No,

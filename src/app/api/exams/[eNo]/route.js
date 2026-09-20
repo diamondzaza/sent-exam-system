@@ -51,6 +51,7 @@ export async function PATCH(request, { params }) {
             return NextResponse.json({ error: dbError.message }, { status: 500 });
         }
         // Audit log + แจ้งเตือน (frontend ส่งมาพร้อมกับ updates)
+        const admin = createAdminClient();
         if (body.audit?.action) {
             await supabase.from('audit_logs').insert(auditLogToDb({
                 userId: user.id, userName: profile.name, role: profile.role,
@@ -61,7 +62,8 @@ export async function PATCH(request, { params }) {
             }));
         }
         if (body.notify?.title) {
-            await supabase.from('notifications').insert(notificationToDb(body.notify));
+            // ผ่าน admin client — ตาราง notifications ไม่มีนโยบาย INSERT ใน RLS
+            await admin.from('notifications').insert(notificationToDb(body.notify));
         }
         return NextResponse.json({ ok: true });
     }
@@ -110,7 +112,7 @@ export async function DELETE(request, { params }) {
         ipAddress: request.headers.get('x-forwarded-for') ?? 'unknown',
         details: `อาจารย์ยกเลิกการส่งข้อสอบรหัส ${eNo} ออกจากระบบ`,
     }));
-    await supabase.from('notifications').insert(notificationToDb({
+    await admin.from('notifications').insert(notificationToDb({
         title: 'ยกเลิกการส่งข้อสอบ',
         message: `ข้อสอบวิชา ${exam.subject_id} ${exam.subject_name ?? ''} ได้รับการยกเลิกการส่งโดยอาจารย์ผู้สอน`,
         targetRole: 'AudioVisual', type: 'warning',
