@@ -1,13 +1,12 @@
 /**
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: ExamEnvelopeCover.jsx
- * หน้าที่ของหน้านี้: ใบปะหน้าซองข้อสอบ มหาวิทยาลัยสงขลานครินทร์ —
- *   ตามแบบฟอร์มต้นฉบับ: โลโก้ (ช่องวาง — ผู้ใช้นำมาใส่เอง), คณะวิทยาศาสตร์,
- *   มหาวิทยาลัยสงขลานครินทร์, ข้อมูลการสอบ (วิชา/รหัสวิชา/วันที่/เวลา/ห้อง/
- *   เลขประจำซอง/จำนวนนักศึกษา/จำนวนข้อสอบ/สำรอง), อุปกรณ์ที่ใช้และคำแนะนำ
- *   ผู้คุมสอบ (checkbox), ผู้ออกข้อสอบ, ห้องทำงาน, รายชื่อนักศึกษาที่ขาดสอบ
- *   (รหัส/ชื่อ-สกุล 3 แถว), ผู้คุมสอบ 3 คน และหมายเหตุ — ทุกช่องเป็นช่องกรอก
- *   เส้นประว่างๆ พิมพ์ได้เฉพาะใบปะหน้าผ่าน body.printing-envelope
+ * หน้าที่ของหน้านี้: ใบปะหน้าซองข้อสอบ มหาวิทยาลัยสงขลานครินทร์ แบ่ง 2 แท็บ:
+ *   1. ฟอร์มกรอกข้อมูล — ช่อง input ปกติ สำหรับกรอกข้อมูลทั้งหมด
+ *   2. ใบปะหน้า (เอกสาร) — แสดงข้อมูลที่กรอกเป็น "ตัวอักษรบนเส้นประ"
+ *      (ไม่มี textbox) พร้อมพิมพ์ — ทุกเส้นประยาวเท่ากันจัดบน grid 12 คอลัมน์
+ *   โลโก้เป็นช่องวางไว้ให้ผู้ใช้นำภาพมาใส่เองภายหลัง
+ *   พิมพ์ได้เฉพาะหน้าเอกสารผ่าน body.printing-envelope
  * ผู้ใช้งาน: Teacher / AudioVisual / Operations — เปิดผ่าน AppShell
  * ─────────────────────────────────────────────────────────
  */
@@ -42,18 +41,30 @@ const initialForm = {
     note: '',
 };
 
-// ช่องกรอกเส้นประแบบเอกสารราชการ
-const Field = ({ value, onChange, className = '' }) => (
-    <input
-        type="text"
-        value={value}
-        onChange={onChange}
-        className={`bg-transparent border-0 border-b border-dotted border-slate-500 focus:border-indigo-600 focus:outline-none text-slate-900 text-sm px-1 py-0.5 ${className}`}
-    />
+/** ช่อง input ปกติ (ใช้ในแท็บฟอร์มกรอกข้อมูล) */
+const Input = ({ label, value, onChange, className = '' }) => (
+    <div className={className}>
+        <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+        <input
+            type="text"
+            value={value}
+            onChange={onChange}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"
+        />
+    </div>
 );
-const Dots = ({ className = '' }) => <span className={`inline-block border-b border-dotted border-slate-500 ${className}`} />;
+
+/** เส้นประพร้อมค่าที่กรอก (ใช้ในแท็บใบปะหน้า) — ไม่มี textbox แสดงเป็นตัวอักษร */
+const Line = ({ value, className = '' }) => (
+    <span className={`block border-b border-dotted border-slate-600 text-center text-sm leading-snug min-h-[1.5rem] px-1 truncate ${className}`}>
+        {value}
+    </span>
+);
+/** เส้นประเปล่า */
+const Dots = ({ className = '' }) => <span className={`block border-b border-dotted border-slate-600 ${className}`} />;
 
 export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
+    const [tab, setTab] = useState('form'); // 'form' | 'doc'
     const [form, setForm] = useState(initialForm);
     const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
     const setAbsentee = (i, key) => (e) => {
@@ -67,9 +78,19 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
     const handlePrint = () => {
         if (onPrintRecorded)
             onPrintRecorded();
-        document.body.classList.add('printing-envelope');
-        window.print();
-        setTimeout(() => document.body.classList.remove('printing-envelope'), 500);
+        const doPrint = () => {
+            document.body.classList.add('printing-envelope');
+            window.print();
+            setTimeout(() => document.body.classList.remove('printing-envelope'), 500);
+        };
+        if (tab !== 'doc') {
+            // สลับไปหน้าเอกสารก่อน แล้วค่อยสั่งพิมพ์ (รอ render สั้นๆ)
+            setTab('doc');
+            setTimeout(doPrint, 200);
+        }
+        else {
+            doPrint();
+        }
     };
     return (<div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-slate-300 overflow-hidden flex flex-col max-h-[94vh]">
@@ -82,7 +103,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
             <div>
               <h3 className="font-display font-semibold text-base">ใบปะหน้าซองข้อสอบ</h3>
               <p className="text-xs text-slate-400">
-                {exam ? `${exam.Subject_ID} : ${exam.Subject_Name}` : 'ตัวอย่างแบบฟอร์ม'} — กรอกข้อมูลแล้วสั่งพิมพ์
+                {exam ? `${exam.Subject_ID} : ${exam.Subject_Name}` : 'ตัวอย่างแบบฟอร์ม'} — กรอกฟอร์มแล้วดูตัวอย่าง/สั่งพิมพ์
               </p>
             </div>
           </div>
@@ -97,158 +118,241 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
           </div>
         </div>
 
-        {/* ═══ แบบฟอร์ม (printable) ═══ */}
-        <div id="printable-envelope" className="flex-1 overflow-y-auto bg-slate-100 p-4 sm:p-6">
-          <div className="bg-white shadow border border-slate-300 mx-auto max-w-3xl px-8 py-8 text-slate-900 min-h-[900px]">
+        {/* Tabs (สลับระหว่างฟอร์มกรอก กับ เอกสารใบปะหน้า) */}
+        <div className="no-print flex space-x-2 px-6 pt-4 border-b border-slate-200 text-xs font-medium">
+          <button onClick={() => setTab('form')} className={`px-4 py-2.5 rounded-t-xl transition-all ${tab === 'form' ? 'bg-slate-100 text-indigo-700 font-bold border-t-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>
+            1. ฟอร์มกรอกข้อมูล
+          </button>
+          <button onClick={() => setTab('doc')} className={`px-4 py-2.5 rounded-t-xl transition-all ${tab === 'doc' ? 'bg-slate-100 text-indigo-700 font-bold border-t-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>
+            2. ใบปะหน้า (ตัวอย่าง/พิมพ์)
+          </button>
+        </div>
 
-            {/* ── โลโก้ (ช่องวาง — นำภาพมาใส่เองภายหลัง) ── */}
-            <div className="flex justify-center mb-3">
-              <div className="w-28 h-28 border-2 border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-300 text-center leading-tight">
-                ที่วาง<br/>โลโก้
-              </div>
-            </div>
+        <div className="flex-1 overflow-y-auto bg-slate-100 p-4 sm:p-6">
 
-            {/* ── คณะ / มหาวิทยาลัย ── */}
-            <div className="text-center space-y-1 mb-6">
-              <p className="font-display text-xl font-bold text-slate-900">คณะวิทยาศาสตร์</p>
-              <p className="font-display text-xl font-bold text-slate-900">มหาวิทยาลัยสงขลานครินทร์</p>
-            </div>
-
-            {/* ── ข้อมูลการสอบ (grid 12 คอลัมน์ — ทุกบรรทัดเริ่ม-จบตรงกัน) ── */}
-            <div className="space-y-2.5 text-sm mb-6">
-              <div className="grid grid-cols-12 items-end gap-x-2">
-                <span className="col-span-2 whitespace-nowrap">การสอบวิชา</span>
-                <Field value={form.subject} onChange={set('subject')} className="col-span-6 text-center"/>
-                <span className="col-span-2 whitespace-nowrap text-right">รหัสวิชา</span>
-                <Field value={form.subjectCode} onChange={set('subjectCode')} className="col-span-2 text-center"/>
-              </div>
-              <div className="grid grid-cols-12 items-end gap-x-2">
-                <span className="col-span-2 whitespace-nowrap">สอบวันที่</span>
-                <Field value={form.examDay} onChange={set('examDay')} className="col-span-2 text-center"/>
-                <span className="col-span-1 whitespace-nowrap text-right">เดือน</span>
-                <Field value={form.examMonth} onChange={set('examMonth')} className="col-span-2 text-center"/>
-                <span className="col-span-1 whitespace-nowrap text-right">พ.ศ.</span>
-                <Field value={form.examYearBE} onChange={set('examYearBE')} className="col-span-1 text-center"/>
-                <span className="col-span-1 whitespace-nowrap text-right">เวลา</span>
-                <Field value={form.examTime} onChange={set('examTime')} className="col-span-2 text-center"/>
-                <span className="col-span-1">น.</span>
-              </div>
-              <div className="grid grid-cols-12 items-end gap-x-2">
-                <span className="col-span-2 whitespace-nowrap">ห้องสอบ</span>
-                <Field value={form.examRoom} onChange={set('examRoom')} className="col-span-6 text-center"/>
-                <span className="col-span-2 whitespace-nowrap text-right">เลขประจำซอง</span>
-                <Field value={form.envelopeNo} onChange={set('envelopeNo')} className="col-span-2 text-center"/>
-              </div>
-              <div className="grid grid-cols-12 items-end gap-x-2">
-                <span className="col-span-2 whitespace-nowrap">จำนวนนักศึกษา</span>
-                <Field value={form.studentCount} onChange={set('studentCount')} className="col-span-9 text-center"/>
-                <span className="col-span-1">คน</span>
-              </div>
-              <div className="grid grid-cols-12 items-end gap-x-2">
-                <span className="col-span-3 whitespace-nowrap">ซองนี้มีจำนวนข้อสอบ</span>
-                <Field value={form.examCopies} onChange={set('examCopies')} className="col-span-1 text-center"/>
-                <span className="col-span-1">จุด</span>
-                <span className="col-span-2 whitespace-nowrap text-right">นศ. คณะ</span>
-                <Field value={form.facultyName} onChange={set('facultyName')} className="col-span-3 text-center"/>
-                <span className="col-span-1 whitespace-nowrap text-right">ตอน</span>
-                <Field value={form.section} onChange={set('section')} className="col-span-1 text-center"/>
-              </div>
-              <div className="grid grid-cols-12 items-end gap-x-2">
-                <span className="col-span-2 whitespace-nowrap">ข้อสอบสำรอง</span>
-                <Field value={form.reserveSets} onChange={set('reserveSets')} className="col-span-9 text-center"/>
-                <span className="col-span-1">ชุด</span>
-              </div>
-            </div>
-
-            {/* ── อุปกรณ์ที่ใช้ / คำแนะนำผู้คุมสอบ ── */}
-            <div className="border-t border-slate-300 pt-3 mb-6 text-sm">
-              <p className="font-semibold mb-2">อุปกรณ์ที่ใช้หรือคำแนะนำผู้คุมสอบเพิ่มเติม</p>
-              <div className="space-y-1.5 pl-2">
-                {[['optBooks', 'นำตำราเข้าห้องสอบได้'],
-                  ['optCalculator', 'นำเครื่องคิดเลขเข้าห้องสอบได้'],
-                  ['optNoRuler', 'ห้ามนำไม้บรรทัดมีสูตรคณิตศาสตร์เข้าสอบ']].map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={form[key]}
-                        onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
-                        className="w-3.5 h-3.5 accent-indigo-600"
-                      />
-                      <span>(</span>
-                      <span className="w-6 inline-block border-b border-slate-400"/>
-                      <span>)</span>
-                      <span>{label}</span>
-                    </label>))}
-              </div>
-            </div>
-
-            {/* ── ผู้ออกข้อสอบ / ห้องทำงาน (2 บรรทัดเส้นตรงกัน) ── */}
-            <div className="space-y-2.5 text-sm mb-6">
-              <div className="grid grid-cols-12 items-end gap-x-2">
-                <span className="col-span-2 whitespace-nowrap">ผู้ออกข้อสอบ</span>
-                <Dots className="col-span-3"/>
-                <Field value={form.examAuthor} onChange={set('examAuthor')} className="col-span-5 text-center"/>
-                <Dots className="col-span-2"/>
-              </div>
-              <div className="grid grid-cols-12 items-end gap-x-2">
-                <span className="col-span-2 whitespace-nowrap">ห้องทำงาน</span>
-                <Dots className="col-span-3"/>
-                <Field value={form.office} onChange={set('office')} className="col-span-5 text-center"/>
-                <Dots className="col-span-2"/>
-              </div>
-            </div>
-
-            {/* ── จำนวนเข้าสอบ / ขาดสอบ + รายชื่อผู้ขาด ── */}
-            <div className="space-y-3 text-sm mb-6">
-              <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-                <div className="flex items-center gap-2">
-                  <span>จำนวนนักศึกษาที่เข้าสอบ</span>
-                  <Field value={form.attendedCount} onChange={set('attendedCount')} className="w-16 text-center"/>
-                  <span>คน</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>จำนวนนักศึกษาที่ขาดสอบ</span>
-                  <Field value={form.absentCount} onChange={set('absentCount')} className="w-16 text-center"/>
-                  <span>คน คือ</span>
-                </div>
-              </div>
-
-              {/* ตารางรายชื่อผู้ขาดสอบ: รหัส | ชื่อ-สกุล */}
+          {/* ═══ แท็บ 1: ฟอร์มกรอกข้อมูล ═══ */}
+          {tab === 'form' && (<div className="bg-white shadow border border-slate-200 rounded-xl mx-auto max-w-3xl p-6 space-y-6">
+              {/* ข้อมูลการสอบ */}
               <div>
-                <div className="flex items-center gap-6 mb-1 pl-1">
-                  <span className="w-44 shrink-0 text-center font-semibold">รหัส</span>
-                  <span className="flex-1 text-center font-semibold">ชื่อ-สกุล</span>
+                <p className="font-display font-bold text-sm text-slate-900 mb-3">ข้อมูลการสอบ</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input label="การสอบวิชา" value={form.subject} onChange={set('subject')}/>
+                  <Input label="รหัสวิชา" value={form.subjectCode} onChange={set('subjectCode')}/>
+                  <Input label="สอบวันที่" value={form.examDay} onChange={set('examDay')}/>
+                  <Input label="เดือน" value={form.examMonth} onChange={set('examMonth')}/>
+                  <Input label="พ.ศ." value={form.examYearBE} onChange={set('examYearBE')}/>
+                  <Input label="เวลา" value={form.examTime} onChange={set('examTime')}/>
+                  <Input label="ห้องสอบ" value={form.examRoom} onChange={set('examRoom')}/>
+                  <Input label="เลขประจำซอง" value={form.envelopeNo} onChange={set('envelopeNo')}/>
+                  <Input label="จำนวนนักศึกษา (คน)" value={form.studentCount} onChange={set('studentCount')}/>
+                  <Input label="ซองนี้มีจำนวนข้อสอบ (จุด)" value={form.examCopies} onChange={set('examCopies')}/>
+                  <Input label="นศ. คณะ" value={form.facultyName} onChange={set('facultyName')}/>
+                  <Input label="ตอน" value={form.section} onChange={set('section')}/>
+                  <Input label="ข้อสอบสำรอง (ชุด)" value={form.reserveSets} onChange={set('reserveSets')}/>
                 </div>
-                {form.absentees.map((a, i) => (<div key={i} className="flex items-center gap-6 mb-2">
-                    <Field value={a.code} onChange={setAbsentee(i, 'code')} className="w-44 text-center"/>
-                    <Field value={a.name} onChange={setAbsentee(i, 'name')} className="flex-1"/>
+              </div>
+
+              {/* อุปกรณ์ที่ใช้ */}
+              <div>
+                <p className="font-display font-bold text-sm text-slate-900 mb-3">อุปกรณ์ที่ใช้หรือคำแนะนำผู้คุมสอบเพิ่มเติม</p>
+                <div className="space-y-2 pl-1">
+                  {[['optBooks', 'นำตำราเข้าห้องสอบได้'],
+                    ['optCalculator', 'นำเครื่องคิดเลขเข้าห้องสอบได้'],
+                    ['optNoRuler', 'ห้ามนำไม้บรรทัดมีสูตรคณิตศาสตร์เข้าสอบ']].map(([key, label]) => (
+                      <label key={key} className="flex items-center gap-2.5 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form[key]}
+                          onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
+                          className="w-4 h-4 accent-indigo-600"
+                        />
+                        <span>{label}</span>
+                      </label>))}
+                </div>
+              </div>
+
+              {/* ผู้ออกข้อสอบ */}
+              <div>
+                <p className="font-display font-bold text-sm text-slate-900 mb-3">ผู้ออกข้อสอบ</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input label="ผู้ออกข้อสอบ" value={form.examAuthor} onChange={set('examAuthor')}/>
+                  <Input label="ห้องทำงาน" value={form.office} onChange={set('office')}/>
+                  <Input label="จำนวนนักศึกษาที่เข้าสอบ (คน)" value={form.attendedCount} onChange={set('attendedCount')}/>
+                  <Input label="จำนวนนักศึกษาที่ขาดสอบ (คน)" value={form.absentCount} onChange={set('absentCount')}/>
+                </div>
+              </div>
+
+              {/* รายชื่อผู้ขาดสอบ */}
+              <div>
+                <p className="font-display font-bold text-sm text-slate-900 mb-3">รายชื่อนักศึกษาที่ขาดสอบ</p>
+                <div className="space-y-2">
+                  {form.absentees.map((a, i) => (<div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Input label={`รหัส (${i + 1})`} value={a.code} onChange={setAbsentee(i, 'code')}/>
+                      <Input label={`ชื่อ-สกุล (${i + 1})`} value={a.name} onChange={setAbsentee(i, 'name')}/>
+                    </div>))}
+                </div>
+              </div>
+
+              {/* ผู้คุมสอบ + หมายเหตุ */}
+              <div>
+                <p className="font-display font-bold text-sm text-slate-900 mb-3">ผู้คุมสอบและหมายเหตุ</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {form.proctors.map((p, i) => (<Input key={i} label={`ผู้คุมสอบ (${i + 1})`} value={p} onChange={setProctor(i)}/>))}
+                  <Input label="หมายเหตุ" value={form.note} onChange={set('note')} className="sm:col-span-2"/>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                <p className="text-xs text-slate-500">กรอกเสร็จแล้วสลับไปแท็บ "ใบปะหน้า" เพื่อดูตัวอย่างและสั่งพิมพ์</p>
+                <Button onClick={() => setTab('doc')} size="sm">
+                  ไปที่ใบปะหน้า
+                </Button>
+              </div>
+            </div>)}
+
+          {/* ═══ แท็บ 2: ใบปะหน้า (เอกสาร — ค่าเป็นตัวอักษรบนเส้นประ) ═══ */}
+          {tab === 'doc' && (<div className="bg-white shadow border border-slate-300 mx-auto max-w-3xl px-8 py-8 text-slate-900 min-h-[900px]">
+
+              {/* ── โลโก้ (ช่องวาง — นำภาพมาใส่เองภายหลัง) ── */}
+              <div className="flex justify-center mb-3">
+                <div className="w-28 h-28 border-2 border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-300 text-center leading-tight">
+                  ที่วาง<br/>โลโก้
+                </div>
+              </div>
+
+              {/* ── คณะ / มหาวิทยาลัย ── */}
+              <div className="text-center space-y-1 mb-6">
+                <p className="font-display text-xl font-bold text-slate-900">คณะวิทยาศาสตร์</p>
+                <p className="font-display text-xl font-bold text-slate-900">มหาวิทยาลัยสงขลานครินทร์</p>
+              </div>
+
+              {/* ── ข้อมูลการสอบ (grid 12 คอลัมน์ — ทุกเส้นยาวเท่ากัน เริ่ม-จบตรงกัน) ── */}
+              <div className="space-y-3 text-sm mb-6">
+                <div className="grid grid-cols-12 items-end gap-x-2">
+                  <span className="col-span-2 whitespace-nowrap">การสอบวิชา</span>
+                  <Line value={form.subject} className="col-span-6"/>
+                  <span className="col-span-2 whitespace-nowrap text-right">รหัสวิชา</span>
+                  <Line value={form.subjectCode} className="col-span-2"/>
+                </div>
+                <div className="grid grid-cols-12 items-end gap-x-2">
+                  <span className="col-span-2 whitespace-nowrap">สอบวันที่</span>
+                  <Line value={form.examDay} className="col-span-2"/>
+                  <span className="col-span-1 whitespace-nowrap text-right">เดือน</span>
+                  <Line value={form.examMonth} className="col-span-2"/>
+                  <span className="col-span-1 whitespace-nowrap text-right">พ.ศ.</span>
+                  <Line value={form.examYearBE} className="col-span-1"/>
+                  <span className="col-span-1 whitespace-nowrap text-right">เวลา</span>
+                  <Line value={form.examTime} className="col-span-2"/>
+                  <span className="col-span-1">น.</span>
+                </div>
+                <div className="grid grid-cols-12 items-end gap-x-2">
+                  <span className="col-span-2 whitespace-nowrap">ห้องสอบ</span>
+                  <Line value={form.examRoom} className="col-span-6"/>
+                  <span className="col-span-2 whitespace-nowrap text-right">เลขประจำซอง</span>
+                  <Line value={form.envelopeNo} className="col-span-2"/>
+                </div>
+                <div className="grid grid-cols-12 items-end gap-x-2">
+                  <span className="col-span-2 whitespace-nowrap">จำนวนนักศึกษา</span>
+                  <Line value={form.studentCount} className="col-span-9"/>
+                  <span className="col-span-1">คน</span>
+                </div>
+                <div className="grid grid-cols-12 items-end gap-x-2">
+                  <span className="col-span-3 whitespace-nowrap">ซองนี้มีจำนวนข้อสอบ</span>
+                  <Line value={form.examCopies} className="col-span-1"/>
+                  <span className="col-span-1">จุด</span>
+                  <span className="col-span-2 whitespace-nowrap text-right">นศ. คณะ</span>
+                  <Line value={form.facultyName} className="col-span-3"/>
+                  <span className="col-span-1 whitespace-nowrap text-right">ตอน</span>
+                  <Line value={form.section} className="col-span-1"/>
+                </div>
+                <div className="grid grid-cols-12 items-end gap-x-2">
+                  <span className="col-span-2 whitespace-nowrap">ข้อสอบสำรอง</span>
+                  <Line value={form.reserveSets} className="col-span-9"/>
+                  <span className="col-span-1">ชุด</span>
+                </div>
+              </div>
+
+              {/* ── อุปกรณ์ที่ใช้ / คำแนะนำผู้คุมสอบ ── */}
+              <div className="border-t border-slate-300 pt-3 mb-6 text-sm">
+                <p className="font-semibold mb-2">อุปกรณ์ที่ใช้หรือคำแนะนำผู้คุมสอบเพิ่มเติม</p>
+                <div className="space-y-1.5 pl-2">
+                  {[['optBooks', 'นำตำราเข้าห้องสอบได้'],
+                    ['optCalculator', 'นำเครื่องคิดเลขเข้าห้องสอบได้'],
+                    ['optNoRuler', 'ห้ามนำไม้บรรทัดมีสูตรคณิตศาสตร์เข้าสอบ']].map(([key, label]) => (
+                      <div key={key} className="flex items-center gap-2">
+                        <span>(</span>
+                        <span className="w-6 inline-block border-b border-slate-500 text-center text-xs">
+                          {form[key] ? '✓' : ''}
+                        </span>
+                        <span>)</span>
+                        <span>{label}</span>
+                      </div>))}
+                </div>
+              </div>
+
+              {/* ── ผู้ออกข้อสอบ / ห้องทำงาน ── */}
+              <div className="space-y-3 text-sm mb-6">
+                <div className="grid grid-cols-12 items-end gap-x-2">
+                  <span className="col-span-2 whitespace-nowrap">ผู้ออกข้อสอบ</span>
+                  <Dots className="col-span-3"/>
+                  <Line value={form.examAuthor} className="col-span-5"/>
+                  <Dots className="col-span-2"/>
+                </div>
+                <div className="grid grid-cols-12 items-end gap-x-2">
+                  <span className="col-span-2 whitespace-nowrap">ห้องทำงาน</span>
+                  <Dots className="col-span-3"/>
+                  <Line value={form.office} className="col-span-5"/>
+                  <Dots className="col-span-2"/>
+                </div>
+              </div>
+
+              {/* ── จำนวนเข้าสอบ / ขาดสอบ + รายชื่อผู้ขาด ── */}
+              <div className="space-y-3 text-sm mb-6">
+                <div className="grid grid-cols-12 items-end gap-x-2">
+                  <span className="col-span-4 whitespace-nowrap">จำนวนนักศึกษาที่เข้าสอบ</span>
+                  <Line value={form.attendedCount} className="col-span-2"/>
+                  <span className="col-span-1">คน</span>
+                  <span className="col-span-3 whitespace-nowrap text-right">จำนวนนักศึกษาที่ขาดสอบ</span>
+                  <Line value={form.absentCount} className="col-span-1"/>
+                  <span className="col-span-1 whitespace-nowrap">คน คือ</span>
+                </div>
+
+                {/* ตารางรายชื่อผู้ขาดสอบ: รหัส | ชื่อ-สกุล */}
+                <div>
+                  <div className="grid grid-cols-12 gap-x-6 mb-1 pl-1">
+                    <span className="col-span-4 text-center font-semibold">รหัส</span>
+                    <span className="col-span-8 text-center font-semibold">ชื่อ-สกุล</span>
+                  </div>
+                  {form.absentees.map((a, i) => (<div key={i} className="grid grid-cols-12 gap-x-6 mb-2">
+                      <Line value={a.code} className="col-span-4"/>
+                      <Line value={a.name} className="col-span-8"/>
+                    </div>))}
+                </div>
+              </div>
+
+              {/* ── ผู้คุมสอบ ── */}
+              <div className="space-y-3 text-sm mb-5">
+                {form.proctors.map((p, i) => (<div key={i} className="grid grid-cols-12 items-end gap-x-2">
+                    <span className="col-span-1">{i + 1}.</span>
+                    <Dots className="col-span-2"/>
+                    <Line value={p} className="col-span-7"/>
+                    <span className="col-span-2 whitespace-nowrap text-right">ผู้คุมสอบ</span>
                   </div>))}
               </div>
-            </div>
 
-            {/* ── ผู้คุมสอบ (grid — ตัวเลข/เส้น/ช่องกรอกตรงกันทุกบรรทัด) ── */}
-            <div className="space-y-2.5 text-sm mb-5">
-              {form.proctors.map((p, i) => (<div key={i} className="grid grid-cols-12 items-end gap-x-2">
-                  <span className="col-span-1">{i + 1}.</span>
-                  <Dots className="col-span-2"/>
-                  <Field value={p} onChange={setProctor(i)} className="col-span-7 text-center"/>
-                  <span className="col-span-2 whitespace-nowrap text-right">ผู้คุมสอบ</span>
-                </div>))}
-            </div>
-
-            {/* ── หมายเหตุ ── */}
-            <div className="grid grid-cols-12 items-end gap-x-2 text-sm">
-              <span className="col-span-2 whitespace-nowrap">หมายเหตุ</span>
-              <Dots className="col-span-3"/>
-              <Field value={form.note} onChange={set('note')} className="col-span-7"/>
-            </div>
-          </div>
+              {/* ── หมายเหตุ ── */}
+              <div className="grid grid-cols-12 items-end gap-x-2 text-sm">
+                <span className="col-span-2 whitespace-nowrap">หมายเหตุ</span>
+                <Dots className="col-span-3"/>
+                <Line value={form.note} className="col-span-7"/>
+              </div>
+            </div>)}
         </div>
 
         {/* Modal Footer */}
         <div className="no-print bg-white border-t border-slate-200 px-6 py-3 flex items-center justify-between">
           <div className="text-xs text-slate-500">
-            พิมพ์ได้เฉพาะใบปะหน้า — โลโก้จะแสดงเมื่อนำภาพมาใส่ในช่องวางโลโก้
+            พิมพ์ได้เฉพาะหน้าใบปะหน้า — โลโก้จะแสดงเมื่อนำภาพมาใส่ในช่องวางโลโก้
           </div>
           <Button onClick={onClose} variant="secondary" size="sm" className="px-4">
             ปิดหน้าต่าง
