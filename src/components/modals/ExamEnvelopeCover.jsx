@@ -114,55 +114,49 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
               <p className="font-display text-xl font-bold text-slate-900">มหาวิทยาลัยสงขลานครินทร์</p>
             </div>
 
-            {/* ── ข้อมูลการสอบ ── */}
+            {/* ── ข้อมูลการสอบ (grid 12 คอลัมน์ — ทุกบรรทัดเริ่ม-จบตรงกัน) ── */}
             <div className="space-y-2.5 text-sm mb-6">
-              <div className="flex items-center gap-2">
-                <span className="shrink-0">การสอบวิชา</span>
-                <Dots className="flex-1"/>
-                <Field value={form.subject} onChange={set('subject')} className="w-64 text-center"/>
-                <span className="shrink-0">รหัสวิชา</span>
-                <Dots className="w-6"/>
-                <Field value={form.subjectCode} onChange={set('subjectCode')} className="w-28 text-center"/>
+              <div className="grid grid-cols-12 items-end gap-x-2">
+                <span className="col-span-2 whitespace-nowrap">การสอบวิชา</span>
+                <Field value={form.subject} onChange={set('subject')} className="col-span-6 text-center"/>
+                <span className="col-span-2 whitespace-nowrap text-right">รหัสวิชา</span>
+                <Field value={form.subjectCode} onChange={set('subjectCode')} className="col-span-2 text-center"/>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="shrink-0">สอบวันที่</span>
-                <Field value={form.examDay} onChange={set('examDay')} className="w-14 text-center"/>
-                <span className="shrink-0">เดือน</span>
-                <Field value={form.examMonth} onChange={set('examMonth')} className="w-28 text-center"/>
-                <span className="shrink-0">พ.ศ.</span>
-                <Field value={form.examYearBE} onChange={set('examYearBE')} className="w-16 text-center"/>
-                <span className="shrink-0">เวลา</span>
-                <Field value={form.examTime} onChange={set('examTime')} className="w-32 text-center"/>
-                <span className="shrink-0">น.</span>
+              <div className="grid grid-cols-12 items-end gap-x-2">
+                <span className="col-span-2 whitespace-nowrap">สอบวันที่</span>
+                <Field value={form.examDay} onChange={set('examDay')} className="col-span-2 text-center"/>
+                <span className="col-span-1 whitespace-nowrap text-right">เดือน</span>
+                <Field value={form.examMonth} onChange={set('examMonth')} className="col-span-2 text-center"/>
+                <span className="col-span-1 whitespace-nowrap text-right">พ.ศ.</span>
+                <Field value={form.examYearBE} onChange={set('examYearBE')} className="col-span-1 text-center"/>
+                <span className="col-span-1 whitespace-nowrap text-right">เวลา</span>
+                <Field value={form.examTime} onChange={set('examTime')} className="col-span-2 text-center"/>
+                <span className="col-span-1">น.</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="shrink-0">ห้องสอบ</span>
-                <Dots className="flex-1"/>
-                <Field value={form.examRoom} onChange={set('examRoom')} className="w-44 text-center"/>
-                <span className="shrink-0 ml-4">เลขประจำซอง</span>
-                <Dots className="w-6"/>
-                <Field value={form.envelopeNo} onChange={set('envelopeNo')} className="w-24 text-center"/>
+              <div className="grid grid-cols-12 items-end gap-x-2">
+                <span className="col-span-2 whitespace-nowrap">ห้องสอบ</span>
+                <Field value={form.examRoom} onChange={set('examRoom')} className="col-span-6 text-center"/>
+                <span className="col-span-2 whitespace-nowrap text-right">เลขประจำซอง</span>
+                <Field value={form.envelopeNo} onChange={set('envelopeNo')} className="col-span-2 text-center"/>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="shrink-0">จำนวนนักศึกษา</span>
-                <Dots className="flex-1"/>
-                <Field value={form.studentCount} onChange={set('studentCount')} className="w-20 text-center"/>
-                <span className="shrink-0">คน</span>
+              <div className="grid grid-cols-12 items-end gap-x-2">
+                <span className="col-span-2 whitespace-nowrap">จำนวนนักศึกษา</span>
+                <Field value={form.studentCount} onChange={set('studentCount')} className="col-span-9 text-center"/>
+                <span className="col-span-1">คน</span>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="shrink-0">ซองนี้มีจำนวนข้อสอบ</span>
-                <Field value={form.examCopies} onChange={set('examCopies')} className="w-16 text-center"/>
-                <span className="shrink-0">จุด</span>
-                <span className="shrink-0 ml-8">นศ. คณะ</span>
-                <Field value={form.facultyName} onChange={set('facultyName')} className="w-44 text-center"/>
-                <span className="shrink-0">ตอน</span>
-                <Field value={form.section} onChange={set('section')} className="w-20 text-center"/>
+              <div className="grid grid-cols-12 items-end gap-x-2">
+                <span className="col-span-3 whitespace-nowrap">ซองนี้มีจำนวนข้อสอบ</span>
+                <Field value={form.examCopies} onChange={set('examCopies')} className="col-span-1 text-center"/>
+                <span className="col-span-1">จุด</span>
+                <span className="col-span-2 whitespace-nowrap text-right">นศ. คณะ</span>
+                <Field value={form.facultyName} onChange={set('facultyName')} className="col-span-3 text-center"/>
+                <span className="col-span-1 whitespace-nowrap text-right">ตอน</span>
+                <Field value={form.section} onChange={set('section')} className="col-span-1 text-center"/>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="shrink-0">ข้อสอบสำรอง</span>
-                <Dots className="flex-1"/>
-                <Field value={form.reserveSets} onChange={set('reserveSets')} className="w-16 text-center"/>
-                <span className="shrink-0">ชุด</span>
+              <div className="grid grid-cols-12 items-end gap-x-2">
+                <span className="col-span-2 whitespace-nowrap">ข้อสอบสำรอง</span>
+                <Field value={form.reserveSets} onChange={set('reserveSets')} className="col-span-9 text-center"/>
+                <span className="col-span-1">ชุด</span>
               </div>
             </div>
 
@@ -188,17 +182,19 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
               </div>
             </div>
 
-            {/* ── ผู้ออกข้อสอบ / ห้องทำงาน ── */}
-            <div className="space-y-2 text-sm mb-6">
-              <div className="flex items-center gap-2">
-                <span className="w-32 shrink-0">ผู้ออกข้อสอบ</span>
-                <Dots className="flex-1"/>
-                <Field value={form.examAuthor} onChange={set('examAuthor')} className="w-56 text-center"/>
+            {/* ── ผู้ออกข้อสอบ / ห้องทำงาน (2 บรรทัดเส้นตรงกัน) ── */}
+            <div className="space-y-2.5 text-sm mb-6">
+              <div className="grid grid-cols-12 items-end gap-x-2">
+                <span className="col-span-2 whitespace-nowrap">ผู้ออกข้อสอบ</span>
+                <Dots className="col-span-3"/>
+                <Field value={form.examAuthor} onChange={set('examAuthor')} className="col-span-5 text-center"/>
+                <Dots className="col-span-2"/>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-32 shrink-0">ห้องทำงาน</span>
-                <Dots className="flex-1"/>
-                <Field value={form.office} onChange={set('office')} className="w-56 text-center"/>
+              <div className="grid grid-cols-12 items-end gap-x-2">
+                <span className="col-span-2 whitespace-nowrap">ห้องทำงาน</span>
+                <Dots className="col-span-3"/>
+                <Field value={form.office} onChange={set('office')} className="col-span-5 text-center"/>
+                <Dots className="col-span-2"/>
               </div>
             </div>
 
@@ -230,21 +226,21 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
               </div>
             </div>
 
-            {/* ── ผู้คุมสอบ ── */}
+            {/* ── ผู้คุมสอบ (grid — ตัวเลข/เส้น/ช่องกรอกตรงกันทุกบรรทัด) ── */}
             <div className="space-y-2.5 text-sm mb-5">
-              {form.proctors.map((p, i) => (<div key={i} className="flex items-center gap-2 pl-8">
-                  <span className="w-5 shrink-0">{i + 1}.</span>
-                  <Dots className="flex-1"/>
-                  <Field value={p} onChange={setProctor(i)} className="w-64 text-center"/>
-                  <span className="shrink-0">ผู้คุมสอบ</span>
+              {form.proctors.map((p, i) => (<div key={i} className="grid grid-cols-12 items-end gap-x-2">
+                  <span className="col-span-1">{i + 1}.</span>
+                  <Dots className="col-span-2"/>
+                  <Field value={p} onChange={setProctor(i)} className="col-span-7 text-center"/>
+                  <span className="col-span-2 whitespace-nowrap text-right">ผู้คุมสอบ</span>
                 </div>))}
             </div>
 
             {/* ── หมายเหตุ ── */}
-            <div className="flex items-center gap-2 text-sm">
-              <span className="shrink-0">หมายเหตุ</span>
-              <Dots className="flex-1"/>
-              <Field value={form.note} onChange={set('note')} className="flex-1"/>
+            <div className="grid grid-cols-12 items-end gap-x-2 text-sm">
+              <span className="col-span-2 whitespace-nowrap">หมายเหตุ</span>
+              <Dots className="col-span-3"/>
+              <Field value={form.note} onChange={set('note')} className="col-span-7"/>
             </div>
           </div>
         </div>
