@@ -45,7 +45,7 @@ const Input = ({ label, value, onChange, className = '' }) => (
 
 /** เส้นประพร้อมค่าที่กรอก*/
 const Line = ({ value, className = '' }) => (
-    <span className={`block border-b border-dotted border-slate-600 text-center text-sm leading-snug min-h-[1.6rem] pb-1.5 px-1 truncate ${className}`}>
+    <span className={`block border-b border-dotted border-slate-600 text-center text-sm leading-snug min-h-[1.6rem] pb-1.5 truncate ${className}`}>
         {value}
     </span>
 );
@@ -216,49 +216,49 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
                 <p className="font-display text-xl font-bold text-slate-900">มหาวิทยาลัยสงขลานครินทร์</p>
               </div>
 
-              {/* ── ข้อมูลการสอบ (grid 12 คอลัมน์ — ทุกเส้นยาวเท่ากัน เริ่ม-จบตรงกัน) ── */}
+              {/* ── ข้อมูลการสอบ (flex — จุดไข่ปลาชิดตัวอักษรทั้งสองด้าน) ── */}
               <div className="space-y-3 text-sm mb-6">
-                <div className="grid grid-cols-12 items-end gap-x-2">
-                  <span className="col-span-2 whitespace-nowrap">การสอบวิชา</span>
-                  <Line value={form.subject} className="col-span-6"/>
-                  <span className="col-span-2 whitespace-nowrap text-right">รหัสวิชา</span>
-                  <Line value={form.subjectCode} className="col-span-2"/>
+                <div className="flex items-end">
+                  <span className="shrink-0">การสอบวิชา</span>
+                  <Line value={form.subject} className="flex-1"/>
+                  <span className="shrink-0">รหัสวิชา</span>
+                  <Line value={form.subjectCode} className="w-28 shrink-0"/>
                 </div>
-                <div className="grid grid-cols-12 items-end gap-x-2">
-                  <span className="col-span-2 whitespace-nowrap">สอบวันที่</span>
-                  <Line value={form.examDay} className="col-span-2"/>
-                  <span className="col-span-1 whitespace-nowrap text-right">เดือน</span>
-                  <Line value={form.examMonth} className="col-span-2"/>
-                  <span className="col-span-1 whitespace-nowrap text-right">พ.ศ.</span>
-                  <Line value={form.examYearBE} className="col-span-1"/>
-                  <span className="col-span-1 whitespace-nowrap text-right">เวลา</span>
-                  <Line value={form.examTime} className="col-span-2"/>
-                  <span className="col-span-1">น.</span>
+                <div className="flex items-end">
+                  <span className="shrink-0">สอบวันที่</span>
+                  <Line value={form.examDay} className="w-24 shrink-0"/>
+                  <span className="shrink-0">เดือน</span>
+                  <Line value={form.examMonth} className="flex-1"/>
+                  <span className="shrink-0">พ.ศ.</span>
+                  <Line value={form.examYearBE} className="w-16 shrink-0"/>
+                  <span className="shrink-0">เวลา</span>
+                  <Line value={form.examTime} className="w-28 shrink-0"/>
+                  <span className="shrink-0">น.</span>
                 </div>
-                <div className="grid grid-cols-12 items-end gap-x-2">
-                  <span className="col-span-2 whitespace-nowrap">ห้องสอบ</span>
-                  <Line value={form.examRoom} className="col-span-6"/>
-                  <span className="col-span-2 whitespace-nowrap text-right">เลขประจำซอง</span>
-                  <Line value={form.envelopeNo} className="col-span-2"/>
+                <div className="flex items-end">
+                  <span className="shrink-0">ห้องสอบ</span>
+                  <Line value={form.examRoom} className="flex-1"/>
+                  <span className="shrink-0">เลขประจำซอง</span>
+                  <Line value={form.envelopeNo} className="w-24 shrink-0"/>
                 </div>
-                <div className="grid grid-cols-12 items-end gap-x-2">
-                  <span className="col-span-2 whitespace-nowrap">จำนวนนักศึกษา</span>
-                  <Line value={form.studentCount} className="col-span-9"/>
-                  <span className="col-span-1">คน</span>
+                <div className="flex items-end">
+                  <span className="shrink-0">จำนวนนักศึกษา</span>
+                  <Line value={form.studentCount} className="flex-1"/>
+                  <span className="shrink-0">คน</span>
                 </div>
-                <div className="grid grid-cols-12 items-end gap-x-2">
-                  <span className="col-span-3 whitespace-nowrap">ซองนี้มีจำนวนข้อสอบ</span>
-                  <Line value={form.examCopies} className="col-span-1"/>
-                  <span className="col-span-1">ชุด</span>
-                  <span className="col-span-2 whitespace-nowrap text-right">นศ. คณะ</span>
-                  <Line value={form.facultyName} className="col-span-3"/>
-                  <span className="col-span-1 whitespace-nowrap text-right">ตอน</span>
-                  <Line value={form.section} className="col-span-1"/>
+                <div className="flex items-end">
+                  <span className="shrink-0">ซองนี้มีจำนวนข้อสอบ</span>
+                  <Line value={form.examCopies} className="w-16 shrink-0"/>
+                  <span className="shrink-0">ชุด</span>
+                  <span className="shrink-0">นศ. คณะ</span>
+                  <Line value={form.facultyName} className="flex-1"/>
+                  <span className="shrink-0">ตอน</span>
+                  <Line value={form.section} className="w-14 shrink-0"/>
                 </div>
-                <div className="grid grid-cols-12 items-end gap-x-2">
-                  <span className="col-span-2 whitespace-nowrap">ข้อสอบสำรอง</span>
-                  <Line value={form.reserveSets} className="col-span-2"/>
-                  <span className="col-span-1">ชุด</span>
+                <div className="flex items-end">
+                  <span className="shrink-0">ข้อสอบสำรอง</span>
+                  <Line value={form.reserveSets} className="w-16 shrink-0"/>
+                  <span className="shrink-0">ชุด</span>
                 </div>
               </div>
 
