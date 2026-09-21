@@ -205,7 +205,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
 
               {/* ── โลโก้ (ช่องวาง — นำภาพมาใส่เองภายหลัง) ── */}
               <div className="flex justify-center mb-3">
-                <img src="/logoscipsu.png" alt="ตราสัญลักษณ์คณะวิทยาศาสตร์ ม.สงขลานครินทร์" className="h-28 object-contain"/>
+                <img src="/logoscipsu.png" alt="ตราสัญลักษณ์คณะวิทยาศาสตร์ ม.สงขลานครินทร์" className="h-32 object-contain"/>
               </div>
 
               {/* ── คณะ / มหาวิทยาลัย ── */}
