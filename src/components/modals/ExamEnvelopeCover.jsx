@@ -205,9 +205,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
 
               {/* ── โลโก้ (ช่องวาง — นำภาพมาใส่เองภายหลัง) ── */}
               <div className="flex justify-center mb-3">
-                <div className="w-28 h-28 border-2 border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-300 text-center leading-tight">
-                  ที่วาง<br/>โลโก้
-                </div>
+                <img src="/logoscipsu.png" alt="ตราสัญลักษณ์คณะวิทยาศาสตร์ ม.สงขลานครินทร์" className="h-28 object-contain"/>
               </div>
 
               {/* ── คณะ / มหาวิทยาลัย ── */}
@@ -342,7 +340,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
         {/* Modal Footer */}
         <div className="no-print bg-white border-t border-slate-200 px-6 py-3 flex items-center justify-between">
           <div className="text-xs text-slate-500">
-            พิมพ์ได้เฉพาะหน้าใบปะหน้า — โลโก้จะแสดงเมื่อนำภาพมาใส่ในช่องวางโลโก้
+            พิมพ์ได้เฉพาะหน้าใบปะหน้า — ตราสัญลักษณ์คณะแสดงอัตโนมัติ
           </div>
           <Button onClick={onClose} variant="secondary" size="sm" className="px-4">
             ปิดหน้าต่าง
