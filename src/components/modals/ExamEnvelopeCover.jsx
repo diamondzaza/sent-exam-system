@@ -45,7 +45,7 @@ const Input = ({ label, value, onChange, className = '' }) => (
 
 /** เส้นประพร้อมค่าที่กรอก*/
 const Line = ({ value, className = '' }) => (
-    <span className={`block border-b border-dotted border-slate-600 text-center text-sm leading-snug min-h-[1.6rem] pb-1.5 truncate ${className}`}>
+    <span className={`block border-b border-dotted border-slate-600 text-center text-sm leading-snug min-h-[1.6rem] pb-1.5 break-words ${className}`}>
         {value}
     </span>
 );
@@ -280,17 +280,13 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
 
               {/* ── ผู้ออกข้อสอบ / ห้องทำงาน ── */}
               <div className="space-y-3 text-sm mb-6">
-                <div className="grid grid-cols-12 items-end gap-x-2">
-                  <span className="col-span-2 whitespace-nowrap">ผู้ออกข้อสอบ</span>
-                  <Dots className="col-span-3"/>
-                  <Line value={form.examAuthor} className="col-span-5"/>
-                  <Dots className="col-span-2"/>
+                <div className="flex items-end">
+                  <span className="shrink-0">ผู้ออกข้อสอบ</span>
+                  <Line value={form.examAuthor} className="flex-1"/>
                 </div>
-                <div className="grid grid-cols-12 items-end gap-x-2">
-                  <span className="col-span-2 whitespace-nowrap">ห้องทำงาน</span>
-                  <Dots className="col-span-3"/>
-                  <Line value={form.office} className="col-span-5"/>
-                  <Dots className="col-span-2"/>
+                <div className="flex items-end">
+                  <span className="shrink-0">ห้องทำงาน</span>
+                  <Line value={form.office} className="flex-1"/>
                 </div>
               </div>
 
@@ -320,19 +316,17 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
 
               {/* ── ผู้คุมสอบ ── */}
               <div className="space-y-3 text-sm mb-5">
-                {form.proctors.map((p, i) => (<div key={i} className="grid grid-cols-12 items-end gap-x-2">
-                    <span className="col-span-1">{i + 1}.</span>
-                    <Dots className="col-span-2"/>
-                    <Line value={p} className="col-span-7"/>
-                    <span className="col-span-2 whitespace-nowrap text-right">ผู้คุมสอบ</span>
+                {form.proctors.map((p, i) => (<div key={i} className="flex items-end">
+                    <span className="shrink-0">{i + 1}.</span>
+                    <Line value={p} className="flex-1"/>
+                    <span className="shrink-0">ผู้คุมสอบ</span>
                   </div>))}
               </div>
 
               {/* ── หมายเหตุ ── */}
-              <div className="grid grid-cols-12 items-end gap-x-2 text-sm">
-                <span className="col-span-2 whitespace-nowrap">หมายเหตุ</span>
-                <Dots className="col-span-3"/>
-                <Line value={form.note} className="col-span-7"/>
+              <div className="flex items-end text-sm">
+                <span className="shrink-0">หมายเหตุ</span>
+                <Line value={form.note} className="flex-1"/>
               </div>
             </div>)}
         </div>

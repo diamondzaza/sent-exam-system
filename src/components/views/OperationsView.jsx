@@ -169,7 +169,7 @@ export const OperationsView = ({ currentUser, exams, onOpenEnvelope, onUpdateExa
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 pt-1">
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1">
                           <span>อาจารย์ผู้สอน: <strong>{exam.teacher_name}</strong> ({exam.teacher_tel})</span>
                           {exam.proctors && (<span>
                               • กรรมการคุมสอบ: {exam.proctors.join(', ')}

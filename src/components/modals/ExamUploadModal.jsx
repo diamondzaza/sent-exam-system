@@ -234,7 +234,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
                     </div>
                     <div>
                       <p className="font-semibold text-xs text-slate-900">{fileName}</p>
-                      <p className="text-[11px] text-slate-500">ขนาด {fileSize} · พร้อมจัดส่ง</p>
+                      <p className="text-xs text-slate-500">ขนาด {fileSize} · พร้อมจัดส่ง</p>
                     </div>
                   </div>
                   <label className="text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer underline px-2">
@@ -250,7 +250,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
                     </label>{' '}
                     หรือลากไฟล์มาวางที่นี่
                   </div>
-                  <p className="text-[11px] text-slate-400">รองรับ PDF, Word (.docx) ขนาดสูงสุด 25MB</p>
+                  <p className="text-xs text-slate-400">รองรับ PDF, Word (.docx) ขนาดสูงสุด 25MB</p>
                 </div>)}
             </div>
           </div>
@@ -284,7 +284,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             <div>
               <Label htmlFor="exam-pages" className="text-slate-700 mb-1">จำนวนหน้าข้อสอบ (หน้า)</Label>
               <Input id="exam-pages" type="number" min="1" max="500" value={totalPages} onChange={(e) => setTotalPages(parseInt(e.target.value) || 1)}/>
-              <p className={`mt-1 text-[10px] flex items-center space-x-1 ${countingPages ? 'text-indigo-500' : autoCountMsg.includes('ไม่ได้') ? 'text-amber-500' : 'text-emerald-600'}`}>
+              <p className={`mt-1 text-xs flex items-center space-x-1 ${countingPages ? 'text-indigo-500' : autoCountMsg.includes('ไม่ได้') ? 'text-amber-500' : 'text-emerald-600'}`}>
                 {countingPages ? (<>
                   <LoaderCircle className="w-3 h-3 animate-spin"/>
                   <span>กำลังนับจำนวนหน้าจากไฟล์...</span>

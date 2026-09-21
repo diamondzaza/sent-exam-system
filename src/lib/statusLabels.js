@@ -30,7 +30,7 @@ export const STATUS_LABELS = {
     },
     PRINTING: {
         label: 'กำลังจัดพิมพ์',
-        badgeClass: 'bg-indigo-50 text-indigo-800 border-indigo-300 animate-pulse',
+        badgeClass: 'bg-indigo-50 text-indigo-800 border-indigo-300',
         step: 4,
     },
     PRINTED: {

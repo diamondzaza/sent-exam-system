@@ -238,7 +238,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
 
                       {/* Instructor Tel */}
                       <td className="py-3 px-4 text-slate-600">
-                        <div className="flex items-center space-x-1 font-mono text-[11px]">
+                        <div className="flex items-center space-x-1 font-mono text-xs">
                           <Phone className="w-3 h-3 text-slate-400"/>
                           <span>{item.teacherTel}</span>
                         </div>
@@ -248,7 +248,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
                       <td className="py-3 px-4 text-slate-600">
                         {item.exam ? (<div>
                             <div>{item.exam.E_Date} ({item.exam.E_Time})</div>
-                            <div className="text-slate-500 text-[11px]">ห้อง: {item.exam.room}</div>
+                            <div className="text-slate-500 text-xs">ห้อง: {item.exam.room}</div>
                           </div>) : (<span className="text-slate-400">ยังไม่กำหนด</span>)}
                       </td>
 
@@ -261,7 +261,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
 
                       {/* Status */}
                       <td className="py-3 px-4">
-                        {statusConfig ? (<Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>) : (<Badge variant="warning">ยังไม่ส่งข้อสอบ</Badge>)}
+                        {statusConfig ? (<Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>) : (<Badge className="bg-slate-100 text-slate-700 border-slate-300">ยังไม่ส่งข้อสอบ</Badge>)}
                       </td>
 
                       {/* Actions */}
@@ -277,7 +277,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
                               <Button variant="ghost" size="icon" className="size-7 text-purple-600 hover:bg-purple-50 hover:text-purple-700" onClick={() => item.exam && onOpenEnvelope(item.exam)} title="พิมพ์ใบปะหน้าซองข้อสอบ">
                                 <Printer className="w-3.5 h-3.5"/>
                               </Button>
-                            </>) : (<span className="text-slate-400 text-[11px]">รออาจารย์จัดส่ง</span>)}
+                            </>) : (<span className="text-slate-400 text-xs">รออาจารย์จัดส่ง</span>)}
                         </div>
                       </td>
                     </tr>);
@@ -358,7 +358,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 pt-1">
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1">
                         <span className="font-mono bg-slate-100 px-2 py-0.5 rounded">
                           ไฟล์: {exam.file_name} ({exam.file_size})
                         </span>
@@ -366,7 +366,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
                         {exam.checked_by && <span>• ตรวจสอบโดย: {exam.checked_by}</span>}
                       </div>
 
-                      {exam.envelope_notes && (<div className="text-[11px] text-amber-900 bg-amber-50/70 p-2 rounded-lg border border-amber-200 mt-1">
+                      {exam.envelope_notes && (<div className="text-xs text-amber-900 bg-amber-50/70 p-2 rounded-lg border border-amber-200 mt-1">
                           <strong>คำชี้แจงจากอาจารย์:</strong> {exam.envelope_notes}
                         </div>)}
                     </div>

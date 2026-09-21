@@ -46,7 +46,7 @@ export const Header = ({ currentUser, notifications, onLogout, onMarkNotificatio
               <span className="text-xs font-semibold text-indigo-700 tracking-wider uppercase">
                 คณะวิทยาศาสตร์
               </span>
-              <h1 className="font-display text-sm sm:text-base font-bold text-slate-900 leading-tight">
+              <h1 className="font-display text-sm sm:text-base font-bold text-slate-900 leading-tight min-w-0 truncate">
                 ระบบบริหารจัดการและจัดพิมพ์ข้อสอบ
               </h1>
             </div>
@@ -58,13 +58,13 @@ export const Header = ({ currentUser, notifications, onLogout, onMarkNotificatio
             <div className="relative">
               <Button variant="outline" size="icon" onClick={() => setShowNotifMenu(!showNotifMenu)} className="relative bg-slate-50 hover:bg-slate-100" aria-label="การแจ้งเตือน">
                 <Bell className="w-4 h-4"/>
-                {unreadCount > 0 && (<span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                {unreadCount > 0 && (<span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">
                     {unreadCount}
                   </span>)}
               </Button>
 
               {/* Notification Dropdown */}
-              {showNotifMenu && (<div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
+              {showNotifMenu && (<div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
                   <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Bell className="w-4 h-4 text-indigo-600"/>
@@ -88,15 +88,15 @@ export const Header = ({ currentUser, notifications, onLogout, onMarkNotificatio
                           <div className="flex-1 space-y-0.5">
                             <div className="flex items-center justify-between">
                               <p className="font-semibold text-slate-900">{notif.title}</p>
-                              <span className="text-[10px] text-slate-400">{notif.timestamp}</span>
+                              <span className="text-xs text-slate-400">{notif.timestamp}</span>
                             </div>
-                            <p className="text-slate-600 leading-relaxed text-[11px]">{notif.message}</p>
+                            <p className="text-slate-600 leading-relaxed text-xs">{notif.message}</p>
                           </div>
                           {!notif.isRead && (<div className="w-2 h-2 rounded-full bg-indigo-600 mt-1 shrink-0"></div>)}
                         </div>)))}
                   </div>
 
-                  <div className="p-2 bg-slate-50 text-center border-t border-slate-100 text-[10px] text-slate-400">
+                  <div className="p-2 bg-slate-50 text-center border-t border-slate-100 text-xs text-slate-400">
                     ระบบแจ้งเตือนอัตโนมัติเมื่อสถานะข้อสอบมีการเปลี่ยนแปลง
                   </div>
                 </div>)}
@@ -110,7 +110,7 @@ export const Header = ({ currentUser, notifications, onLogout, onMarkNotificatio
                 </div>
                 <div className="text-left hidden md:block">
                   <div className="text-xs font-bold text-slate-900 leading-none">{currentUser.name}</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">{roleInfo.label}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{roleInfo.label}</div>
                 </div>
               </button>
 
@@ -118,9 +118,9 @@ export const Header = ({ currentUser, notifications, onLogout, onMarkNotificatio
               {showUserMenu && (<div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-3 space-y-3">
                   <div className="border-b border-slate-100 pb-2">
                     <p className="text-xs font-bold text-slate-900">{currentUser.name}</p>
-                    <p className="text-[11px] text-slate-500">{currentUser.email}</p>
+                    <p className="text-xs text-slate-500">{currentUser.email}</p>
                     <div className="mt-1.5">
-                      <Badge variant="outline" className={`text-[10px] font-semibold rounded-full ${roleInfo.color}`}>
+                      <Badge variant="outline" className={`text-xs font-semibold rounded-full ${roleInfo.color}`}>
                         {roleInfo.label}
                       </Badge>
                     </div>

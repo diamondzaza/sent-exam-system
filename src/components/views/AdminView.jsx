@@ -216,11 +216,11 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
       </div>
 
       {/* Admin Tabs */}
-      <div className="flex space-x-2 border-b border-slate-200 text-xs font-medium">
+      <div className="flex space-x-2 border-b border-slate-200 text-xs font-medium overflow-x-auto">
         <button onClick={() => setActiveTab('USERS')} className={`${tabBaseClass} ${activeTab === 'USERS' ? tabActiveClass : tabInactiveClass}`}>
           <Users className="w-4 h-4"/>
           <span>จัดการผู้ใช้งาน</span>
-          <span className="bg-purple-100 text-purple-800 px-2 py-0.2 rounded-full text-[10px]">
+          <span className="bg-purple-100 text-purple-800 px-2 py-0.2 rounded-full text-xs">
             {users.length}
           </span>
         </button>
@@ -228,7 +228,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
         <button onClick={() => setActiveTab('LOGS')} className={`${tabBaseClass} ${activeTab === 'LOGS' ? tabActiveClass : tabInactiveClass}`}>
           <Shield className="w-4 h-4"/>
           <span>บันทึกความปลอดภัย</span>
-          <span className="bg-rose-100 text-rose-800 px-2 py-0.2 rounded-full text-[10px]">
+          <span className="bg-rose-100 text-rose-800 px-2 py-0.2 rounded-full text-xs">
             {auditLogs.length}
           </span>
         </button>
@@ -236,7 +236,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
         <button onClick={() => setActiveTab('REQUESTS')} className={`${tabBaseClass} ${activeTab === 'REQUESTS' ? tabActiveClass : tabInactiveClass}`}>
           <ClipboardList className="w-4 h-4"/>
           <span>คำขอเปิดบัญชี</span>
-          {pendingRequests.length > 0 && (<span className="bg-emerald-100 text-emerald-800 px-2 py-0.2 rounded-full text-[10px] font-bold">
+          {pendingRequests.length > 0 && (<span className="bg-emerald-100 text-emerald-800 px-2 py-0.2 rounded-full text-xs font-bold">
               {pendingRequests.length}
             </span>)}
         </button>
@@ -288,11 +288,11 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
                       <td className="p-3 font-mono font-bold text-slate-600">{u.id}</td>
                       <td className="p-3">
                         <div className="font-bold text-slate-900">{u.name}</div>
-                        <div className="text-[11px] text-slate-500">{u.tel}</div>
+                        <div className="text-xs text-slate-500">{u.tel}</div>
                       </td>
                       <td className="p-3">
                         <div className="font-mono text-indigo-700">{u.username}</div>
-                        <div className="text-[11px] text-slate-500">{u.email}</div>
+                        <div className="text-xs text-slate-500">{u.email}</div>
                       </td>
                       <td className="p-3">
                         <Badge variant={u.role === 'Teacher'
@@ -311,11 +311,11 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
                             : 'ผู้ดูแลระบบ'}
                         </Badge>
                       </td>
-                      <td className="p-3 text-[11px] text-slate-600 max-w-xs truncate">
+                      <td className="p-3 text-xs text-slate-600 max-w-xs truncate">
                         {u.department}
                       </td>
                       <td className="p-3 text-center">
-                        <button onClick={() => onToggleUserStatus(u.id)} className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${u.status === 'active'
+                        <button onClick={() => onToggleUserStatus(u.id)} className={`px-2 py-0.5 rounded-full text-xs font-semibold transition-colors ${u.status === 'active'
                     ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                     : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
                           {u.status === 'active' ? 'เปิดใช้งาน' : 'ระงับชั่วคราว'}
@@ -390,10 +390,10 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
                 </thead>
                 <tbody className="divide-y divide-slate-200 text-slate-800">
                   {filteredLogs.map((log) => (<tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="p-3 font-mono text-[11px] text-slate-500">{log.timestamp}</td>
+                      <td className="p-3 font-mono text-xs text-slate-500">{log.timestamp}</td>
                       <td className="p-3">
                         <div className="font-bold text-slate-900">{log.userName}</div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-xs text-slate-500">
                           {log.userId} • {log.role}
                         </div>
                       </td>
@@ -411,8 +411,8 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
                         </Badge>
                       </td>
                       <td className="p-3 font-mono font-bold text-indigo-700">{log.subjectId}</td>
-                      <td className="p-3 text-[11px] text-slate-700">{log.details}</td>
-                      <td className="p-3 font-mono text-[11px] text-slate-500">{log.ipAddress}</td>
+                      <td className="p-3 text-xs text-slate-700">{log.details}</td>
+                      <td className="p-3 font-mono text-xs text-slate-500">{log.ipAddress}</td>
                     </tr>))}
                 </tbody>
               </table>
@@ -495,7 +495,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
                 <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
                   <div>
                     <h3 className="font-display font-semibold text-sm">อนุมัติบัญชีใหม่</h3>
-                    <p className="text-[11px] text-slate-400">{approvingReq.name} ({approvingReq.email})</p>
+                    <p className="text-xs text-slate-400">{approvingReq.name} ({approvingReq.email})</p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => setApprovingReq(null)} className="text-slate-400 hover:text-white hover:bg-slate-800" aria-label="ปิด">
                     <X className="w-4 h-4"/>
@@ -518,7 +518,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
                   <div>
                     <Label className="mb-1">รหัสผ่านเริ่มต้น (แจ้งผู้ใช้โดยตรง) *</Label>
                     <Input type="text" value={approvePassword} onChange={(e) => setApprovePassword(e.target.value)} placeholder="อย่างน้อย 6 ตัวอักษร" minLength={6}/>
-                    <p className="mt-1 text-[10px] text-slate-400">
+                    <p className="mt-1 text-xs text-slate-400">
                       ระบบจะสร้างบัญชีล็อกอินด้วยอีเมล {approvingReq.email} + รหัสผ่านนี้ทันที
                     </p>
                   </div>
@@ -640,7 +640,7 @@ export const AdminView = ({ currentUser, users, auditLogs, onAddUser, onUpdateUs
                   {editingUser ? 'รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)' : 'รหัสผ่านสำหรับล็อกอิน *'}
                 </Label>
                 <Input type="password" placeholder="อย่างน้อย 6 ตัวอักษร" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required={!editingUser} minLength={6}/>
-                {!editingUser && (<p className="mt-1 text-[10px] text-slate-400">
+                {!editingUser && (<p className="mt-1 text-xs text-slate-400">
                     ผู้ใช้จะล็อกอินด้วยอีเมลด้านบน + รหัสผ่านนี้ทันทีหลังบันทึก
                   </p>)}
               </div>

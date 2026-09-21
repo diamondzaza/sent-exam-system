@@ -95,7 +95,7 @@ export const ExamPreviewModal = ({ exam, currentUser, onClose, onDownloadLogged,
               <strong>มาตรการป้องกันข้อสอบรั่วไหล:</strong> บันทึกการเรียกดู/ดาวน์โหลดทุกครั้ง (Audit Log) และดาวน์โหลดผ่านลิงก์ชั่วคราวที่หมดอายุ
             </span>
           </div>
-          <div className="text-[11px] font-mono text-slate-600 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-300">
+          <div className="text-xs font-mono text-slate-600 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-300">
             Audit ID: {auditId}
           </div>
         </div>

@@ -154,7 +154,7 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="space-y-0.5">
             <div className="flex items-center space-x-2">
-              <Badge className="rounded-md border-transparent bg-indigo-100 text-indigo-800 text-[11px] font-bold px-2.5">
+              <Badge className="rounded-md border-transparent bg-indigo-100 text-indigo-800 text-xs font-bold px-2.5">
                 ขั้นตอนที่ 1
               </Badge>
               <h3 className="font-display font-bold text-base text-slate-900 flex items-center space-x-2">
@@ -196,18 +196,18 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
                     {c.Course_id}
                   </span>
 
-                  {statusConfig ? (<Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>) : (<Badge variant="warning">ยังไม่ส่งข้อสอบ</Badge>)}
+                  {statusConfig ? (<Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>) : (<Badge className="bg-slate-100 text-slate-700 border-slate-300">ยังไม่ส่งข้อสอบ</Badge>)}
                 </div>
 
                 <h4 className="font-bold text-sm text-slate-900 line-clamp-1 mb-1">
                   {c.Course_Name}
                 </h4>
 
-                <div className="text-[11px] text-slate-500 flex items-center justify-between pt-2 border-t border-slate-100">
+                <div className="text-xs text-slate-500 flex items-center justify-between pt-2 border-t border-slate-100">
                   <span>
                     Sec {c.sec} • {c.student_count} คน • {c.credits} หน่วยกิต
                   </span>
-                  {isSelected ? (<span className="text-indigo-700 font-bold flex items-center space-x-1 text-[11px]">
+                  {isSelected ? (<span className="text-indigo-700 font-bold flex items-center space-x-1 text-xs">
                       <Check className="w-3.5 h-3.5"/>
                       <span>กำลังเลือกวิชานี้</span>
                     </span>) : (<span className="text-slate-400">คลิกเพื่อเลือก</span>)}
@@ -222,7 +222,7 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
         <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60">
           <div className="space-y-0.5">
             <div className="flex items-center space-x-2">
-              <Badge className="rounded-md border-transparent bg-slate-800 text-white text-[11px] font-bold px-2.5">
+              <Badge className="rounded-md border-transparent bg-slate-800 text-white text-xs font-bold px-2.5">
                 ขั้นตอนที่ 2
               </Badge>
               <h3 className="font-display font-bold text-base text-slate-900">
@@ -338,7 +338,7 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
                         <span className="font-semibold text-slate-700">
                           ความคืบหน้าการผลิตข้อสอบ:
                         </span>
-                        <span className="text-[11px] text-slate-500 font-mono">
+                        <span className="text-xs text-slate-500 font-mono">
                           ไฟล์: {exam.file_name} ({exam.file_size}) • ส่งเมื่อ: {exam.upload_date}
                         </span>
                       </div>
@@ -356,13 +356,13 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
                                     : 'bg-slate-200 text-slate-500'}`}>
                                 {isDone ? <Check className="w-4 h-4"/> : stepNum}
                               </div>
-                              <p className="font-semibold text-[11px] text-slate-800">{step.title}</p>
-                              <p className="text-[10px] text-slate-400 hidden sm:block">{step.desc}</p>
+                              <p className="font-semibold text-xs text-slate-800">{step.title}</p>
+                              <p className="text-xs text-slate-400 hidden sm:block">{step.desc}</p>
                             </div>);
                     })}
                       </div>
 
-                      {exam.checked_by && (<div className="text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between">
+                      {exam.checked_by && (<div className="text-xs text-slate-600 bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between">
                           <span>
                             ผู้ตรวจสอบ: <strong>{exam.checked_by}</strong> เมื่อ {exam.verified_date || 'เมื่อเร็วๆ นี้'}
                           </span>
@@ -371,7 +371,7 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
                             </span>)}
                         </div>)}
 
-                      {exam.status === 'REJECTED' && exam.rejection_reason && (<div className="text-[11px] text-rose-800 bg-rose-50 p-2.5 rounded-lg border border-rose-200 flex items-start space-x-2">
+                      {exam.status === 'REJECTED' && exam.rejection_reason && (<div className="text-xs text-rose-800 bg-rose-50 p-2.5 rounded-lg border border-rose-200 flex items-start space-x-2">
                           <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5"/>
                           <div>
                             <strong>เหตุผลที่ส่งกลับแก้ไข:</strong> {exam.rejection_reason}
