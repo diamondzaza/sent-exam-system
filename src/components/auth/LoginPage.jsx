@@ -4,6 +4,7 @@
  * หน้าที่ของหน้านี้: หน้าล็อกอิน — จอแบ่ง 2 ส่วน (แผงซ้ายแนะนำจุดเด่นของระบบ,
  *   แผงขวาเป็นฟอร์มล็อกอิน) ยืนยันตัวตนจริงผ่าน Supabase Auth
  *   (อีเมล + รหัสผ่าน) แล้วดึงโปรไฟล์จากตาราง users เพื่อกำหนดบทบาท
+ *   บนมือถือ: ฟอร์มล็อกอินขึ้นก่อน แผงแนะนำอยู่ด้านล่าง (ซ่อนรายละเอียดบางส่วน)
  * ผู้ใช้งาน: ผู้ที่ยังไม่ได้เข้าสู่ระบบ (ทุกบทบาท)
  * ─────────────────────────────────────────────────────────
  */
@@ -13,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Lock, KeyRound, UploadCloud, Printer, ShieldCheck, LogIn, AlertCircle, UserPlus, } from 'lucide-react';
+import { Lock, KeyRound, UploadCloud, Printer, ShieldCheck, LogIn, AlertCircle, UserPlus, Eye, EyeOff, Loader2, } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 // แปลข้อความ error ของ Supabase เป็นภาษาไทย
@@ -27,12 +28,33 @@ const getErrorMessage = (code) => ERROR_MESSAGES[code] || 'เข้าสู่
 export const LoginPage = ({ onLogin }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState(null);
+    const [emailError, setEmailError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setError(null);
+        // Validation ระดับฟอร์ม — error ใต้ช่องที่ผิด
+        let valid = true;
+        if (!email.trim()) {
+            setEmailError('กรุณากรอกอีเมล');
+            valid = false;
+        }
+        else {
+            setEmailError('');
+        }
+        if (!password) {
+            setPasswordError('กรุณากรอกรหัสผ่าน');
+            valid = false;
+        }
+        else {
+            setPasswordError('');
+        }
+        if (!valid)
+            return;
         setLoading(true);
         try {
             const supabase = createClient();
@@ -56,19 +78,100 @@ export const LoginPage = ({ onLogin }) => {
                 return;
             }
             onLogin(profile);
-        } catch {
+        }
+        catch {
             setError('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
-        } finally {
+        }
+        finally {
             setLoading(false);
         }
     };
 
     return (<div className="min-h-screen flex flex-col lg:flex-row bg-slate-950">
-      {/* Left: Brand Panel */}
-      <div className="relative lg:w-1/2 bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 text-white flex flex-col justify-center overflow-hidden">
+      {/* ═══ แผงขวา: ฟอร์มล็อกอิน (ขึ้นก่อนบนมือถือ) ═══ */}
+      <div className="order-1 lg:order-2 relative lg:w-1/2 bg-slate-100 flex items-center justify-center p-4 sm:p-8 overflow-hidden">
+        {/* Subtle background pattern: dot grid + gradient blob */}
+        <div aria-hidden="true" className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', backgroundSize: '22px 22px' }}></div>
+        <div aria-hidden="true" className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-indigo-400/20 blur-3xl pointer-events-none"></div>
+        <div aria-hidden="true" className="absolute -bottom-24 -left-16 w-72 h-72 rounded-full bg-purple-400/15 blur-3xl pointer-events-none"></div>
+
+        <Card className="relative z-10 shadow-2xl w-full max-w-md overflow-hidden bg-white">
+          {/* Card Header */}
+          <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-6">
+            <div className="w-11 h-11 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center mb-3 border border-indigo-500/30">
+              <Lock className="w-5 h-5"/>
+            </div>
+            <h2 className="font-display text-3xl font-bold">เข้าสู่ระบบ</h2>
+            <p className="text-sm text-slate-300 mt-1.5">
+              ยืนยันตัวตนเพื่อเข้าใช้งานตามบทบาทของท่าน
+            </p>
+          </div>
+
+          {/* Form */}
+          <div className="p-6 sm:p-7">
+            <form onSubmit={handleLogin} className="space-y-5" noValidate>
+              {/* อีเมล */}
+              <div>
+                <Label htmlFor="login-email" className="font-medium mb-2 block">
+                  อีเมล (Email) <span className="text-rose-500">*</span>
+                </Label>
+                <Input id="login-email" type="email" placeholder="เช่น somchai.j@sci.ac.th" value={email} onChange={(e) => setEmail(e.target.value)} required aria-required="true" aria-label="อีเมลสำหรับเข้าสู่ระบบ" aria-invalid={Boolean(emailError)} aria-describedby={emailError ? 'login-email-error' : undefined} autoComplete="email" className={emailError ? 'border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500' : 'focus-visible:ring-indigo-500 focus-visible:border-indigo-500'}/>
+                {emailError && (<p id="login-email-error" className="mt-1.5 text-xs text-red-600 flex items-center space-x-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0"/>
+                    <span>{emailError}</span>
+                  </p>)}
+              </div>
+
+              {/* รหัสผ่าน */}
+              <div>
+                <Label htmlFor="login-password" className="font-medium mb-2 block">
+                  รหัสผ่าน (Password) <span className="text-rose-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input id="login-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required aria-required="true" aria-label="รหัสผ่านสำหรับเข้าสู่ระบบ" aria-invalid={Boolean(passwordError)} aria-describedby={passwordError ? 'login-password-error' : undefined} autoComplete="current-password" className={passwordError ? 'pr-10 border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500' : 'pr-10 focus-visible:ring-indigo-500 focus-visible:border-indigo-500'}/>
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'} aria-pressed={showPassword} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors">
+                    {showPassword ? (<EyeOff className="w-4 h-4"/>) : (<Eye className="w-4 h-4"/>)}
+                  </button>
+                </div>
+                {passwordError && (<p id="login-password-error" className="mt-1.5 text-xs text-red-600 flex items-center space-x-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0"/>
+                    <span>{passwordError}</span>
+                  </p>)}
+                <p className="mt-2 text-sm text-slate-600 flex items-center space-x-1.5">
+                  <KeyRound className="w-3.5 h-3.5 shrink-0"/>
+                  <span>ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบ</span>
+                </p>
+              </div>
+
+              {/* Error แจ้งเตือนการล็อกอิน (จาก server) */}
+              {error && (<div role="alert" className="flex items-start space-x-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-rose-700">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0"/>
+                  <span className="leading-relaxed">{error}</span>
+                </div>)}
+
+              <Button type="submit" className="w-full py-2.5" disabled={loading}>
+                {loading ? (<Loader2 className="w-4 h-4 animate-spin" aria-hidden="true"/>) : (<LogIn className="w-4 h-4"/>)}
+                <span>{loading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}</span>
+              </Button>
+            </form>
+          </div>
+
+          <div className="px-6 pb-6">
+            <div className="border-t border-slate-200 pt-4 text-center">
+              <a href="/request-account" className="inline-flex items-center space-x-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                <UserPlus className="w-3.5 h-3.5"/>
+                <span>ยังไม่มีบัญชี? — ขอสมัครบัญชีจากผู้ดูแลระบบ</span>
+              </a>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ═══ แผงซ้าย: แบรนด์ + จุดเด่นระบบ (อยู่ด้านล่างบนมือถือ) ═══ */}
+      <div className="order-2 lg:order-1 relative lg:w-1/2 bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 text-white flex flex-col justify-center overflow-hidden">
         {/* Decorative glow circles */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-indigo-400/10 blur-3xl pointer-events-none"></div>
+        <div aria-hidden="true" className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none"></div>
+        <div aria-hidden="true" className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-indigo-400/10 blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 px-8 sm:px-14 py-12 max-w-xl">
           {/* Logo & System Name */}
@@ -77,7 +180,7 @@ export const LoginPage = ({ onLogin }) => {
               SCI
             </div>
             <div>
-              <span className="text-[11px] font-semibold text-indigo-300 tracking-wider uppercase">
+              <span className="text-xs font-semibold text-indigo-300 tracking-wider uppercase">
                 คณะวิทยาศาสตร์
               </span>
               <h1 className="font-display text-lg sm:text-xl font-bold leading-tight mt-0.5">
@@ -88,14 +191,14 @@ export const LoginPage = ({ onLogin }) => {
 
           <h2 className="font-display text-2xl sm:text-3xl font-bold leading-snug mb-3">
             จัดส่ง ตรวจสอบ และจัดพิมพ์ข้อสอบ
-            <span className="block text-indigo-300">ในระบบเดียว ปลอดภัยทุกขั้นตอน</span>
+            <span className="block text-indigo-200">ในระบบเดียว ปลอดภัยทุกขั้นตอน</span>
           </h2>
-          <p className="text-sm text-indigo-200/80 leading-relaxed mb-8">
+          <p className="text-sm text-indigo-100 leading-relaxed mb-8">
             ติดตามการส่ง ตรวจสอบ และจัดพิมพ์ข้อสอบของท่านได้จากหน้านี้
           </p>
 
-          {/* Feature Highlights */}
-          <div className="space-y-3 text-xs">
+          {/* Feature Highlights — ซ่อนบนจอเล็ก (ให้ฟอร์มอยู่เหนือจอพอดี) */}
+          <div className="hidden sm:block space-y-3 text-sm">
             {[
             {
                 icon: UploadCloud,
@@ -118,72 +221,15 @@ export const LoginPage = ({ onLogin }) => {
                 </div>
                 <div>
                   <p className="font-semibold text-white">{item.title}</p>
-                  <p className="text-indigo-200/70 mt-0.5">{item.desc}</p>
+                  <p className="text-indigo-200 mt-0.5">{item.desc}</p>
                 </div>
               </div>))}
           </div>
 
-          <div className="mt-10 pt-5 border-t border-indigo-400/20 text-[11px] text-indigo-300/70">
+          <div className="mt-10 pt-5 border-t border-indigo-400/20 text-xs text-indigo-300">
             ระบบบริหารจัดการและจัดพิมพ์ข้อสอบ คณะวิทยาศาสตร์
           </div>
         </div>
-      </div>
-
-      {/* Right: Login Form Panel */}
-      <div className="lg:w-1/2 bg-slate-100 flex items-center justify-center p-4 sm:p-8">
-        <Card className="shadow-2xl w-full max-w-md overflow-hidden bg-white">
-          {/* Card Header */}
-          <div className="bg-slate-900 text-white p-6">
-            <div className="w-11 h-11 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center mb-3 border border-indigo-500/30">
-              <Lock className="w-5 h-5"/>
-            </div>
-            <h2 className="font-display text-xl font-bold">เข้าสู่ระบบ</h2>
-            <p className="text-xs text-slate-400 mt-1">
-              ยืนยันตัวตนเพื่อเข้าใช้งานตามบทบาทของท่าน
-            </p>
-          </div>
-
-          {/* Form */}
-          <div className="p-6">
-            <form onSubmit={handleLogin} className="space-y-4 text-xs">
-              <div className="space-y-1.5">
-                <Label htmlFor="login-email">อีเมล (Email)</Label>
-                <Input id="login-email" type="email" placeholder="เช่น somchai.j@sci.ac.th" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email"/>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="login-password">รหัสผ่าน (Password)</Label>
-                <Input id="login-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password"/>
-                <p className="mt-1.5 text-[10px] text-slate-400 flex items-center space-x-1">
-                  <KeyRound className="w-3 h-3"/>
-                  <span>ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบ</span>
-                </p>
-              </div>
-
-              {error && (<div className="flex items-start space-x-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-rose-700">
-                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0"/>
-                  <span className="leading-relaxed">{error}</span>
-                </div>)}
-
-              <Button type="submit" className="w-full py-2.5" disabled={loading}>
-                <LogIn className="w-4 h-4"/>
-                <span>{loading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}</span>
-              </Button>
-            </form>
-          </div>
-
-          <div className="px-6 pb-6">
-            <div className="border-t border-slate-200 pt-4 text-center space-y-2">
-              <a href="/request-account" className="inline-flex items-center space-x-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800">
-                <UserPlus className="w-3.5 h-3.5"/>
-                <span>ยังไม่มีบัญชี? — ขอสมัครบัญชีจากผู้ดูแลระบบ</span>
-              </a>
-              <p className="text-[10px] text-slate-400">
-                ระบบยืนยันตัวตนผ่าน Supabase Auth — ข้อมูลการเข้าใช้งานถูกบันทึกเพื่อความปลอดภัย
-              </p>
-            </div>
-          </div>
-        </Card>
       </div>
     </div>);
 };
