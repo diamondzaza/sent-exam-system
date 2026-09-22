@@ -321,7 +321,7 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
                             </Button>)}
 
                           {/* Delete — แยกออกจากปุ่มปกติด้วยเส้นขัด + สีแดงเข้ม และต้องผ่าน confirm modal เสมอ (ข้อ 4) */}
-                          {(<Button variant="destructive" size="icon" onClick={() => setDeleteTarget({ exam, course })} className="ml-3 border-l-2 border-l-rose-200 pl-4 h-11 w-11 rounded-lg" title="ลบข้อสอบฉบับนี้ออกจากระบบ">
+                          {(<Button variant="destructive" size="icon" onClick={() => setDeleteTarget({ exam, course })} className="ml-3 h-11 w-11 rounded-lg" title="ลบข้อสอบฉบับนี้ออกจากระบบ">
                               <Trash2 className="w-4 h-4"/>
                             </Button>)}
                         </>)}
