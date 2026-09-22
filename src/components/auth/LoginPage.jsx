@@ -176,8 +176,8 @@ export const LoginPage = ({ onLogin }) => {
         <div className="relative z-10 px-8 sm:px-14 py-12 max-w-xl">
           {/* Logo & System Name */}
           <div className="flex items-center space-x-4 mb-8">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-indigo-700 to-indigo-500 flex items-center justify-center font-bold text-lg shadow-lg ring-2 ring-indigo-400/40 shrink-0">
-              SCI
+            <div className="w-14 h-14 rounded-xl bg-white shadow-lg ring-2 ring-indigo-400/40 shrink-0 flex items-center justify-center p-1.5 overflow-hidden">
+              <img src="/logoscipsu.png" alt="ตราสัญลักษณ์คณะวิทยาศาสตร์ มหาวิทยาลัยสงขลานครินทร์" className="h-full w-full object-contain"/>
             </div>
             <div>
               <span className="text-xs font-semibold text-indigo-300 tracking-wider uppercase">
