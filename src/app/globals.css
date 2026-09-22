@@ -56,6 +56,16 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+
+/* ── Semantic status tokens — เรียกผ่าน utilities เช่น bg-status-pending,
+   text-status-done, border-status-danger/30 (ห้ามใช้สีดิบใน component) ── */
+@theme {
+  --color-status-pending: #f59e0b;     /* เหลือง — รอดำเนินการ / ยังไม่ส่ง */
+  --color-status-in-progress: #6366f1; /* ม่วง-น้ำเงิน — กำลังดำเนินการ */
+  --color-status-done: #10b981;        /* เขียว — สำเร็จ / ตรวจสอบแล้ว */
+  --color-status-danger: #dc2626;      /* แดง — ลบ / ผิดพลาด */
+}
+
 @layer base {
   body {
     font-family: var(--font-sarabun), ui-sans-serif, system-ui, -apple-system, sans-serif;
