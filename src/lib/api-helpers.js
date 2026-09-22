@@ -1,11 +1,6 @@
 /**
  * ─────────────────────────────────────────────────────────
- * ชื่อไฟล์: api-helpers.js
- * หน้าที่ของไฟล์นี้: ตัวช่วยสำหรับ API routes — ตรวจสิทธิ์จาก Bearer token
- *   ใน header (session แบบแยกต่อแท็บ) ไม่ใช่ cookie แล้ว:
- *   • requireUser(request)      → ต้องล็อกอิน
- *   • requireRole(roles, request) → ต้องล็อกอินและมีบทบาทที่กำหนด
- *   • createAdminClient()       → service role (ใช้เฉพาะฝั่ง server เท่านั้น)
+ ตัวช่วยสำหรับ API routes — ตรวจสิทธิ์จาก Bearer token
  * ─────────────────────────────────────────────────────────
  */
 

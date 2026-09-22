@@ -1,10 +1,4 @@
-/**
- * ─────────────────────────────────────────────────────────
- * ชื่อไฟล์: mappers.js
- * หน้าที่ของไฟล์นี้: แปลงชื่อฟิลด์ระหว่าง frontend (camelCase เช่น E_No, Subject_ID)
- *   กับตาราง Supabase (snake_case เช่น e_no, subject_id) — ใช้ใน API routes
- * ─────────────────────────────────────────────────────────
- */
+/**แปลงชื่อฟิลด์ระหว่าง frontend (camelCase เช่น E_No, Subject_ID)*/
 
 // ── Exam ──
 export function examToDb(e) {

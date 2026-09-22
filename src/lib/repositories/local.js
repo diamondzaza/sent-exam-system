@@ -1,14 +1,7 @@
-/**
- * ─────────────────────────────────────────────────────────
- * ชื่อไฟล์: local.js (repositories/local)
- * หน้าที่ของไฟล์นี้: implementation ของ repository ทุกตัวด้วย localStorage —
- *   ใช้งานจริงในปัจจุบัน (โหมดสาธิต) อ่าน/เขียนคีย์ sci_exam_* เดิมให้เข้ากันได้
- *   กับข้อมูลที่ผู้ใช้มีอยู่แล้ว
- * หมายเหตุ: เมื่อเชื่อม Supabase ไฟล์นี้จะถูกแทนด้วย supabase.js
- *   (โครงสร้างตารางดูได้ที่ supabase/schema.sql)
- * ─────────────────────────────────────────────────────────
- */
-/** อ่าน list จาก localStorage อย่างปลอดภัย */
+/**implementation ของ repository ทุกตัวด้วย localStorage */
+
+
+/** อ่าน list จาก localStorage */
 function readList(key, fallback) {
     try {
         const raw = localStorage.getItem(key);

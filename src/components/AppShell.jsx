@@ -360,10 +360,49 @@ export default function AppShell() {
             showToast(`บันทึกประวัติการพิมพ์ใบปะหน้าซองเรียบร้อย`);
         }
     };
-    const handlePrintExam = (exam) => {
+    // พิมพ์ข้อสอบจริง — ดึงไฟล์ผ่าน Signed URL → blob → สั่งพิมพ์เฉพาะไฟล์ (ไม่ใช่พิมพ์ทั้งหน้าเว็บ)
+    const handlePrintExam = async (exam) => {
         addAuditLog('PRINT_EXAM', exam.Subject_ID, exam.Subject_Name, `สั่งพิมพ์ข้อสอบจริงเข้าเครื่องพิมพ์ ยอดพิมพ์ ${exam.total_copies + exam.copies_reserve} ชุด`);
-        showToast(`ส่งคำสั่งพิมพ์ข้อสอบวิชา ${exam.Subject_ID} เข้าเครื่องพิมพ์เรียบร้อย`);
-        window.print();
+        try {
+            const res = await authFetch(`/api/exams/${encodeURIComponent(exam.E_No)}/file`);
+            if (!res.ok) {
+                showToast('ไม่พบไฟล์ข้อสอบ — กรุณาอัปโหลดไฟล์ก่อนพิมพ์');
+                return;
+            }
+            const { url } = await res.json();
+            const fileRes = await fetch(url);
+            const blob = await fileRes.blob();
+            if (exam.file_name && !/\.pdf$/i.test(exam.file_name)) {
+                // ไฟล์ Word — เปิดดาวน์โหลดไปพิมพ์ด้วยโปรแกรม Word
+                const wordUrl = URL.createObjectURL(blob);
+                window.open(wordUrl, '_blank');
+                setTimeout(() => URL.revokeObjectURL(wordUrl), 60000);
+                showToast('ไฟล์ Word ต้องพิมพ์ผ่านโปรแกรม Word — เปิดไฟล์ให้ดาวน์โหลดแล้ว');
+                return;
+            }
+            const blobUrl = URL.createObjectURL(blob);
+            const printFrame = document.createElement('iframe');
+            printFrame.style.position = 'fixed';
+            printFrame.style.right = '0';
+            printFrame.style.bottom = '0';
+            printFrame.style.width = '0';
+            printFrame.style.height = '0';
+            printFrame.style.border = 'none';
+            printFrame.src = blobUrl;
+            printFrame.onload = () => {
+                printFrame.contentWindow?.focus();
+                printFrame.contentWindow?.print();
+            };
+            document.body.appendChild(printFrame);
+            setTimeout(() => {
+                printFrame.remove();
+                URL.revokeObjectURL(blobUrl);
+            }, 60000);
+            showToast('ส่งข้อสอบเข้าเครื่องพิมพ์แล้ว — เลือกเครื่องพิมพ์ในหน้าต่างพิมพ์');
+        }
+        catch {
+            showToast('พิมพ์ข้อสอบไม่สำเร็จ — กรุณาลองใหม่อีกครั้ง');
+        }
     };
     // User Management Handlers (REQ-0002, REQ-0003) — ทำงานผ่าน API บนฐานข้อมูลจริง
     const handleAddUser = async (newUser) => {

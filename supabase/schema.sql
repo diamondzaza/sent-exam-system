@@ -1,11 +1,8 @@
 -- ═══════════════════════════════════════════════════════════
 -- schema.sql — โครงสร้างฐานข้อมูล Supabase สำหรับระบบจัดส่ง/จัดพิมพ์ข้อสอบ
--- คณะวิทยาศาสตร์ (เตรียมไว้ใช้เมื่อเชื่อมต่อจริง)
---
--- วิธีใช้: สร้างโปรเจกต์ที่ https://supabase.com แล้วรัน SQL นี้ใน
---   SQL Editor ของ Supabase Dashboard
--- ตารางออกแบบให้ตรงกับ src/types/entities.js (JSDoc) และ mockData.js
 -- ═══════════════════════════════════════════════════════════
+
+
 
 -- ── Enum types ──
 create type user_role   as enum ('Teacher', 'AudioVisual', 'Operations', 'Admin');
@@ -110,10 +107,7 @@ create table notifications (
   created_at      timestamptz not null default now()
 );
 
--- ═══════════════════════════════════════════════════════════
 -- Row Level Security (RLS) — สิทธิ์ตามบทบาท
--- หมายเหตุ: helper is_role() อ่านบทบาทจาก JWT (คอลัมน์ user_metadata.role)
--- ═══════════════════════════════════════════════════════════
 
 create or replace function is_role(r user_role) returns boolean
 language sql stable security definer as $$
@@ -149,17 +143,9 @@ create policy "audit_admin_read" on audit_logs for select using (is_role('Admin'
 create policy "audit_insert" on audit_logs for insert with check (auth.role() = 'authenticated');
 
 -- notifications: อ่านเฉพาะที่ตรงบทบาทตัวเอง / ทำเครื่องหมายอ่านแล้วได้
--- (หมายเหตุ: target_role เป็น enum ไม่มีค่า 'ALL' จึงต้องแปลงเป็น text ก่อนเทียบ)
 create policy "notif_read" on notifications for select
   using (
     target_role::text = 'ALL'
     or target_role::text = (auth.jwt() -> 'user_metadata' ->> 'role')
   );
 create policy "notif_update_read" on notifications for update using (auth.role() = 'authenticated');
-
--- ═══════════════════════════════════════════════════════════
--- Storage — bucket สำหรับไฟล์ข้อสอบ (PDF/DOCX, จำกัด 25MB)
--- ตั้งค่าผ่าน Dashboard > Storage หรือ:
---   insert into storage.buckets (id, name, public) values ('exam-files', 'exam-files', false);
--- นโยบาย: อ่านได้เฉพาะผู้ล็อกอิน อัปโหลดโดยครู/โสตฯ
--- ═══════════════════════════════════════════════════════════

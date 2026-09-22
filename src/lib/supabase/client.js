@@ -18,7 +18,7 @@ export function isSupabaseConfigured() {
     return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
 
-// Singleton — สร้าง GoTrueClient ครั้งเดียวต่อแท็บ (กัน warning Multiple GoTrueClient)
+// Singleton — สร้าง GoTrueClient ครั้งเดียวต่อแท็บ 
 let instance = null;
 
 export function createClient() {

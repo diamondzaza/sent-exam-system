@@ -1,11 +1,5 @@
-/**
- * ─────────────────────────────────────────────────────────
- * ชื่อไฟล์: types.js (repositories)
- * หน้าที่ของไฟล์นี้: เอกสาร interface ของชั้นจัดเก็บข้อมูล (repository) —
- *   เส้นแบ่งระหว่าง UI กับฐานข้อมูล ออกแบบให้เหมือนตาราง Supabase ในอนาคต:
- *   users, courses, exams, audit_logs, notifications (ดู supabase/schema.sql)
- * วิธีใช้: UI/hooks เรียกผ่าน interface เท่านั้น — เมื่อเชื่อม Supabase จะ
- *   สลับ implementation ใน src/lib/repositories/index.js โดยแก้โค้ด UI น้อยที่สุด
+/**เอกสาร interface ของชั้นจัดเก็บข้อมูล (repository) 
+
  *
  * ทุกเมธอดเป็น async (คืน Promise) เพราะ Supabase เรียกผ่าน network
  *
