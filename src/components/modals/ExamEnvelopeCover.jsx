@@ -2,7 +2,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, X, FileText } from 'lucide-react';
+import { Printer, X, FileText, CheckCircle2 } from 'lucide-react';
 
 const initialForm = {
     subject: '',
@@ -30,6 +30,35 @@ const initialForm = {
     note: '',
 };
 
+const THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+
+/** ข้อ 6: auto-fill ข้อมูลที่ระบบมีอยู่แล้วจาก exam — เหลือให้กรอกเฉพาะหน้างานจริง */
+const buildFormFromExam = (exam) => {
+    const base = { ...initialForm };
+    if (!exam)
+        return base;
+    const d = exam.E_Date ? new Date(exam.E_Date) : null;
+    const validDate = d && !isNaN(d.getTime());
+    return {
+        ...base,
+        subject: exam.Subject_Name ?? '',
+        subjectCode: exam.Subject_ID ?? '',
+        examDay: validDate ? String(d.getDate()) : '',
+        examMonth: validDate ? THAI_MONTHS[d.getMonth()] : '',
+        examYearBE: validDate ? String(d.getFullYear() + 543) : '',
+        examTime: exam.E_Time ?? '',
+        examRoom: exam.room ?? '',
+        studentCount: String(exam.total_copies ?? ''),
+        examCopies: String(exam.total_copies ?? ''),
+        facultyName: 'คณะวิทยาศาสตร์',
+        reserveSets: String(exam.copies_reserve ?? ''),
+        examAuthor: exam.teacher_name ?? '',
+        proctors: [exam.proctors?.[0] ?? '', exam.proctors?.[1] ?? '', exam.proctors?.[2] ?? ''],
+        note: exam.envelope_notes ?? '',
+        // เว้นว่างไว้กรอกหน้างานจริง: envelopeNo, attendedCount, absentCount, absentees, office
+    };
+};
+
 /** ช่อง input**/
 const Input = ({ label, value, onChange, className = '' }) => (
     <div className={className}>
@@ -54,7 +83,7 @@ const Dots = ({ className = '' }) => <span className={`block border-b border-dot
 
 export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
     const [tab, setTab] = useState('form'); // 'form' | 'doc'
-    const [form, setForm] = useState(initialForm);
+    const [form, setForm] = useState(() => buildFormFromExam(exam));
     const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
     const setAbsentee = (i, key) => (e) => {
         const arr = form.absentees.map((a, idx) => (idx === i ? { ...a, [key]: e.target.value } : a));
@@ -64,6 +93,9 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
         const arr = form.proctors.map((p, idx) => (idx === i ? e.target.value : p));
         setForm({ ...form, proctors: arr });
     };
+    // ข้อ 6: tab ถือว่ากรอกครบเมื่อข้อมูลการสอบหลักครบ (auto-fill ให้ส่วนใหญ่แล้ว)
+    const formComplete = [form.subject, form.subjectCode, form.examDay, form.examMonth, form.examYearBE, form.examTime, form.examRoom, form.studentCount, form.examCopies]
+        .every((v) => String(v).trim() !== '');
     const handlePrint = () => {
         if (onPrintRecorded)
             onPrintRecorded();
@@ -109,10 +141,12 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
 
         {/* Tabs (สลับระหว่างฟอร์มกรอก กับ เอกสารใบปะหน้า) */}
         <div className="no-print flex space-x-2 px-6 pt-4 border-b border-slate-200 text-xs font-medium">
-          <button onClick={() => setTab('form')} className={`px-4 py-2.5 rounded-t-xl transition-all ${tab === 'form' ? 'bg-slate-100 text-indigo-700 font-bold border-t-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>
+          <button onClick={() => setTab('form')} className={`px-4 py-2.5 rounded-t-xl transition-all flex items-center gap-1.5 ${tab === 'form' ? 'bg-slate-100 text-indigo-700 font-bold border-t-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>
+            {formComplete && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true"/>}
             1. ฟอร์มกรอกข้อมูล
           </button>
-          <button onClick={() => setTab('doc')} className={`px-4 py-2.5 rounded-t-xl transition-all ${tab === 'doc' ? 'bg-slate-100 text-indigo-700 font-bold border-t-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>
+          <button onClick={() => setTab('doc')} className={`px-4 py-2.5 rounded-t-xl transition-all flex items-center gap-1.5 ${tab === 'doc' ? 'bg-slate-100 text-indigo-700 font-bold border-t-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>
+            {formComplete && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true"/>}
             2. ใบปะหน้า (ตัวอย่าง/พิมพ์)
           </button>
         </div>
