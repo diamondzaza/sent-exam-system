@@ -10,14 +10,14 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { UploadCloud, X, FileCheck, AlertCircle, CheckCircle2, LoaderCircle, } from 'lucide-react';
 export const ExamUploadModal = ({ course, existingExam, isReupload = false, onClose, onSubmitExam, }) => {
-    const [examType, setExamType] = useState(existingExam?.exam_type || 'กลางภาค');
-    const [examDate, setExamDate] = useState(existingExam?.E_Date || '2026-10-20');
-    const [examTime, setExamTime] = useState(existingExam?.E_Time || '09:00 - 12:00 น.');
-    const [room, setRoom] = useState(existingExam?.room || 'SC-401 (ห้องบรรยายใหญ่)');
+    const [examType, setExamType] = useState(existingExam?.exam_type || '');
+    const [examDate, setExamDate] = useState(existingExam?.E_Date || '');
+    const [examTime, setExamTime] = useState(existingExam?.E_Time || '');
+    const [room, setRoom] = useState(existingExam?.room || '');
     const [totalPages, setTotalPages] = useState(existingExam?.total_pages ?? '');
-    const [totalCopies, setTotalCopies] = useState(existingExam?.total_copies || course.student_count);
-    const [copiesReserve, setCopiesReserve] = useState(existingExam?.copies_reserve ?? 5);
-    const [envelopeNotes, setEnvelopeNotes] = useState(existingExam?.envelope_notes || 'ข้อสอบแบ่งเป็น 2 ตอน ให้นักศึกษาทำลงในกระดาษคำถาม');
+    const [totalCopies, setTotalCopies] = useState(existingExam?.total_copies || '');
+    const [copiesReserve, setCopiesReserve] = useState(existingExam?.copies_reserve ?? '');
+    const [envelopeNotes, setEnvelopeNotes] = useState(existingExam?.envelope_notes || '');
     const [selectedMaterials, setSelectedMaterials] = useState(existingExam?.allowed_materials || ['เครื่องคิดเลขวิทยาศาสตร์', 'ปากกาน้ำเงิน/ดำ', 'ดินสอ 2B']);
     const [newMaterialInput, setNewMaterialInput] = useState('');
     const [fileName, setFileName] = useState(existingExam?.file_name || '');
@@ -125,8 +125,16 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             setErrorMsg('กรุณายืนยันข้อกำหนดด้านความลับของข้อสอบ');
             return;
         }
-        if (!Number(totalPages)) {
-            setErrorMsg('กรุณาระบุจำนวนหน้าข้อสอบ (ใส่ไฟล์ PDF เพื่อนับอัตโนมัติ หรือกรอกเอง)');
+        // Validation — ช่องจำเป็นทั้งหมด (ฟอร์มเริ่มว่าง อาจารย์กรอกเอง)
+        const missing = [];
+        if (!examType) missing.push('ประเภทการสอบ');
+        if (!examDate) missing.push('วันที่สอบ');
+        if (!examTime) missing.push('เวลาสอบ');
+        if (!room) missing.push('ห้องสอบ');
+        if (!Number(totalCopies)) missing.push('จำนวนชุดที่พิมพ์');
+        if (!Number(totalPages)) missing.push('จำนวนหน้าข้อสอบ');
+        if (missing.length) {
+            setErrorMsg('กรุณาระบุ: ' + missing.join(', '));
             return;
         }
         const payload = {
@@ -263,7 +271,8 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div>
               <Label htmlFor="exam-type" className="text-slate-700 mb-1">ประเภทการจัดสอบ</Label>
-              <Select id="exam-type" value={examType} onChange={(e) => setExamType(e.target.value)}>
+              <Select id="exam-type" value={examType} onChange={(e) => setExamType(e.target.value)} required aria-required="true">
+                <option value="">— เลือกประเภทการสอบ —</option>
                 <option value="กลางภาค">สอบกลางภาค</option>
                 <option value="ปลายภาค">สอบปลายภาค</option>
                 <option value="สอบแก้ตัว">สอบแก้ตัว / ประมวลความรู้</option>
