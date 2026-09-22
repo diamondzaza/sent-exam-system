@@ -14,7 +14,7 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
     const [examDate, setExamDate] = useState(existingExam?.E_Date || '2026-10-20');
     const [examTime, setExamTime] = useState(existingExam?.E_Time || '09:00 - 12:00 น.');
     const [room, setRoom] = useState(existingExam?.room || 'SC-401 (ห้องบรรยายใหญ่)');
-    const [totalPages, setTotalPages] = useState(existingExam?.total_pages || 8);
+    const [totalPages, setTotalPages] = useState(existingExam?.total_pages ?? '');
     const [totalCopies, setTotalCopies] = useState(existingExam?.total_copies || course.student_count);
     const [copiesReserve, setCopiesReserve] = useState(existingExam?.copies_reserve ?? 5);
     const [envelopeNotes, setEnvelopeNotes] = useState(existingExam?.envelope_notes || 'ข้อสอบแบ่งเป็น 2 ตอน ให้นักศึกษาทำลงในกระดาษคำถาม');
@@ -123,6 +123,10 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
         }
         if (!securityAgreed) {
             setErrorMsg('กรุณายืนยันข้อกำหนดด้านความลับของข้อสอบ');
+            return;
+        }
+        if (!Number(totalPages)) {
+            setErrorMsg('กรุณาระบุจำนวนหน้าข้อสอบ (ใส่ไฟล์ PDF เพื่อนับอัตโนมัติ หรือกรอกเอง)');
             return;
         }
         const payload = {
@@ -282,8 +286,10 @@ export const ExamUploadModal = ({ course, existingExam, isReupload = false, onCl
             </div>
 
             <div>
-              <Label htmlFor="exam-pages" className="text-slate-700 mb-1">จำนวนหน้าข้อสอบ (หน้า)</Label>
-              <Input id="exam-pages" type="number" min="1" max="500" value={totalPages} onChange={(e) => setTotalPages(parseInt(e.target.value) || 1)}/>
+              <Label htmlFor="exam-pages" className="text-slate-700 mb-1">
+                จำนวนหน้าข้อสอบ (หน้า) <span className="text-rose-500">*</span>
+              </Label>
+              <Input id="exam-pages" type="number" min="1" max="500" placeholder="ใส่ไฟล์ PDF เพื่อนับอัตโนมัติ" value={totalPages} onChange={(e) => setTotalPages(parseInt(e.target.value) || '')} required aria-required="true"/>
               <p className={`mt-1 text-xs flex items-center space-x-1 ${countingPages ? 'text-indigo-500' : autoCountMsg.includes('ไม่ได้') ? 'text-amber-500' : 'text-emerald-600'}`}>
                 {countingPages ? (<>
                   <LoaderCircle className="w-3 h-3 animate-spin"/>
