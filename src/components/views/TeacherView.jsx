@@ -21,7 +21,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Upload, RefreshCw, Trash2, Eye, AlertCircle, Plus, Printer, Check, X, } from 'lucide-react';
+import { BookOpen, Upload, RefreshCw, Trash2, Eye, AlertTriangle, AlertCircle, Plus, Printer, Check, X, } from 'lucide-react';
+import { StepProgress } from '@/components/ui/step-progress';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, onPreviewExam, onRemoveExam, onAddNewCourse, onOpenEnvelope, }) => {
     const [showNewCourseModal, setShowNewCourseModal] = useState(false);
     const [newCourseCode, setNewCourseCode] = useState('');
@@ -30,6 +32,8 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
     const [newCourseYear, setNewCourseYear] = useState('2567');
     const [newCourseStudents, setNewCourseStudents] = useState(45);
     const [newCourseError, setNewCourseError] = useState('');
+    const [highlightCourseId, setHighlightCourseId] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
     // Filter courses for this teacher or all if academic affairs
     const myCourses = courses.filter((c) => c.teacher_id === currentUser.id || currentUser.id === 'T001');
     // Selected course state: Encounter course selection first!
@@ -38,6 +42,20 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
     });
     const getExamForCourse = (courseId) => {
         return exams.find((e) => e.Subject_ID === courseId);
+    };
+    // ข้อ 2: เลือกวิชาในขั้นตอนที่ 1 → เลื่อนไปหาแถวเดียวกันในขั้นตอนที่ 2 + ไฮไลต์ชั่วคราว
+    const handleSelectCourse = (courseId) => {
+        setSelectedCourseId(courseId);
+        if (courseId === 'ALL')
+            return;
+        setTimeout(() => {
+            const el = document.getElementById('exam-row-' + courseId);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setHighlightCourseId(courseId);
+                setTimeout(() => setHighlightCourseId((prev) => (prev === courseId ? null : prev)), 2600);
+            }
+        }, 80);
     };
     const handleCreateCourse = (e) => {
         e.preventDefault();
@@ -96,13 +114,13 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
         : myCourses.filter((c) => c.Course_id === selectedCourseId);
     return (<div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-2xl p-6 text-white shadow-md relative overflow-hidden">
+      <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-2xl px-5 py-3.5 text-white shadow-md relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <Badge className="border-indigo-400/30 bg-indigo-500/30 text-indigo-200 font-medium">
               แดชบอร์ดอาจารย์ผู้สอน & ฝ่ายวิชาการ
             </Badge>
-            <h2 className="font-display text-xl sm:text-2xl font-bold">
+            <h2 className="font-display text-lg sm:text-xl font-bold">
               สวัสดี, {currentUser.name}
             </h2>
             <p className="text-xs sm:text-sm text-indigo-200 max-w-2xl leading-relaxed">
@@ -163,7 +181,7 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
               </h3>
             </div>
             <p className="text-xs text-slate-500">
-              เลือกรายวิชาเพื่อจัดส่งไฟล์ข้อสอบและติดตามสถานะการพิมพ์
+              เลือกรายวิชาเพื่อจัดส่งไฟล์ข้อสอบ — เมื่อเลือกแล้ว ระบบจะพาไปที่รายการข้อสอบของวิชานั้นในขั้นตอนที่ 2 ด้านล่างโดยอัตโนมัติ
             </p>
           </div>
 
@@ -186,7 +204,7 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
             const courseExam = getExamForCourse(c.Course_id);
             const isSelected = selectedCourseId === c.Course_id;
             const statusConfig = courseExam ? STATUS_LABELS[courseExam.status] : null;
-            return (<div key={c.Course_id} onClick={() => setSelectedCourseId(c.Course_id)} className={`p-4 rounded-xl border text-left cursor-pointer transition-all relative ${isSelected
+            return (<div key={c.Course_id} onClick={() => handleSelectCourse(c.Course_id)} className={`p-4 rounded-xl border text-left cursor-pointer transition-all relative ${isSelected
                     ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/30 shadow-xs'
                     : 'border-slate-200 bg-white hover:border-indigo-300 hover:bg-slate-50/60'}`}>
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -233,8 +251,8 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
             </div>
             <p className="text-xs text-slate-500">
               {selectedCourseId === 'ALL'
-            ? 'แสดงข้อมูลข้อสอบของทุกรายวิชาที่ท่านรับผิดชอบ'
-            : 'ตรวจสอบไฟล์ข้อสอบ สั่งพิมพ์ใบปะหน้าซอง หรือส่งฉบับปรับปรุง'}
+            ? 'รายการดำเนินการจริงต่อจากขั้นตอนที่ 1 — จัดการข้อสอบได้ทีละรายการในแถวด้านล่าง'
+            : 'รายการดำเนินการจริงของวิชาที่เลือกด้านบน — ตรวจสอบไฟล์ สั่งพิมพ์ใบปะหน้า หรือส่งฉบับปรับปรุง'}
             </p>
           </div>
           <div className="text-xs text-slate-500 flex items-center space-x-2">
@@ -250,7 +268,7 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
             const exam = getExamForCourse(course.Course_id);
             const statusConfig = exam ? STATUS_LABELS[exam.status] : STATUS_LABELS.DRAFT;
             const progressStep = getStepProgress(exam?.status);
-            return (<div key={course.Course_id} className="p-6 hover:bg-slate-50/50 transition-colors space-y-4">
+            return (<div key={course.Course_id} id={'exam-row-' + course.Course_id} className={`p-6 hover:bg-slate-50/50 transition-colors space-y-4 ${highlightCourseId === course.Course_id ? 'ring-2 ring-indigo-500 bg-indigo-50/60 rounded-xl' : ''}`}>
                   {/* Course Header Row */}
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="space-y-1">
@@ -280,36 +298,31 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       {!exam ? (<Button onClick={() => onOpenUploadModal(course, null, false)}>
                           <Upload />
                           <span>จัดส่งข้อสอบ</span>
                         </Button>) : (<>
-                          <Button variant="outline" size="sm" onClick={() => onPreviewExam(exam)} title="ดูตัวอย่างข้อสอบและลายน้ำความปลอดภัย">
+                          <Button variant="outline" size="sm" onClick={() => onPreviewExam(exam)} title="ดูตัวอย่างข้อสอบและลายน้ำความปลอดภัย" className="min-h-[44px]">
                             <Eye className="text-indigo-600"/>
                             <span>ดูข้อสอบ</span>
                           </Button>
 
-                          <Button variant="outline" size="sm" onClick={() => onOpenEnvelope(exam)} title="ดูและสั่งพิมพ์ใบปะหน้าซองข้อสอบ">
+                          <Button variant="outline" size="sm" onClick={() => onOpenEnvelope(exam)} title="ดูและสั่งพิมพ์ใบปะหน้าซองข้อสอบ" className="min-h-[44px]">
                             <Printer className="text-purple-600"/>
                             <span>ใบปะหน้าซอง</span>
                           </Button>
 
                           {/* Re-upload — only allowed before printing starts,
                         matching the Remove button and the "ก่อนเริ่มพิมพ์" rule */}
-                          {['SUBMITTED', 'VERIFIED', 'REJECTED'].includes(exam.status) && (<Button variant="outline" size="sm" onClick={() => onOpenUploadModal(course, exam, true)} className="border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:text-amber-800" title="อัปโหลดไฟล์ข้อสอบฉบับปรับปรุงใหม่">
+                          {['SUBMITTED', 'VERIFIED', 'REJECTED'].includes(exam.status) && (<Button variant="outline" size="sm" onClick={() => onOpenUploadModal(course, exam, true)} className="min-h-[44px] border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:text-amber-800" title="อัปโหลดไฟล์ข้อสอบฉบับปรับปรุงใหม่">
                               <RefreshCw />
                               <span>อัปโหลดใหม่</span>
                             </Button>)}
 
-                          {/* Delete — อาจารย์ลบข้อสอบของตนเองได้ทุกสถานะ (ระบบจะลบไฟล์แนบ + บันทึก audit) */}
-                          {(<Button variant="outline" size="sm" onClick={() => {
-                            if (confirm(`ยืนยันการลบข้อสอบวิชา ${course.Course_id} ออกจากระบบ?\n(ไฟล์แนบและประวัติที่ผูกกับรายการนี้จะถูกลบด้วย)`)) {
-                                onRemoveExam(exam.E_No);
-                            }
-                        }} className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-700" title="ลบข้อสอบฉบับนี้ออกจากระบบ">
-                              <Trash2 />
-                              <span>ลบ</span>
+                          {/* Delete — แยกออกจากปุ่มปกติด้วยเส้นขัด + สีแดงเข้ม และต้องผ่าน confirm modal เสมอ (ข้อ 4) */}
+                          {(<Button variant="destructive" size="icon" onClick={() => setDeleteTarget({ exam, course })} className="ml-3 border-l-2 border-l-rose-200 pl-4 h-11 w-11 rounded-lg" title="ลบข้อสอบฉบับนี้ออกจากระบบ">
+                              <Trash2 className="w-4 h-4"/>
                             </Button>)}
                         </>)}
                     </div>
@@ -343,24 +356,7 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-5 gap-2 relative">
-                        {steps.map((step, idx) => {
-                        const stepNum = idx + 1;
-                        const isDone = progressStep >= stepNum;
-                        const isCurrent = progressStep === stepNum;
-                        return (<div key={idx} className="flex flex-col items-center text-center space-y-1 relative">
-                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all z-10 ${isDone
-                                ? 'bg-emerald-600 text-white shadow-xs'
-                                : isCurrent
-                                    ? 'bg-indigo-600 text-white ring-4 ring-indigo-100 animate-pulse'
-                                    : 'bg-slate-200 text-slate-500'}`}>
-                                {isDone ? <Check className="w-4 h-4"/> : stepNum}
-                              </div>
-                              <p className="font-semibold text-xs text-slate-800">{step.title}</p>
-                              <p className="text-xs text-slate-400 hidden sm:block">{step.desc}</p>
-                            </div>);
-                    })}
-                      </div>
+                      <StepProgress steps={steps.map((st) => st.title)} current={progressStep}/>
 
                       {exam.checked_by && (<div className="text-xs text-slate-600 bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between">
                           <span>
@@ -447,5 +443,30 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
             </form>
           </div>
         </div>)}
+
+      {/* ── ข้อ 4: Confirm dialog ก่อนลบข้อสอบ (ใช้ Modal กลางของระบบ) ── */}
+      <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} size="sm">
+        <ModalHeader icon={AlertTriangle} title="ยืนยันการลบข้อสอบ" subtitle={deleteTarget ? `${deleteTarget.course.Course_id} — ${deleteTarget.exam.file_name}` : ''} onClose={() => setDeleteTarget(null)} className="from-rose-950 to-slate-900 border-rose-900"/>
+        <ModalBody className="text-sm space-y-3">
+          <p>
+            ยืนยันการลบข้อสอบวิชา <strong>{deleteTarget?.course.Course_id} {deleteTarget?.course.Course_Name}</strong> ออกจากระบบหรือไม่?
+          </p>
+          <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+            ไฟล์แนบใน Storage และประวัติที่ผูกกับรายการนี้จะถูกลบถาวร — ระบบบันทึก Audit Log ทุกครั้ง
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+            ยกเลิก
+          </Button>
+          <Button variant="destructive" onClick={() => {
+            onRemoveExam(deleteTarget.exam.E_No);
+            setDeleteTarget(null);
+        }}>
+            <Trash2 className="w-4 h-4"/>
+            <span>ลบถาวร</span>
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>);
 };
