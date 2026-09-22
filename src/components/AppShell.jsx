@@ -319,6 +319,22 @@ export default function AppShell() {
         setPreviewExam(exam);
     };
     // ดาวน์โหลดไฟล์ข้อสอบจริง — ขอ Signed URL จาก API (หมดอายุ 1 ชม.) แล้วเปิดแท็บใหม่
+    // ข้อ 5: ปุ่ม decision ในหน้าตรวจสอบไฟล์ — ยืนยัน / แจ้งปัญหา
+    const handleExamDecision = (exam, decision) => {
+        if (decision === 'confirm') {
+            if (currentUser.role === 'AudioVisual') {
+                // โสตฯ ยืนยัน = เปลี่ยนสถานะเป็น VERIFIED จริง (ครบ audit + notification)
+                handleUpdateExamStatus(exam.E_No, 'VERIFIED', 'ยืนยันความถูกต้องจากการตรวจทานไฟล์ในหน้าตรวจสอบ');
+            }
+            else {
+                showToast('ยืนยันไฟล์ถูกต้องแล้ว — บันทึกลง Audit Log');
+            }
+        }
+        else {
+            showToast('ส่งคำขอแจ้งปัญหาไฟล์แล้ว — เจ้าหน้าที่จะตรวจสอบและติดต่อกลับ');
+        }
+        setPreviewExam(null);
+    };
     const handleDownloadLogged = async (exam) => {
         addAuditLog('DOWNLOAD_EXAM', exam.Subject_ID, exam.Subject_Name, `ดาวน์โหลดไฟล์ข้อสอบต้นฉบับ ${exam.file_name} ออกจากระบบ (เข้ารหัส Audit ID)`);
         try {
@@ -488,7 +504,7 @@ export default function AppShell() {
       {/* Modals */}
       {uploadModalData && (<ExamUploadModal course={uploadModalData.course} existingExam={uploadModalData.existingExam} isReupload={uploadModalData.isReupload} onClose={() => setUploadModalData(null)} onSubmitExam={handleSubmitExamUpload}/>)}
 
-      {previewExam && (<ExamPreviewModal exam={previewExam} currentUser={currentUser} onClose={() => setPreviewExam(null)} onDownloadLogged={handleDownloadLogged} onPrintRequested={handlePrintExam}/>)}
+      {previewExam && (<ExamPreviewModal exam={previewExam} currentUser={currentUser} onClose={() => setPreviewExam(null)} onDownloadLogged={handleDownloadLogged} onPrintRequested={handlePrintExam} onExamDecision={handleExamDecision} onToast={showToast}/>)}
 
       {envelopeExam && (<ExamEnvelopeCover exam={envelopeExam} onClose={() => setEnvelopeExam(null)} onPrintRecorded={handleEnvelopePrintRecorded}/>)}
     </div>);

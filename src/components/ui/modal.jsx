@@ -46,7 +46,7 @@ export function Modal({ open, onClose, size = 'md', children, className }) {
     </div>);
 }
 
-export function ModalHeader({ icon: Icon, title, subtitle, onClose, className }) {
+export function ModalHeader({ icon: Icon, title, subtitle, onClose, right, className }) {
     return (<div className={cn('no-print bg-gradient-to-br from-slate-900 to-indigo-950 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800', className)}>
       <div className="flex items-center space-x-3 min-w-0">
         {Icon && (<div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/30 shrink-0">
@@ -57,9 +57,12 @@ export function ModalHeader({ icon: Icon, title, subtitle, onClose, className })
           {subtitle && (<p className="text-xs text-slate-400 mt-0.5 truncate">{subtitle}</p>)}
         </div>
       </div>
-      {onClose && (<button type="button" onClick={onClose} aria-label="ปิดหน้าต่าง" className="shrink-0 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg p-1.5 transition-colors">
-          <X className="w-5 h-5"/>
-        </button>)}
+      <div className="flex items-center gap-2 shrink-0">
+        {right}
+        {onClose && (<button type="button" onClick={onClose} aria-label="ปิดหน้าต่าง" className="text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg p-1.5 transition-colors">
+            <X className="w-5 h-5"/>
+          </button>)}
+      </div>
     </div>);
 }
 
