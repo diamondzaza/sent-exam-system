@@ -31,3 +31,7 @@ dist/
 
 # typescript incremental build
 *.tsbuildinfo
+
+
+#plugins
+.playwright-mcp
