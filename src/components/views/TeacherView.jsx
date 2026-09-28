@@ -1,14 +1,18 @@
 /**
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: TeacherView.jsx
- * หน้าที่ของหน้านี้: แดชบอร์ดสำหรับอาจารย์ผู้สอน — เลือกรายวิชาที่สอนแบบ 2 ขั้นตอน,
- *   จัดส่ง/อัปโหลดไฟล์ข้อสอบ, ติดตามสถานะข้อสอบด้วย progress tracker 5 ขั้น,
- *   ลบข้อสอบของตนเองได้ทุกสถานะ (ระบบลบไฟล์แนบ + บันทึก audit ให้อัตโนมัติ),
+ * หน้าที่ของหน้านี้: เนื้อหาแดชบอร์ดอาจารย์ผู้สอน 4 หน้าย่อย (แสดงภายใน SidebarShell
+ *   สลับหน้าผ่านเมนูข้าง) —
+ *   1. courses    : ตารางรายวิชา + สถิติสรุป + banner แจ้งเตือน + เมนู ⋮ ต่อรายวิชา
+ *   2. tracking   : ติดตามสถานะข้อสอบรายวิชา — banner สถานะ, vertical stepper 5 ขั้น,
+ *                   ประวัติการดำเนินงาน, รายละเอียดการสอบ (ดาวน์โหลด / แก้ไขการส่ง)
+ *   3. new-course : ฟอร์มเพิ่มรายวิชาใหม่ (ฟอร์มซ้าย + คำแนะนำขวา)
+ *   4. cancel     : ยืนยันการยกเลิกการส่งข้อสอบ — ระบุเหตุผลก่อนยืนยัน
  * ผู้ใช้งาน: อาจารย์ผู้สอน (Teacher)
  * ฟีเจอร์หลัก:
- *   1. การ์ดรายวิชาพร้อมสถานะข้อสอบล่าสุด (STATUS_LABELS)
- *   2. ปุ่มจัดส่งข้อสอบ / อัปโหลดใหม่ (PDF/DOCX ไม่เกิน 25MB)
- *   3. ดูตัวอย่างข้อสอบ, พิมพ์ใบปะหน้า, ยกเลิกการส่ง
+ *   1. ตารางรายวิชา + สถานะข้อสอบล่าสุด (STATUS_LABELS)
+ *   2. จัดส่งข้อสอบ / อัปโหลดใหม่ (PDF/DOCX ไม่เกิน 25MB)
+ *   3. ดูตัวอย่างข้อสอบ, พิมพ์ใบปะหน้า, ยกเลิกการส่ง (ผ่าน onRemoveExam เดิม)
  * หมายเหตุ: มีเงื่อนไขพิเศษ hardcoded — อาจารย์ T001 เห็นทุกรายวิชา (โหมดสาธิต)
  * ─────────────────────────────────────────────────────────
  */
@@ -16,46 +20,829 @@
 import React, { useState } from 'react';
 import { STATUS_LABELS } from '@/lib/statusLabels';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Upload, RefreshCw, Trash2, Eye, AlertTriangle, AlertCircle, Plus, Printer, Check, X, } from 'lucide-react';
-import { StepProgress } from '@/components/ui/step-progress';
-import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
-export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, onPreviewExam, onRemoveExam, onAddNewCourse, onOpenEnvelope, }) => {
-    const [showNewCourseModal, setShowNewCourseModal] = useState(false);
+import { Upload, UploadCloud, RefreshCw, Trash2, Eye, AlertTriangle, AlertCircle, Plus, Printer, Download, MoreVertical, Check, FileText, FileCheck, LoaderCircle, CheckCircle2, } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+const NO_EXAM_STATUS = { label: 'ยังไม่ส่ง', badgeClass: 'bg-slate-100 text-slate-600 border-slate-200' };
+// ข้อความสรุปสถานะสำหรับ banner หน้าติดตามสถานะ
+const STATUS_HEADLINE = {
+    SUBMITTED: 'รับไฟล์แล้ว · รอเจ้าหน้าที่ตรวจสอบ',
+    VERIFIED: 'ผ่านการตรวจสอบแล้ว · รอจัดพิมพ์',
+    PRINTING: 'ระหว่างจัดพิมพ์',
+    PRINTED: 'พิมพ์และบรรจุซองเสร็จสิ้น',
+    DELIVERED_OD: 'ส่งมอบฝ่ายดำเนินการสอบแล้ว',
+    READY_FOR_EXAM: 'พร้อมสอบ',
+    REJECTED: 'ไฟล์ไม่ได้รับอนุมัติ · กรุณาส่งฉบับใหม่',
+};
+// เดือนไทยสำหรับใบปะหน้าซองข้อสอบ
+const THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+/** เส้นประพร้อมค่าที่กรอก (ใช้ในตัวอย่างใบปะหน้า) */
+const Line = ({ value, className = '' }) => (<span className={`block border-b border-dotted border-slate-600 text-center text-sm leading-snug min-h-[1.6rem] pb-1.5 break-words ${className}`}>
+    {value}
+  </span>);
+/** ตัวอย่างใบปะหน้าซองข้อสอบ (id="printable-envelope" — CSS @media print พิมพ์เฉพาะ element นี้)
+ *  ส่วนจำนวนเข้าสอบ/ขาดสอบ/ผู้คุมสอบ/หมายเหตุ เว้นบรรทัดไว้เขียนด้วยลายมือที่หน้างานจริง */
+const EnvelopeDocument = ({ form }) => (<div id="printable-envelope" className="bg-white shadow border border-slate-300 mx-auto max-w-3xl px-8 py-8 text-slate-900 min-h-[900px]">
+
+    {/* ── โลโก้ ── */}
+    <div className="flex justify-center mb-3">
+      <img src="/logoscipsu.png" alt="ตราสัญลักษณ์คณะวิทยาศาสตร์ ม.สงขลานครินทร์" className="h-32 object-contain"/>
+    </div>
+
+    {/* ── คณะ / มหาวิทยาลัย ── */}
+    <div className="text-center space-y-1 mb-6">
+      <p className="font-display text-xl font-bold text-slate-900">คณะวิทยาศาสตร์</p>
+      <p className="font-display text-xl font-bold text-slate-900">มหาวิทยาลัยสงขลานครินทร์</p>
+    </div>
+
+    {/* ── ข้อมูลการสอบ ── */}
+    <div className="space-y-3 text-sm mb-6">
+      <div className="flex items-end">
+        <span className="shrink-0">การสอบวิชา</span>
+        <Line value={form.subject} className="flex-1"/>
+        <span className="shrink-0">รหัสวิชา</span>
+        <Line value={form.subjectCode} className="w-28 shrink-0"/>
+      </div>
+      <div className="flex items-end">
+        <span className="shrink-0">สอบวันที่</span>
+        <Line value={form.examDay} className="w-24 shrink-0"/>
+        <span className="shrink-0">เดือน</span>
+        <Line value={form.examMonth} className="flex-1"/>
+        <span className="shrink-0">พ.ศ.</span>
+        <Line value={form.examYearBE} className="w-16 shrink-0"/>
+        <span className="shrink-0">เวลา</span>
+        <Line value={form.examTime} className="w-28 shrink-0"/>
+        <span className="shrink-0">น.</span>
+      </div>
+      <div className="flex items-end">
+        <span className="shrink-0">ห้องสอบ</span>
+        <Line value={form.examRoom} className="flex-1"/>
+        <span className="shrink-0">เลขประจำซอง</span>
+        <Line value={form.envelopeNo} className="w-24 shrink-0"/>
+      </div>
+      <div className="flex items-end">
+        <span className="shrink-0">จำนวนนักศึกษา</span>
+        <Line value={form.studentCount} className="flex-1"/>
+        <span className="shrink-0">คน</span>
+      </div>
+      <div className="flex items-end">
+        <span className="shrink-0">ซองนี้มีจำนวนข้อสอบ</span>
+        <Line value={form.examCopies} className="w-16 shrink-0"/>
+        <span className="shrink-0">ชุด</span>
+        <span className="shrink-0">นศ. คณะ</span>
+        <Line value={form.facultyName} className="flex-1"/>
+        <span className="shrink-0">ตอน</span>
+        <Line value={form.section} className="w-14 shrink-0"/>
+      </div>
+      <div className="flex items-end">
+        <span className="shrink-0">ข้อสอบสำรอง</span>
+        <Line value={form.reserveSets} className="w-16 shrink-0"/>
+        <span className="shrink-0">ชุด</span>
+      </div>
+    </div>
+
+    {/* ── อุปกรณ์ที่ใช้ / คำแนะนำผู้คุมสอบ ── */}
+    <div className="border-t border-slate-300 pt-3 mb-6 text-sm">
+      <p className="font-semibold mb-2">อุปกรณ์ที่ใช้หรือคำแนะนำผู้คุมสอบเพิ่มเติม</p>
+      <div className="space-y-1.5 pl-2">
+        {[['optBooks', 'นำตำราเข้าห้องสอบได้'],
+          ['optCalculator', 'นำเครื่องคิดเลขเข้าห้องสอบได้'],
+          ['optNoRuler', 'ห้ามนำไม้บรรทัดมีสูตรคณิตศาสตร์เข้าสอบ']].map(([key, label]) => (<div key={key} className="flex items-center gap-2">
+              <span>(</span>
+              <span className="w-6 inline-block border-b border-slate-500 text-center text-xs">
+                {form[key] ? '✓' : ''}
+              </span>
+              <span>)</span>
+              <span>{label}</span>
+            </div>))}
+      </div>
+    </div>
+
+    {/* ── ผู้ออกข้อสอบ / ห้องทำงาน ── */}
+    <div className="space-y-3 text-sm mb-6">
+      <div className="flex items-end">
+        <span className="shrink-0">ผู้ออกข้อสอบ</span>
+        <Line value={form.examAuthor} className="flex-1"/>
+      </div>
+      <div className="flex items-end">
+        <span className="shrink-0">ห้องทำงาน</span>
+        <Line value={form.office} className="flex-1"/>
+      </div>
+    </div>
+
+    {/* ── จำนวนเข้าสอบ / ขาดสอบ + รายชื่อผู้ขาด (เขียนด้วยลายมือ) ── */}
+    <div className="space-y-3 text-sm mb-6">
+      <div className="grid grid-cols-12 items-end gap-x-2">
+        <span className="col-span-4 whitespace-nowrap">จำนวนนักศึกษาที่เข้าสอบ</span>
+        <Line value={form.attendedCount} className="col-span-2"/>
+        <span className="col-span-1">คน</span>
+        <span className="col-span-3 whitespace-nowrap text-right">จำนวนนักศึกษาที่ขาดสอบ</span>
+        <Line value={form.absentCount} className="col-span-1"/>
+        <span className="col-span-1 whitespace-nowrap">คน คือ</span>
+      </div>
+
+      <div>
+        <div className="grid grid-cols-12 gap-x-6 mb-1 pl-1">
+          <span className="col-span-4 text-center font-semibold">รหัส</span>
+          <span className="col-span-8 text-center font-semibold">ชื่อ-สกุล</span>
+        </div>
+        {form.absentees.map((a, i) => (<div key={i} className="grid grid-cols-12 gap-x-6 mb-2">
+            <Line value={a.code} className="col-span-4"/>
+            <Line value={a.name} className="col-span-8"/>
+          </div>))}
+      </div>
+    </div>
+
+    {/* ── ผู้คุมสอบ (เขียนด้วยลายมือ) ── */}
+    <div className="space-y-3 text-sm mb-5">
+      {form.proctors.map((p, i) => (<div key={i} className="flex items-end">
+          <span className="shrink-0">{i + 1}.</span>
+          <Line value={p} className="flex-1"/>
+          <span className="shrink-0">ผู้คุมสอบ</span>
+        </div>))}
+    </div>
+
+    {/* ── หมายเหตุ ── */}
+    <div className="flex items-end text-sm">
+      <span className="shrink-0">หมายเหตุ</span>
+      <Line value={form.note} className="flex-1"/>
+    </div>
+  </div>);
+// ───────── ฟอร์มจัดส่งข้อสอบแบบ 3 ขั้นตอน (ย้าย logic จาก ExamUploadModal เดิม) ─────────
+// payload / validation / การนับหน้า PDF / การส่งไฟล์ = เหมือนเดิมทุกอย่าง แค่เปลี่ยน UI เป็น wizard
+const EXAM_UPLOAD_STEPS = [
+    { n: 1, label: 'ไฟล์ข้อสอบ' },
+    { n: 2, label: 'ข้อมูลการสอบ' },
+    { n: 3, label: 'ใบปะหน้าซอง' },
+    { n: 4, label: 'ตรวจสอบและส่ง' },
+];
+const ExamUploadWizard = ({ course, existingExam, isReupload, onDone, onUploadSubmit, onPreviewExam, }) => {
+    const [step, setStep] = useState(1);
+    const [examType, setExamType] = useState(existingExam?.exam_type || '');
+    const [examDate, setExamDate] = useState(existingExam?.E_Date || '');
+    const [examTime, setExamTime] = useState(existingExam?.E_Time || '');
+    const [room, setRoom] = useState(existingExam?.room || '');
+    const [totalPages, setTotalPages] = useState(existingExam?.total_pages ?? '');
+    const [totalCopies, setTotalCopies] = useState(existingExam?.total_copies || '');
+    const [copiesReserve, setCopiesReserve] = useState(existingExam?.copies_reserve ?? '');
+    const [envelopeNotes, setEnvelopeNotes] = useState(existingExam?.envelope_notes || '');
+    // ค่าเริ่มต้นของสิ่งที่อนุญาต (ส่งพร้อม payload เหมือนเดิม — ไม่มี UI ให้แก้แล้ว)
+    const [selectedMaterials] = useState(existingExam?.allowed_materials || ['เครื่องคิดเลขวิทยาศาสตร์', 'ปากกาน้ำเงิน/ดำ', 'ดินสอ 2B']);
+    const [fileName, setFileName] = useState(existingExam?.file_name || '');
+    const [fileSize, setFileSize] = useState(existingExam?.file_size || '');
+    const [fileObject, setFileObject] = useState(null); // ไฟล์จริงส่งขึ้น Supabase Storage
+    const [isDragging, setIsDragging] = useState(false);
+    const [fileUploaded, setFileUploaded] = useState(Boolean(existingExam?.file_name));
+    const [countingPages, setCountingPages] = useState(false);
+    const [autoCountMsg, setAutoCountMsg] = useState('');
+    const [sending, setSending] = useState(false);
+    const [sentSuccess, setSentSuccess] = useState(false);
+    const [securityAgreed, setSecurityAgreed] = useState(true);
+    const [errorMsg, setErrorMsg] = useState('');
+    // ฟอร์มใบปะหน้าซองข้อสอบ — auto-fill จากข้อมูลที่ระบบมี ส่วนเข้าสอบ/ขาดสอบ/ผู้คุมสอบ/หมายเหตุ เว้นไว้เขียนมือที่หน้างาน
+    const [env, setEnv] = useState(() => {
+        const d = examDate ? new Date(examDate) : null;
+        const valid = d && !isNaN(d.getTime());
+        return {
+            subject: course.Course_Name ?? '',
+            subjectCode: course.Course_id ?? '',
+            examDay: valid ? String(d.getDate()) : '',
+            examMonth: valid ? THAI_MONTHS[d.getMonth()] : '',
+            examYearBE: valid ? String(d.getFullYear() + 543) : '',
+            examTime: examTime ?? '',
+            examRoom: room ?? '',
+            envelopeNo: '',
+            studentCount: String(course.student_count ?? ''),
+            examCopies: String(totalCopies || ''),
+            facultyName: 'คณะวิทยาศาสตร์',
+            section: course.sec || '',
+            reserveSets: String(copiesReserve || ''),
+            optBooks: false,
+            optCalculator: false,
+            optNoRuler: false,
+            examAuthor: course.teacher_name ?? '',
+            office: '',
+            attendedCount: '', absentCount: '',
+            absentees: [{ code: '', name: '' }, { code: '', name: '' }, { code: '', name: '' }],
+            proctors: [existingExam?.proctors?.[0] ?? '', existingExam?.proctors?.[1] ?? '', existingExam?.proctors?.[2] ?? ''],
+            note: envelopeNotes ?? '',
+        };
+    });
+    const acceptFile = (file) => {
+        if (!/\.(pdf|docx?)$/i.test(file.name) || file.size > 25 * 1024 * 1024) {
+            setErrorMsg('รองรับเฉพาะไฟล์ PDF หรือ DOCX ขนาดไม่เกิน 25MB');
+            return;
+        }
+        setFileName(file.name);
+        setFileSize(`${(file.size / (1024 * 1024)).toFixed(1)} MB`);
+        setFileObject(file);
+        setFileUploaded(true);
+        setErrorMsg('');
+        setAutoCountMsg('');
+        // นับจำนวนหน้าอัตโนมัติเฉพาะ PDF
+        if (/\.pdf$/i.test(file.name)) {
+            handlePageCount(file);
+        }
+    };
+    const handleFileDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            acceptFile(e.dataTransfer.files[0]);
+        }
+    };
+    const handleFileInput = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            acceptFile(e.target.files[0]);
+        }
+    };
+    // นับจำนวนหน้าของไฟล์ PDF — นับจากโครงสร้าง /Type /Page ในไฟล์
+    const countPdfPages = async (file) => {
+        try {
+            const buf = await file.arrayBuffer();
+            const bytes = new Uint8Array(buf);
+            let text = '';
+            const chunk = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunk) {
+                text += String.fromCharCode(...bytes.subarray(i, i + chunk));
+            }
+            const pageMatches = text.match(/\/Type\s*\/Page[^s]/g);
+            if (pageMatches && pageMatches.length > 0) {
+                return pageMatches.length;
+            }
+            // สำรอง: ใช้ค่า /Count ที่มากที่สุดใน page tree
+            const counts = [...text.matchAll(/\/Count\s+(\d+)/g)].map((m) => parseInt(m[1], 10));
+            return counts.length ? Math.max(...counts) : 0;
+        }
+        catch {
+            return 0;
+        }
+    };
+    const handlePageCount = async (file) => {
+        setCountingPages(true);
+        const n = await countPdfPages(file);
+        setCountingPages(false);
+        if (n > 0) {
+            setTotalPages(n);
+            setAutoCountMsg(`นับจำนวนหน้าอัตโนมัติจากไฟล์: ${n} หน้า`);
+        }
+        else {
+            setAutoCountMsg('นับจำนวนหน้าอัตโนมัติไม่ได้ — กรุณากรอกเอง');
+        }
+    };
+    // ตรวจช่องจำเป็นของขั้นตอนที่ 1 (ข้อมูลการสอบ)
+    const missingStep1 = () => {
+        const missing = [];
+        if (!examType) missing.push('ประเภทการสอบ');
+        if (!examDate) missing.push('วันที่สอบ');
+        if (!examTime) missing.push('เวลาสอบ');
+        if (!room) missing.push('ห้องสอบ');
+        if (!Number(totalCopies)) missing.push('จำนวนชุดที่พิมพ์');
+        if (!Number(totalPages)) missing.push('จำนวนหน้าข้อสอบ');
+        return missing;
+    };
+    // ขั้น 1 (ไฟล์) → ขั้น 2 (ข้อมูลการสอบ) — ต้องแนบไฟล์ก่อน เพื่อให้ระบบนับจำนวนหน้าอัตโนมัติ
+    const goNextToInfo = () => {
+        if (!fileUploaded || !fileName) {
+            setErrorMsg('กรุณาเลือกไฟล์ข้อสอบก่อนไปข้อมูลการสอบ');
+            return;
+        }
+        setErrorMsg('');
+        setStep(2);
+    };
+    // ขั้น 2 (ข้อมูลการสอบ) → ขั้น 3 (ใบปะหน้าซอง)
+    const goNextToEnvelope = () => {
+        const missing = missingStep1();
+        if (missing.length) {
+            setErrorMsg('กรุณาระบุ: ' + missing.join(', '));
+            return;
+        }
+        setErrorMsg('');
+        setStep(3);
+    };
+    // ขั้น 3 (ใบปะหน้าซอง) → ขั้น 4 (ตรวจสอบและส่ง) — ซิงก์ค่าจากขั้นตอนที่ 2 ลงฟอร์มใบปะหน้า (คงค่าที่แก้เองไว้)
+    const goNextToReview = () => {
+        setEnv((prev) => {
+            const d = examDate ? new Date(examDate) : null;
+            const valid = d && !isNaN(d.getTime());
+            return {
+                ...prev,
+                examRoom: room,
+                examTime: examTime,
+                examDay: valid ? String(d.getDate()) : prev.examDay,
+                examMonth: valid ? THAI_MONTHS[d.getMonth()] : prev.examMonth,
+                examYearBE: valid ? String(d.getFullYear() + 543) : prev.examYearBE,
+                examCopies: String(totalCopies || ''),
+                reserveSets: String(copiesReserve || ''),
+                note: envelopeNotes || prev.note,
+            };
+        });
+        setErrorMsg('');
+        setStep(4);
+    };
+    // ดูข้อสอบจากขั้นตอนสุดท้าย — ไฟล์ที่เพิ่งแนบ (blob) หรือไฟล์เดิมบนระบบ (ผ่าน preview modal พร้อมลายน้ำ)
+    const handleViewExam = () => {
+        if (fileObject) {
+            const url = URL.createObjectURL(fileObject);
+            window.open(url, '_blank', 'noopener');
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        }
+        else if (existingExam) {
+            onPreviewExam?.(existingExam);
+            return;
+        }
+    };
+    const handleSubmit = async () => {
+        if (!fileUploaded || !fileName) {
+            setErrorMsg('กรุณาเลือกไฟล์ข้อสอบก่อนส่ง');
+            return;
+        }
+        if (!securityAgreed) {
+            setErrorMsg('กรุณายืนยันข้อกำหนดด้านความลับของข้อสอบ');
+            return;
+        }
+        const missing = missingStep1();
+        if (missing.length) {
+            setErrorMsg('กรุณาระบุ: ' + missing.join(', '));
+            setStep(1);
+            return;
+        }
+        const payload = {
+            E_No: existingExam?.E_No || `EX-${course.Course_year}-${Math.floor(100 + Math.random() * 900)}`,
+            Subject_ID: course.Course_id,
+            Subject_Name: course.Course_Name,
+            Course_year: course.Course_year,
+            term: course.term,
+            teacher_id: course.teacher_id,
+            teacher_name: course.teacher_name,
+            teacher_tel: '',
+            exam_type: examType,
+            E_Date: examDate,
+            E_Time: examTime,
+            room: room,
+            total_pages: Number(totalPages),
+            total_copies: Number(totalCopies),
+            copies_reserve: Number(copiesReserve),
+            status: 'SUBMITTED',
+            file_name: fileName,
+            file_size: fileSize,
+            upload_date: new Date().toISOString(), // ISO — DB เป็น timestamptz (แสดงผลไทยตอนอ่าน)
+            envelope_notes: envelopeNotes,
+            allowed_materials: selectedMaterials,
+            proctors: [course.teacher_name, 'กรรมการคุมสอบร่วมประจำห้อง'],
+        };
+        setSending(true);
+        setErrorMsg('');
+        try {
+            const ok = await onUploadSubmit(payload, isReupload, fileObject);
+            if (ok) {
+                // ส่งสำเร็จ — แสดง overlay แล้วกลับหน้าตารางรายวิชา
+                setSentSuccess(true);
+                setTimeout(() => {
+                    onDone();
+                }, 1600);
+                return;
+            }
+        }
+        finally {
+            setSending(false);
+        }
+    };
+    return (<div className="space-y-6">
+      {/* Hero */}
+      <div>
+        <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
+          SCIENCE · EXAM OPERATIONS
+        </span>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+          แนบไฟล์ข้อสอบ
+        </h1>
+        <p className="text-sm text-slate-500 mt-2">
+          {course.Course_id} · {course.Course_Name} / กลุ่มเรียน {course.sec}
+          {isReupload && (<span className="ml-2 inline-flex items-center rounded-full bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 text-[11px] font-semibold">
+              อัปโหลดฉบับใหม่
+            </span>)}
+        </p>
+      </div>
+
+      {/* แถบลำดับขั้นตอน */}
+      <div className="rounded-2xl bg-white border border-slate-200/80 px-5 py-3.5 flex items-center gap-5 sm:gap-8 overflow-x-auto">
+        {EXAM_UPLOAD_STEPS.map((s, i) => {
+        const done = step > s.n;
+        const current = step === s.n;
+        return (<React.Fragment key={s.n}>
+              {i > 0 && <span className="h-px w-8 sm:w-14 bg-slate-200 shrink-0" aria-hidden="true"/>}
+              <button type="button" onClick={() => {
+                if (s.n < step)
+                    setStep(s.n); // ย้อนไปขั้นก่อนหน้าได้เสมอ
+            }} aria-current={current ? 'step' : undefined} className={`flex items-center gap-2 text-sm shrink-0 transition-colors ${current
+                ? 'text-[#1A4B7A] font-bold'
+                : done
+                    ? 'text-slate-700 font-semibold hover:text-[#1A4B7A]'
+                    : 'text-slate-400 cursor-default'}`}>
+                {done ? (<span className="flex size-6 items-center justify-center rounded-full bg-emerald-500 text-white">
+                    <Check className="w-3.5 h-3.5"/>
+                  </span>) : (<span className={`flex size-6 items-center justify-center rounded-full text-xs font-bold ${current
+                ? 'border-2 border-[#1A4B7A] text-[#1A4B7A] bg-white'
+                : 'bg-slate-100 text-slate-400'}`}>
+                    {s.n}
+                  </span>)}
+                <span>{s.label}</span>
+              </button>
+            </React.Fragment>);
+    })}
+      </div>
+
+      {errorMsg && (<div className="bg-rose-50 border border-rose-300 text-rose-800 px-4 py-3 rounded-xl text-xs flex items-center space-x-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600"/>
+          <span>{errorMsg}</span>
+        </div>)}
+
+      {isReupload && step === 1 && (<div className="bg-amber-50 border border-amber-300 text-amber-900 p-3 rounded-xl text-xs flex items-start space-x-2">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5"/>
+          <div>
+            <p className="font-semibold">การอัปโหลดไฟล์ใหม่จะแทนที่ฉบับเดิม</p>
+            <p className="text-amber-800 mt-0.5">
+              ระบบจะปรับสถานะเป็น รอโสตฯ ตรวจสอบ และบันทึกประวัติการแทนที่ไฟล์โดยอัตโนมัติ
+            </p>
+          </div>
+        </div>)}
+
+      {/* ═══ ขั้นตอนที่ 2: ข้อมูลการสอบ ═══ */}
+      {step === 2 && (<div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+          <div>
+            <h3 className="font-display font-bold text-base text-slate-900">ข้อมูลการสอบ</h3>
+            <p className="text-xs text-slate-500 mt-1">กรอกรายละเอียดการจัดสอบและจำนวนพิมพ์</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="exam-type" className="text-slate-700 mb-1">ประเภทการจัดสอบ <span className="text-rose-500">*</span></Label>
+              <Select id="exam-type" value={examType} onChange={(e) => setExamType(e.target.value)} required aria-required="true">
+                <option value="">— เลือกประเภทการสอบ —</option>
+                <option value="กลางภาค">สอบกลางภาค</option>
+                <option value="ปลายภาค">สอบปลายภาค</option>
+                <option value="สอบแก้ตัว">สอบแก้ตัว / ประมวลความรู้</option>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="exam-date" className="text-slate-700 mb-1">วันที่จัดสอบ <span className="text-rose-500">*</span></Label>
+              <Input id="exam-date" type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)}/>
+            </div>
+
+            <div>
+              <Label htmlFor="exam-time" className="text-slate-700 mb-1">เวลาจัดสอบ <span className="text-rose-500">*</span></Label>
+              <Input id="exam-time" type="text" value={examTime} onChange={(e) => setExamTime(e.target.value)} placeholder="เช่น 09:00 - 12:00 น."/>
+            </div>
+
+            <div>
+              <Label htmlFor="exam-room" className="text-slate-700 mb-1">ห้องสอบที่จัด <span className="text-rose-500">*</span></Label>
+              <Input id="exam-room" type="text" value={room} onChange={(e) => setRoom(e.target.value)} placeholder="เช่น SC-401, SC-LAB-3"/>
+            </div>
+
+            <div>
+              <Label htmlFor="exam-pages" className="text-slate-700 mb-1">
+                จำนวนหน้าข้อสอบ (หน้า) <span className="text-rose-500">*</span>
+              </Label>
+              <Input id="exam-pages" type="number" min="1" max="500" placeholder="ใส่ไฟล์ PDF เพื่อนับอัตโนมัติ" value={totalPages} onChange={(e) => setTotalPages(parseInt(e.target.value) || '')} required aria-required="true"/>
+              <p className={`mt-1 text-xs flex items-center space-x-1 ${countingPages ? 'text-[#1A4B7A]' : autoCountMsg.includes('ไม่ได้') ? 'text-amber-500' : 'text-emerald-600'}`}>
+                {countingPages ? (<>
+                  <LoaderCircle className="w-3 h-3 animate-spin"/>
+                  <span>กำลังนับจำนวนหน้าจากไฟล์...</span>
+                </>) : autoCountMsg && (<>
+                  <CheckCircle2 className="w-3 h-3 shrink-0"/>
+                  <span>{autoCountMsg}</span>
+                </>)}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="exam-copies" className="text-slate-700 mb-1">จำนวนชุดที่พิมพ์ <span className="text-rose-500">*</span></Label>
+                <Input id="exam-copies" type="number" min="1" value={totalCopies} onChange={(e) => setTotalCopies(parseInt(e.target.value) || 1)} className="px-2.5"/>
+              </div>
+              <div>
+                <Label htmlFor="exam-reserve" className="text-slate-700 mb-1">ชุดสำรอง</Label>
+                <Input id="exam-reserve" type="number" min="0" max="20" value={copiesReserve} onChange={(e) => setCopiesReserve(parseInt(e.target.value) || 0)} className="px-2.5"/>
+              </div>
+            </div>
+          </div>
+
+          {/* คำชี้แจง */}
+          <div>
+            <Label htmlFor="exam-notes" className="text-slate-800 mb-1">
+              คำชี้แจงสำหรับกรรมการคุมสอบ / เจ้าหน้าที่หน่วยโสตฯ
+            </Label>
+            <Textarea id="exam-notes" rows={2} value={envelopeNotes} onChange={(e) => setEnvelopeNotes(e.target.value)} placeholder="ระบุคำสั่งพิเศษ เช่น ให้เย็บมุมบนซ้าย, ห้ามเปิดซองก่อน 10 นาที, แจกกระดาษคำตอบแผ่นคู่"/>
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
+            <Button type="button" variant="outline" onClick={() => setStep(1)} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+              ย้อนกลับ
+            </Button>
+            <Button type="button" onClick={goNextToEnvelope} className="bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+              <span>ถัดไป: ใบปะหน้าซอง</span>
+            </Button>
+          </div>
+        </div>)}
+
+      {/* ═══ ขั้นตอนที่ 1: ไฟล์ข้อสอบ ═══ */}
+      {step === 1 && (<div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
+          <div className="lg:col-span-3 rounded-2xl bg-white border border-slate-200 shadow-sm p-6 sm:p-7">
+            <h3 className="font-display font-bold text-base text-slate-900">ไฟล์ข้อสอบ</h3>
+            <p className="text-xs text-slate-500 mt-1 mb-4">แนบไฟล์ข้อสอบที่พร้อมจัดพิมพ์</p>
+
+            {/* Dropzone */}
+            <div onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+        }} onDragLeave={() => setIsDragging(false)} onDrop={handleFileDrop} className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${isDragging
+            ? 'border-[#1A4B7A] bg-[#1A4B7A]/5'
+            : fileUploaded
+                ? 'border-emerald-400 bg-emerald-50/30'
+                : 'border-slate-300 bg-slate-50 hover:bg-slate-100/70'}`}>
+              {fileUploaded && fileName ? (<div className="flex items-center justify-between bg-white border border-emerald-300 p-3 rounded-lg shadow-2xs">
+                  <div className="flex items-center space-x-3 text-left">
+                    <div className="p-2 bg-emerald-100 text-emerald-700 rounded-md">
+                      <FileCheck className="w-6 h-6"/>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-xs text-slate-900">{fileName}</p>
+                      <p className="text-xs text-slate-500">ขนาด {fileSize} · พร้อมจัดส่ง</p>
+                    </div>
+                  </div>
+                  <label className="text-xs text-[#1A4B7A] hover:text-[#153D63] font-medium cursor-pointer underline px-2">
+                    เปลี่ยนไฟล์
+                    <input type="file" accept=".pdf,.doc,.docx" onChange={handleFileInput} className="hidden"/>
+                  </label>
+                </div>) : (<div className="space-y-2">
+                  <p className="text-[11px] font-bold tracking-widest text-[#1A4B7A]">PDF</p>
+                  <p className="font-display text-lg font-bold text-slate-900">ลากไฟล์มาวางที่นี่</p>
+                  <p className="text-xs text-slate-500">หรือเลือกไฟล์จากเครื่องของคุณ</p>
+                  <label className="inline-block mt-2 cursor-pointer">
+                    <span className="inline-flex items-center gap-2 rounded-lg bg-[#1A4B7A] hover:bg-[#153D63] text-white text-sm font-medium px-4 py-2 transition-colors">
+                      <UploadCloud className="w-4 h-4"/>
+                      <span>เลือกไฟล์ข้อสอบ</span>
+                    </span>
+                    <input type="file" accept=".pdf,.doc,.docx" onChange={handleFileInput} className="hidden"/>
+                  </label>
+                </div>)}
+            </div>
+
+            {autoCountMsg && (<p className={`mt-3 text-xs flex items-center space-x-1 ${autoCountMsg.includes('ไม่ได้') ? 'text-amber-500' : 'text-emerald-600'}`}>
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0"/>
+                <span>{autoCountMsg}</span>
+              </p>)}
+
+            <p className="mt-4 text-xs text-slate-500">
+              ตรวจสอบหน้าข้อสอบและลำดับก่อนกดยืนยันจัดส่งข้อสอบ
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-4 mt-2 border-t border-slate-100">
+              <Button type="button" variant="outline" onClick={onDone} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+                ยกเลิก
+              </Button>
+              <Button type="button" onClick={goNextToInfo} disabled={!fileUploaded} title={fileUploaded ? 'ไปกรอกข้อมูลการสอบ' : 'กรุณาเลือกไฟล์ก่อน'} className="bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+                <span>ถัดไป: ข้อมูลการสอบ</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* สรุปข้อมูลรายวิชา */}
+          <aside className="lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+            {!isReupload && (<span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold">
+                ยังไม่อนุมัติ · รอเจ้าหน้าที่ตรวจสอบ
+              </span>)}
+            <dl className="mt-4 space-y-4">
+              <div>
+                <dt className="text-xs text-slate-400">รหัสวิชา</dt>
+                <dd className="text-sm font-bold text-slate-900 mt-0.5">{course.Course_id}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-400">ชื่อรายวิชา</dt>
+                <dd className="text-sm font-bold text-slate-900 mt-0.5">{course.Course_Name}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-400">กลุ่มเรียน</dt>
+                <dd className="text-sm font-bold text-slate-900 mt-0.5">Sec {course.sec}</dd>
+              </div>
+              <div className="pt-4 border-t border-slate-100">
+                <dt className="text-xs text-slate-400">จำนวนนักศึกษา</dt>
+                <dd className="text-sm font-bold text-slate-900 mt-0.5">{course.student_count} คน</dd>
+              </div>
+            </dl>
+            <p className="mt-5 pt-4 border-t border-slate-100 text-xs text-slate-400 leading-relaxed">
+              ระบบจะนับจำนวนหน้าจากไฟล์ PDF อัตโนมัติและส่งให้เจ้าหน้าที่โสตทัศน์ตรวจสอบก่อนจัดพิมพ์
+            </p>
+          </aside>
+        </div>)}
+
+      {/* ═══ ขั้นตอนที่ 3: ใบปะหน้าซองข้อสอบ ═══ */}
+      {step === 3 && (<div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+          <div>
+            <h3 className="font-display font-bold text-base text-slate-900">ใบปะหน้าซองข้อสอบ</h3>
+            <p className="text-xs text-slate-500 mt-1">
+              ตรวจสอบข้อมูลบนใบปะหน้า — ส่วนที่ระบบเติมให้แก้ได้ ส่วนที่เหลือเขียนด้วยลายมือที่หน้างานจริง
+            </p>
+          </div>
+
+          {/* ข้อมูลการสอบ */}
+          <div>
+            <p className="font-display font-bold text-sm text-slate-900 mb-3">ข้อมูลการสอบ</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+            ['การสอบวิชา', 'subject'],
+            ['รหัสวิชา', 'subjectCode'],
+            ['สอบวันที่', 'examDay'],
+            ['เดือน', 'examMonth'],
+            ['พ.ศ.', 'examYearBE'],
+            ['เวลา', 'examTime'],
+            ['ห้องสอบ', 'examRoom'],
+            ['เลขประจำซอง', 'envelopeNo'],
+            ['จำนวนนักศึกษา (คน)', 'studentCount'],
+            ['ซองนี้มีจำนวนข้อสอบ (ชุด)', 'examCopies'],
+            ['นศ. คณะ', 'facultyName'],
+            ['ตอน', 'section'],
+            ['ข้อสอบสำรอง (ชุด)', 'reserveSets'],
+        ].map(([label, key]) => (<div key={key}>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+                  <input type="text" value={env[key] ?? ''} onChange={(e) => setEnv({ ...env, [key]: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-white"/>
+                </div>))}
+            </div>
+          </div>
+
+          {/* อุปกรณ์ที่ใช้ */}
+          <div>
+            <p className="font-display font-bold text-sm text-slate-900 mb-3">อุปกรณ์ที่ใช้หรือคำแนะนำผู้คุมสอบเพิ่มเติม</p>
+            <div className="space-y-2 pl-1">
+              {[['optBooks', 'นำตำราเข้าห้องสอบได้'],
+            ['optCalculator', 'นำเครื่องคิดเลขเข้าห้องสอบได้'],
+            ['optNoRuler', 'ห้ามนำไม้บรรทัดมีสูตรคณิตศาสตร์เข้าสอบ']].map(([key, label]) => (<label key={key} className="flex items-center gap-2.5 text-sm cursor-pointer">
+                  <input type="checkbox" checked={env[key]} onChange={(e) => setEnv({ ...env, [key]: e.target.checked })} className="w-4 h-4 accent-[#1A4B7A]"/>
+                  <span>{label}</span>
+                </label>))}
+            </div>
+          </div>
+
+          {/* ผู้ออกข้อสอบ */}
+          <div>
+            <p className="font-display font-bold text-sm text-slate-900 mb-3">ผู้ออกข้อสอบ</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">ผู้ออกข้อสอบ</label>
+                <input type="text" value={env.examAuthor ?? ''} onChange={(e) => setEnv({ ...env, examAuthor: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-white"/>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">ห้องทำงาน</label>
+                <input type="text" value={env.office ?? ''} onChange={(e) => setEnv({ ...env, office: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-white"/>
+              </div>
+            </div>
+          </div>
+
+          {/* ส่วนที่เขียนด้วยลายมือในห้องสอบ — ไม่มี input ในฟอร์ม */}
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs">
+            <p className="font-semibold text-amber-950 flex items-center gap-1.5">
+              <Printer className="w-3.5 h-3.5"/>
+              <span>ส่วนที่เว้นไว้เขียนด้วยลายมือในห้องสอบ</span>
+            </p>
+            <p className="text-amber-800 mt-1 leading-relaxed">
+              จำนวนนักศึกษาที่เข้าสอบ/ขาดสอบ · รายชื่อนักศึกษาที่ขาดสอบ · ผู้คุมสอบและภาระหน้าที่ · หมายเหตุ
+              — ในใบปะหน้าที่พิมพ์ออกมาจะเป็นบรรทัดว่างสำหรับเขียนเองที่หน้างาน
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
+            <Button type="button" variant="outline" onClick={() => setStep(2)} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+              ย้อนกลับ
+            </Button>
+            <Button type="button" onClick={goNextToReview} className="bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+              <span>ถัดไป: ตรวจสอบและส่ง</span>
+            </Button>
+          </div>
+        </div>)}
+
+      {/* ═══ ขั้นตอนที่ 4: ตรวจสอบและส่ง ═══ */}
+      {step === 4 && (<div className="space-y-5">
+          <div className="lg:col-span-3 rounded-2xl bg-white border border-slate-200 shadow-sm p-6 sm:p-7">
+            <h3 className="font-display font-bold text-base text-slate-900">ตรวจสอบข้อมูลการสอบ</h3>
+            <p className="text-xs text-slate-500 mt-1 mb-4">ตรวจสอบความถูกต้องก่อนยืนยันจัดส่ง</p>
+
+            <dl className="space-y-3.5">
+              {[
+            ['ประเภทการสอบ', examType],
+            ['วันที่จัดสอบ', examDate],
+            ['เวลาจัดสอบ', examTime],
+            ['ห้องสอบ', room],
+            ['จำนวนหน้าข้อสอบ', totalPages ? `${totalPages} หน้า` : ''],
+            ['จำนวนชุดที่พิมพ์', `${totalCopies} ชุด + สำรอง ${copiesReserve || 0} ชุด`],
+            ['สิ่งที่อนุญาตให้นำเข้าห้อง', selectedMaterials.join(', ')],
+            ['คำชี้แจงพิเศษ', envelopeNotes || '—'],
+        ].map(([label, value]) => (<div key={label} className="flex items-start justify-between gap-4 text-sm">
+                  <dt className="text-slate-400 shrink-0">{label}</dt>
+                  <dd className="font-semibold text-slate-900 text-right">{value || '—'}</dd>
+                </div>))}
+            </dl>
+
+            <div className="flex items-center justify-end gap-2.5 pt-4 mt-4 border-t border-slate-100">
+              <Button type="button" variant="outline" onClick={() => setStep(2)} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+                ย้อนกลับ
+              </Button>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+            <h3 className="font-display font-bold text-base text-slate-900">ไฟล์ข้อสอบ</h3>
+            <div className="mt-4 flex items-center space-x-3 bg-slate-50 border border-slate-200 p-3 rounded-lg">
+              <div className="p-2 bg-emerald-100 text-emerald-700 rounded-md shrink-0">
+                <FileCheck className="w-6 h-6"/>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-xs text-slate-900 truncate">{fileName}</p>
+                <p className="text-xs text-slate-500">ขนาด {fileSize}</p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={handleViewExam} title="เปิดดูไฟล์ข้อสอบที่แนบ" className="shrink-0 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+                <Eye className="w-3.5 h-3.5"/>
+                <span>ดูข้อสอบ</span>
+              </Button>
+            </div>
+
+            <div className="mt-5 bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+              <div className="flex items-start space-x-2.5">
+                <input type="checkbox" id="security-agree" checked={securityAgreed} onChange={(e) => setSecurityAgreed(e.target.checked)} className="mt-0.5 rounded border-slate-300 text-[#1A4B7A] focus:ring-[#1A4B7A]"/>
+                <label htmlFor="security-agree" className="text-xs text-slate-700 leading-relaxed cursor-pointer">
+                  ข้าพเจ้ารับรองว่าไฟล์นี้เป็นข้อสอบฉบับจริง และยินยอมให้ระบบบันทึกประวัติการเข้าถึงทุกครั้ง (Audit Log) เพื่อป้องกันข้อสอบรั่วไหล
+                </label>
+              </div>
+            </div>
+
+            <Button type="button" onClick={handleSubmit} disabled={sending || sentSuccess} className="mt-5 w-full bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+              {sending ? (<LoaderCircle className="w-4 h-4 animate-spin"/>) : (<UploadCloud className="w-4 h-4"/>)}
+              <span>{sending ? 'กำลังส่งข้อสอบ...' : isReupload ? 'ยืนยันอัปโหลดฉบับใหม่' : 'ยืนยันส่งข้อสอบ'}</span>
+            </Button>
+            <p className="mt-3 text-xs text-slate-400 text-center">
+              ระบบบันทึก Audit Log ทุกครั้ง · แจ้งเตือนเจ้าหน้าที่โสตฯ อัตโนมัติ
+            </p>
+          </div>
+        </div>)}
+
+      {/* ═══ ตัวอย่างใบปะหน้าซองข้อสอบ (แสดงเฉพาะขั้นตอนสุดท้าย — พิมพ์ได้ / ย้อนไปแก้ที่ขั้น 3 ได้) ═══ */}
+      {step === 4 && (<div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+          <div className="no-print px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-display font-bold text-base text-slate-900">ตัวอย่างใบปะหน้าซองข้อสอบ</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                ผิดหรือต้องการแก้ไข — กดย้อนกลับไปขั้นตอน "ใบปะหน้าซอง" ได้ · ส่วนเข้าสอบ/ขาดสอบ/ผู้คุมสอบ/หมายเหตุ เว้นไว้เขียนด้วยลายมือที่หน้างานจริง
+              </p>
+            </div>
+          </div>
+          <EnvelopeDocument form={env}/>
+        </div>)}
+
+      {/* Overlay ส่งสำเร็จ */}
+      {sentSuccess && (<div className="fixed inset-0 z-50 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center space-y-4 animate-fadeIn">
+          <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center">
+            <CheckCircle2 className="w-12 h-12 text-emerald-600 animate-popCheck"/>
+          </div>
+          <p className="font-display text-lg font-bold text-slate-900">ส่งข้อสอบสำเร็จ!</p>
+          <p className="text-xs text-slate-500">ระบบได้ส่งข้อสอบถึงหน่วยโสตทัศน์เพื่อตรวจสอบแล้ว</p>
+        </div>)}
+    </div>);
+};
+export const TeacherView = ({ currentUser, courses, exams, page = 'courses', onNavigate, selectedCourseId, onSelectCourse, uploadContext = null, onUploadSubmit, onOpenUploadModal, onPreviewExam, onRemoveExam, onAddNewCourse, onOpenEnvelope, onDownloadLogged, }) => {
     const [newCourseCode, setNewCourseCode] = useState('');
     const [newCourseName, setNewCourseName] = useState('');
     const [newCourseTerm, setNewCourseTerm] = useState('1');
     const [newCourseYear, setNewCourseYear] = useState('2567');
     const [newCourseStudents, setNewCourseStudents] = useState(45);
+    const [newCourseCredits, setNewCourseCredits] = useState(3);
+    const [newCourseSec, setNewCourseSec] = useState('01');
     const [newCourseError, setNewCourseError] = useState('');
-    const [highlightCourseId, setHighlightCourseId] = useState(null);
-    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [rowMenuId, setRowMenuId] = useState(null);
+    const [cancelReason, setCancelReason] = useState('');
     // Filter courses for this teacher or all if academic affairs
     const myCourses = courses.filter((c) => c.teacher_id === currentUser.id || currentUser.id === 'T001');
-    // Selected course state: Encounter course selection first!
-    const [selectedCourseId, setSelectedCourseId] = useState(() => {
-        return myCourses.length > 0 ? myCourses[0].Course_id : 'ALL';
-    });
     const getExamForCourse = (courseId) => {
         return exams.find((e) => e.Subject_ID === courseId);
     };
-    // ข้อ 2: เลือกวิชาในขั้นตอนที่ 1 → เลื่อนไปหาแถวเดียวกันในขั้นตอนที่ 2 + ไฮไลต์ชั่วคราว
-    const handleSelectCourse = (courseId) => {
-        setSelectedCourseId(courseId);
-        if (courseId === 'ALL')
-            return;
-        setTimeout(() => {
-            const el = document.getElementById('exam-row-' + courseId);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setHighlightCourseId(courseId);
-                setTimeout(() => setHighlightCourseId((prev) => (prev === courseId ? null : prev)), 2600);
-            }
-        }, 80);
+    const myExams = exams.filter((e) => myCourses.some((c) => c.Course_id === e.Subject_ID));
+    const countByStatus = (statuses) => myExams.filter((e) => statuses.includes(e.status)).length;
+    const rejectedExams = myExams.filter((e) => e.status === 'REJECTED');
+    // รายวิชาที่ยังไม่ได้จัดส่งข้อสอบ — ใช้โชว์แถบเตือนด้านบน
+    const unsubmittedCourses = myCourses.filter((c) => !getExamForCourse(c.Course_id));
+    const term = myCourses[0]?.term || '1';
+    const year = myCourses[0]?.Course_year || String(new Date().getFullYear() + 543);
+    // รายวิชาที่เลือกไว้ (สำหรับหน้า tracking / cancel)
+    const selectedCourse = myCourses.find((c) => c.Course_id === selectedCourseId) || null;
+    const selectedExam = selectedCourse ? getExamForCourse(selectedCourse.Course_id) : null;
+    // เปิดหน้าติดตามสถานะของรายวิชา
+    const openTracking = (courseId) => {
+        onSelectCourse?.(courseId);
+        setCancelReason('');
+        onNavigate?.('tracking');
     };
     const handleCreateCourse = (e) => {
         e.preventDefault();
@@ -71,25 +858,24 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
             Course_Name: newCourseName.trim(),
             Course_year: newCourseYear,
             term: newCourseTerm,
-            sec: '01',
-            credits: 3,
+            sec: newCourseSec.trim() || '01',
+            credits: newCourseCredits,
             student_count: Number(newCourseStudents) || 30,
             teacher_id: currentUser.id,
             teacher_name: currentUser.name,
         };
         onAddNewCourse(newCourse);
-        setSelectedCourseId(newCourse.Course_id);
-        setShowNewCourseModal(false);
+        onNavigate?.('courses');
         setNewCourseCode('');
         setNewCourseName('');
         setNewCourseError('');
     };
     const steps = [
-        { title: 'ส่งข้อสอบ', desc: 'อาจารย์อัปโหลด' },
-        { title: 'โสตฯ ตรวจสอบ', desc: 'ตรวจความสมบูรณ์' },
-        { title: 'จัดพิมพ์', desc: 'พิมพ์และบรรจุซอง' },
-        { title: 'ส่งมอบฝ่ายจัดสอบ', desc: 'ลงทะเบียนรับมอบ' },
-        { title: 'พร้อมสอบ', desc: 'ในห้องมั่นคง' },
+        { title: 'ส่งข้อสอบ', desc: 'อัปโหลดไฟล์ข้อสอบเรียบร้อยแล้ว' },
+        { title: 'โสตฯ ตรวจสอบ', desc: 'เจ้าหน้าที่ตรวจสอบความสมบูรณ์' },
+        { title: 'จัดพิมพ์', desc: 'อยู่ระหว่างดำเนินการจัดพิมพ์' },
+        { title: 'ส่งมอบฝ่ายจัดสอบ', desc: 'รอการดำเนินการ' },
+        { title: 'พร้อมสอบ', desc: 'รอส่งมอบข้อสอบ' },
     ];
     const getStepProgress = (status) => {
         switch (status) {
@@ -108,365 +894,540 @@ export const TeacherView = ({ currentUser, courses, exams, onOpenUploadModal, on
                 return 0;
         }
     };
-    // Courses to display in the Exam Management section below
-    const displayedCourses = selectedCourseId === 'ALL'
-        ? myCourses
-        : myCourses.filter((c) => c.Course_id === selectedCourseId);
-    return (<div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-2xl px-5 py-3.5 text-white shadow-md relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <Badge className="border-indigo-400/30 bg-indigo-500/30 text-indigo-200 font-medium">
-              แดชบอร์ดอาจารย์ผู้สอน & ฝ่ายวิชาการ
-            </Badge>
-            <h2 className="font-display text-lg sm:text-xl font-bold">
-              สวัสดี, {currentUser.name}
-            </h2>
-            <p className="text-xs sm:text-sm text-indigo-200 max-w-2xl leading-relaxed">
-              {currentUser.department} • ติดตามการส่ง ตรวจสอบ และจัดพิมพ์ข้อสอบของท่านได้จากหน้านี้
-            </p>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <Button onClick={() => setShowNewCourseModal(true)} className="border border-indigo-400/40 shadow-sm">
-              <Plus />
-              <span>เพิ่มรายวิชา</span>
-            </Button>
-          </div>
-        </div>
+    // ───────── หน้า 1: ตารางรายวิชา ─────────
+    const renderCoursesPage = () => (<>
+      {/* Hero */}
+      <div>
+        <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
+          SCIENCE · EXAM OPERATIONS
+        </span>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+          รายวิชาของคุณครู
+        </h1>
+        <p className="text-sm text-slate-500 mt-2">
+          สวัสดี {currentUser.name} — ดูภาพรวมสถานะข้อสอบ และจัดส่ง / ติดตามข้อสอบในแต่ละรายวิชาได้จากหน้านี้
+        </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <p className="text-xs text-slate-500">รายวิชาที่สอนในระบบ</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{myCourses.length} วิชา</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-slate-500">ส่งข้อสอบแล้ว</p>
-          <p className="text-2xl font-bold text-indigo-600 mt-1">
-            {exams.filter((e) => myCourses.some((c) => c.Course_id === e.Subject_ID)).length} วิชา
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-slate-500">กำลังจัดพิมพ์ / พิมพ์แล้ว</p>
-          <p className="text-2xl font-bold text-purple-600 mt-1">
-            {exams.filter((e) => myCourses.some((c) => c.Course_id === e.Subject_ID) &&
-            ['PRINTING', 'PRINTED', 'DELIVERED_OD', 'READY_FOR_EXAM'].includes(e.status)).length}{' '}
-            วิชา
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-slate-500">ส่งมอบฝ่ายดำเนินการแล้ว</p>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">
-            {exams.filter((e) => myCourses.some((c) => c.Course_id === e.Subject_ID) &&
-            ['DELIVERED_OD', 'READY_FOR_EXAM'].includes(e.status)).length}{' '}
-            วิชา
-          </p>
-        </Card>
+        {[
+            { label: 'รายวิชาของฉัน', value: myCourses.length },
+            { label: 'รอตรวจสอบ', value: countByStatus(['SUBMITTED']) },
+            { label: 'กำลังจัดพิมพ์', value: countByStatus(['PRINTING', 'PRINTED', 'DELIVERED_OD']) },
+            { label: 'พร้อมสอบ', value: countByStatus(['READY_FOR_EXAM']) },
+        ].map((stat) => (<div key={stat.label} className="rounded-xl bg-white border border-slate-200/80 px-5 py-4">
+              <p className="font-display text-2xl sm:text-3xl font-bold text-slate-900">{stat.value}</p>
+              <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
+            </div>))}
       </div>
 
-      {/* 1. Course Selection Section (FIRST: Encounter and select course before exam list) */}
-      <Card className="p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div className="space-y-0.5">
-            <div className="flex items-center space-x-2">
-              <Badge className="rounded-md border-transparent bg-indigo-100 text-indigo-800 text-xs font-bold px-2.5">
-                ขั้นตอนที่ 1
-              </Badge>
-              <h3 className="font-display font-bold text-base text-slate-900 flex items-center space-x-2">
-                <BookOpen className="w-4 h-4 text-indigo-600"/>
-                <span>เลือกรายวิชาที่ต้องจัดการข้อสอบ</span>
-              </h3>
+      {/* Alert banner — ไฟล์ไม่ได้รับอนุมัติ (REJECTED) */}
+      {rejectedExams.length > 0 && (<div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-amber-950">
+                มี {rejectedExams.length} รายวิชาที่ไฟล์ไม่ได้รับอนุมัติ
+              </p>
+              <p className="text-xs text-amber-800 mt-0.5 truncate">
+                {rejectedExams.map((e) => e.Subject_ID).join(', ')} — {rejectedExams[0].rejection_reason || 'กรุณาอัปโหลดไฟล์ฉบับใหม่'}
+              </p>
             </div>
-            <p className="text-xs text-slate-500">
-              เลือกรายวิชาเพื่อจัดส่งไฟล์ข้อสอบ — เมื่อเลือกแล้ว ระบบจะพาไปที่รายการข้อสอบของวิชานั้นในขั้นตอนที่ 2 ด้านล่างโดยอัตโนมัติ
-            </p>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Button size="sm" variant={selectedCourseId === 'ALL' ? 'default' : 'outline'} onClick={() => setSelectedCourseId('ALL')} className={selectedCourseId === 'ALL'
-            ? 'shadow-xs'
-            : 'bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-700'}>
-              แสดงทุกรายวิชา ({myCourses.length})
+            <Button onClick={() => {
+                const course = myCourses.find((c) => c.Course_id === rejectedExams[0].Subject_ID);
+                if (course)
+                    onOpenUploadModal(course, rejectedExams[0], true);
+            }} className="shrink-0 bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+              ส่งฉบับใหม่
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setShowNewCourseModal(true)} className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-700">
-              <Plus className="w-3.5 h-3.5"/>
-              <span>เพิ่มวิชาใหม่</span>
-            </Button>
-          </div>
-        </div>
+          </div>)}
 
-        {/* Course Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {myCourses.map((c) => {
-            const courseExam = getExamForCourse(c.Course_id);
-            const isSelected = selectedCourseId === c.Course_id;
-            const statusConfig = courseExam ? STATUS_LABELS[courseExam.status] : null;
-            return (<div key={c.Course_id} onClick={() => handleSelectCourse(c.Course_id)} className={`p-4 rounded-xl border text-left cursor-pointer transition-all relative ${isSelected
-                    ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/30 shadow-xs'
-                    : 'border-slate-200 bg-white hover:border-indigo-300 hover:bg-slate-50/60'}`}>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className={`font-mono text-sm font-bold px-2.5 py-0.5 rounded border ${isSelected
-                    ? 'bg-indigo-600 text-white border-indigo-700'
-                    : 'bg-slate-100 text-slate-800 border-slate-300'}`}>
-                    {c.Course_id}
-                  </span>
-
-                  {statusConfig ? (<Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>) : (<Badge className="bg-slate-100 text-slate-700 border-slate-300">ยังไม่ส่งข้อสอบ</Badge>)}
-                </div>
-
-                <h4 className="font-bold text-sm text-slate-900 line-clamp-1 mb-1">
-                  {c.Course_Name}
-                </h4>
-
-                <div className="text-xs text-slate-500 flex items-center justify-between pt-2 border-t border-slate-100">
-                  <span>
-                    Sec {c.sec} • {c.student_count} คน • {c.credits} หน่วยกิต
-                  </span>
-                  {isSelected ? (<span className="text-indigo-700 font-bold flex items-center space-x-1 text-xs">
-                      <Check className="w-3.5 h-3.5"/>
-                      <span>กำลังเลือกวิชานี้</span>
-                    </span>) : (<span className="text-slate-400">คลิกเพื่อเลือก</span>)}
-                </div>
-              </div>);
-        })}
-        </div>
-      </Card>
-
-      {/* 2. Exam Management Section (Follows the course selection) */}
-      <Card className="overflow-hidden">
-        <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60">
-          <div className="space-y-0.5">
-            <div className="flex items-center space-x-2">
-              <Badge className="rounded-md border-transparent bg-slate-800 text-white text-xs font-bold px-2.5">
-                ขั้นตอนที่ 2
-              </Badge>
-              <h3 className="font-display font-bold text-base text-slate-900">
-                {selectedCourseId === 'ALL'
-            ? 'รายการข้อสอบและการติดตามสถานะทุกรายวิชา'
-            : `รายการข้อสอบและการดำเนินการ: ${selectedCourseId} ${myCourses.find((c) => c.Course_id === selectedCourseId)?.Course_Name || ''}`}
-              </h3>
+      {/* Alert banner — รายวิชาที่ยังไม่ได้จัดส่งข้อสอบ */}
+      {unsubmittedCourses.length > 0 && (<div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-amber-950">
+                มี {unsubmittedCourses.length} รายวิชาที่ยังไม่ได้จัดส่งข้อสอบ
+              </p>
+              <p className="text-xs text-amber-800 mt-0.5 truncate">
+                {unsubmittedCourses[0].Course_id} · {unsubmittedCourses[0].Course_Name} — กรุณาจัดส่งไฟล์ก่อนวันสอบ
+              </p>
             </div>
-            <p className="text-xs text-slate-500">
-              {selectedCourseId === 'ALL'
-            ? 'รายการดำเนินการจริงต่อจากขั้นตอนที่ 1 — จัดการข้อสอบได้ทีละรายการในแถวด้านล่าง'
-            : 'รายการดำเนินการจริงของวิชาที่เลือกด้านบน — ตรวจสอบไฟล์ สั่งพิมพ์ใบปะหน้า หรือส่งฉบับปรับปรุง'}
-            </p>
-          </div>
-          <div className="text-xs text-slate-500 flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
-            <span>อาจารย์ยกเลิกข้อสอบของตนเองได้ทุกสถานะ (ระบบบันทึกประวัติให้ทุกครั้ง)</span>
-          </div>
+            <Button onClick={() => onOpenUploadModal(unsubmittedCourses[0], null, false)} className="shrink-0 bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+              จัดส่งข้อสอบ
+            </Button>
+          </div>)}
+
+      {/* พื้นหลังดักคลิก — ปิดเมนู ⋮ เมื่อคลิกที่อื่นนอกเมนู */}
+      {rowMenuId && (<div className="fixed inset-0 z-20" onClick={() => setRowMenuId(null)} aria-hidden="true"/>)}
+
+      {/* รายวิชาในภาคเรียนนี้ */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+          <h3 className="font-display font-bold text-base text-slate-900">รายวิชาในภาคเรียนนี้</h3>
+          <Button variant="outline" size="sm" onClick={() => onNavigate?.('new-course')}>
+            <Plus className="w-4 h-4"/>
+            <span>เพิ่มรายวิชา</span>
+          </Button>
         </div>
 
-        <div className="divide-y divide-slate-200">
-          {displayedCourses.length === 0 ? (<div className="p-10 text-center text-slate-400 text-xs">
-              ไม่พบรายวิชาที่เลือก
-            </div>) : (displayedCourses.map((course) => {
+        <div className="divide-y divide-slate-100">
+          {myCourses.length === 0 ? (<div className="p-10 text-center text-slate-400 text-xs">
+              ไม่พบรายวิชาในบัญชีของท่าน
+            </div>) : (myCourses.map((course) => {
             const exam = getExamForCourse(course.Course_id);
-            const statusConfig = exam ? STATUS_LABELS[exam.status] : STATUS_LABELS.DRAFT;
-            const progressStep = getStepProgress(exam?.status);
-            return (<div key={course.Course_id} id={'exam-row-' + course.Course_id} className={`p-6 hover:bg-slate-50/50 transition-colors space-y-4 ${highlightCourseId === course.Course_id ? 'ring-2 ring-indigo-500 bg-indigo-50/60 rounded-xl' : ''}`}>
-                  {/* Course Header Row */}
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2.5">
-                        <span className="font-mono text-sm font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-md border border-indigo-200">
-                          {course.Course_id}
-                        </span>
-                        <h4 className="text-base font-bold text-slate-900">{course.Course_Name}</h4>
-                        <Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>
+            const statusConfig = exam ? STATUS_LABELS[exam.status] : NO_EXAM_STATUS;
+            return (<div key={course.Course_id} className="px-5 py-4 hover:bg-slate-50/60 transition-colors">
+                  <div className="flex flex-col md:flex-row md:items-center gap-3">
+                    {/* ข้อมูลรายวิชา */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-sm font-bold text-slate-900">{course.Course_id}</span>
+                        <span className="font-bold text-sm text-slate-900">{course.Course_Name}</span>
                       </div>
-
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                        <span>กลุ่มเรียน (Sec): {course.sec}</span>
-                        <span>•</span>
-                        <span>จำนวนนักศึกษา: {course.student_count} คน</span>
-                        <span>•</span>
-                        <span>หน่วยกิต: {course.credits}</span>
-                        {exam && (<>
-                            <span>•</span>
-                            <span className="text-slate-700 font-medium">
-                              วันสอบ: {exam.E_Date} ({exam.E_Time})
-                            </span>
-                            <span>•</span>
-                            <span className="text-slate-700 font-medium">ห้อง: {exam.room}</span>
-                          </>)}
-                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Sem {course.term} · Sec {course.sec} · {course.student_count} คน
+                        {exam && (<span> · วันสอบ: {exam.E_Date} ({exam.E_Time}) · ห้อง: {exam.room}</span>)}
+                      </p>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      {!exam ? (<Button onClick={() => onOpenUploadModal(course, null, false)}>
-                          <Upload />
+                    {/* สถานะ */}
+                    <Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>
+
+                    {/* ปุ่มดำเนินการ */}
+                    <div className="flex items-center gap-2 md:justify-end">
+                      {!exam ? (<Button size="sm" onClick={() => onOpenUploadModal(course, null, false)} className="bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+                          <Upload className="w-4 h-4"/>
                           <span>จัดส่งข้อสอบ</span>
                         </Button>) : (<>
-                          <Button variant="outline" size="sm" onClick={() => onPreviewExam(exam)} title="ดูตัวอย่างข้อสอบและลายน้ำความปลอดภัย" className="min-h-[44px]">
-                            <Eye className="text-indigo-600"/>
-                            <span>ดูข้อสอบ</span>
+                          <Button variant="outline" size="sm" onClick={() => openTracking(course.Course_id)} title="ติดตามสถานะข้อสอบของรายวิชานี้">
+                            <Eye className="w-4 h-4 text-[#1A4B7A]"/>
+                            <span>ดูรายละเอียด</span>
                           </Button>
 
-                          <Button variant="outline" size="sm" onClick={() => onOpenEnvelope(exam)} title="ดูและสั่งพิมพ์ใบปะหน้าซองข้อสอบ" className="min-h-[44px]">
-                            <Printer className="text-purple-600"/>
-                            <span>ใบปะหน้าซอง</span>
-                          </Button>
-
-                          {/* Re-upload — only allowed before printing starts,
-                        matching the Remove button and the "ก่อนเริ่มพิมพ์" rule */}
-                          {['SUBMITTED', 'VERIFIED', 'REJECTED'].includes(exam.status) && (<Button variant="outline" size="sm" onClick={() => onOpenUploadModal(course, exam, true)} className="min-h-[44px] border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:text-amber-800" title="อัปโหลดไฟล์ข้อสอบฉบับปรับปรุงใหม่">
-                              <RefreshCw />
-                              <span>อัปโหลดใหม่</span>
-                            </Button>)}
-
-                          {/* Delete — แยกออกจากปุ่มปกติด้วยเส้นขัด + สีแดงเข้ม และต้องผ่าน confirm modal เสมอ (ข้อ 4) */}
-                          {(<Button variant="destructive" size="icon" onClick={() => setDeleteTarget({ exam, course })} className="ml-3 h-11 w-11 rounded-lg" title="ลบข้อสอบฉบับนี้ออกจากระบบ">
-                              <Trash2 className="w-4 h-4"/>
-                            </Button>)}
+                          {/* เมนูจัดการเพิ่มเติม */}
+                          <div className="relative">
+                            <button onClick={() => setRowMenuId(rowMenuId === course.Course_id ? null : course.Course_id)} aria-label="จัดการเพิ่มเติม" className="p-2 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 transition-colors">
+                              <MoreVertical className="w-4 h-4"/>
+                            </button>
+                            {rowMenuId === course.Course_id && (<div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-slate-200 z-30 p-1.5">
+                                <button onClick={() => { setRowMenuId(null); onOpenEnvelope(exam); }} className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-700 hover:bg-slate-100 flex items-center space-x-2">
+                                  <Printer className="w-3.5 h-3.5"/>
+                                  <span>ใบปะหน้าซอง</span>
+                                </button>
+                                {['SUBMITTED', 'VERIFIED', 'REJECTED'].includes(exam.status) && (<button onClick={() => { setRowMenuId(null); onOpenUploadModal(course, exam, true); }} className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-700 hover:bg-slate-100 flex items-center space-x-2">
+                                    <RefreshCw className="w-3.5 h-3.5"/>
+                                    <span>อัปโหลดไฟล์ใหม่</span>
+                                  </button>)}
+                                <button onClick={() => { setRowMenuId(null); onSelectCourse(course.Course_id); setCancelReason(''); onNavigate?.('cancel'); }} className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-600 hover:bg-rose-50 flex items-center space-x-2">
+                                  <Trash2 className="w-3.5 h-3.5"/>
+                                  <span>ยกเลิกการส่ง</span>
+                                </button>
+                              </div>)}
+                          </div>
                         </>)}
                     </div>
                   </div>
 
-                  {/* If exam is not uploaded yet, show helpful upload card */}
-                  {!exam && (<div className="bg-amber-50/60 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <p className="font-bold text-amber-950 flex items-center space-x-1.5">
-                          <AlertCircle className="w-4 h-4 text-amber-600"/>
-                          <span>ยังไม่ได้จัดส่งไฟล์ข้อสอบสำหรับรายวิชานี้</span>
-                        </p>
-                        <p className="text-amber-800">
-                          กรุณาเตรียมไฟล์ข้อสอบ (PDF หรือ Word) พร้อมระบุห้องสอบ วันเวลา และจำนวนชุดที่ต้องการพิมพ์
-                        </p>
-                      </div>
-                      <Button onClick={() => onOpenUploadModal(course, null, false)} className="shrink-0">
-                        <Upload />
-                        <span>เริ่มจัดส่งข้อสอบ</span>
-                      </Button>
-                    </div>)}
-
-                  {/* Progress Stepper Bar (ตรวจสอบสถานะของตนเอง) */}
-                  {exam && (<div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-slate-700">
-                          ความคืบหน้าการผลิตข้อสอบ:
-                        </span>
-                        <span className="text-xs text-slate-500 font-mono">
-                          ไฟล์: {exam.file_name} ({exam.file_size}) • ส่งเมื่อ: {exam.upload_date}
-                        </span>
-                      </div>
-
-                      <StepProgress steps={steps.map((st) => st.title)} current={progressStep}/>
-
-                      {exam.checked_by && (<div className="text-xs text-slate-600 bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between">
-                          <span>
-                            ผู้ตรวจสอบ: <strong>{exam.checked_by}</strong> เมื่อ {exam.verified_date || 'เมื่อเร็วๆ นี้'}
-                          </span>
-                          {exam.status === 'PRINTED' && (<span className="text-purple-700 font-semibold">
-                              พิมพ์เสร็จสิ้น {exam.total_copies + exam.copies_reserve} ชุด เรียบร้อยแล้ว
-                            </span>)}
-                        </div>)}
-
-                      {exam.status === 'REJECTED' && exam.rejection_reason && (<div className="text-xs text-rose-800 bg-rose-50 p-2.5 rounded-lg border border-rose-200 flex items-start space-x-2">
-                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5"/>
-                          <div>
-                            <strong>เหตุผลที่ส่งกลับแก้ไข:</strong> {exam.rejection_reason}
-                            <div className="mt-1 font-semibold text-rose-700">
-                              คำแนะนำ: กดปุ่ม "อัปโหลดใหม่" เพื่อแนบไฟล์ฉบับปรับปรุง
-                            </div>
-                          </div>
-                        </div>)}
+                  {/* แจ้งเหตุผลกรณีถูกส่งกลับแก้ไข */}
+                  {exam?.status === 'REJECTED' && exam.rejection_reason && (<div className="mt-3 text-xs text-rose-800 bg-rose-50 px-3 py-2.5 rounded-lg border border-rose-200 flex items-start space-x-2">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5"/>
+                      <span>
+                        <strong>ถูกส่งกลับแก้ไข:</strong> {exam.rejection_reason} — เปิดเมนู ⋮ เพื่ออัปโหลดไฟล์ใหม่
+                      </span>
                     </div>)}
                 </div>);
         }))}
         </div>
-      </Card>
+      </div>
 
-      {/* New Course Modal */}
-      {showNewCourseModal && (<div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden">
-            <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <BookOpen className="w-5 h-5 text-indigo-400"/>
-                <h3 className="font-display font-bold text-sm">เพิ่มข้อมูลรายวิชาใหม่</h3>
-              </div>
-              <button onClick={() => setShowNewCourseModal(false)} className="p-1 text-slate-400 hover:text-white rounded-lg">
-                <X className="w-5 h-5"/>
-              </button>
+    </>);
+    // ───────── หน้า 2: ติดตามสถานะข้อสอบ ─────────
+    const renderTrackingPage = () => {
+        // ยังไม่ได้เลือกรายวิชา — แสดงรายการให้เลือก
+        if (!selectedCourse) {
+            return (<div>
+            <div>
+              <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
+                SCIENCE · EXAM OPERATIONS
+              </span>
+              <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+                ติดตามสถานะข้อสอบ
+              </h1>
+              <p className="text-sm text-slate-500 mt-2">
+                เลือกรายวิชาที่ต้องการติดตามสถานะข้อสอบ
+              </p>
             </div>
 
-            <form onSubmit={handleCreateCourse} className="p-6 space-y-4 text-xs">
-              {newCourseError && (<div className="bg-rose-50 border border-rose-300 text-rose-800 px-3 py-2 rounded-lg flex items-center space-x-1.5">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600"/>
-                  <span>{newCourseError}</span>
-                </div>)}
-              <div>
-                <Label className="text-slate-700 mb-1">รหัสวิชา (Course ID) *</Label>
-                <Input type="text" placeholder="เช่น CS345, MA205, SC102" value={newCourseCode} onChange={(e) => {
-                setNewCourseCode(e.target.value);
-                setNewCourseError('');
-            }} required className="uppercase"/>
+            <div className="mt-6 rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+              <div className="divide-y divide-slate-100">
+                {myCourses.length === 0 ? (<div className="p-10 text-center text-slate-400 text-xs">ไม่พบรายวิชาในบัญชีของท่าน</div>) : (myCourses.map((course) => {
+                    const exam = getExamForCourse(course.Course_id);
+                    const statusConfig = exam ? STATUS_LABELS[exam.status] : NO_EXAM_STATUS;
+                    return (<div key={course.Course_id} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 transition-colors">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-slate-900">
+                            {course.Course_id} · {course.Course_Name}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">กลุ่มเรียน {course.sec}</p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>
+                          {exam ? (<Button size="sm" variant="outline" onClick={() => openTracking(course.Course_id)}>
+                              ดูสถานะ
+                            </Button>) : (<Button size="sm" onClick={() => onOpenUploadModal(course, null, false)} className="bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+                              <Upload className="w-3.5 h-3.5"/>
+                              <span>จัดส่งข้อสอบ</span>
+                            </Button>)}
+                        </div>
+                      </div>);
+                }))}
               </div>
+            </div>
+          </div>);
+        }
+        const exam = selectedExam;
+        const statusConfig = exam ? STATUS_LABELS[exam.status] : NO_EXAM_STATUS;
+        const progress = getStepProgress(exam?.status);
+        // ประวัติการดำเนินงาน — สร้างจากข้อมูลที่มีในระบบ
+        const historyEntries = exam ? [
+            { date: exam.upload_date, label: 'จัดส่งไฟล์ข้อสอบเข้าระบบ' },
+            ...(exam.verified_date ? [{ date: exam.verified_date, label: `ผ่านการตรวจสอบโดย ${exam.checked_by || 'เจ้าหน้าที่'}` }] : []),
+            ...(exam.print_date ? [{ date: exam.print_date, label: 'พิมพ์และบรรจุซองเสร็จสิ้น' }] : []),
+        ].filter((h) => h.date) : [];
+        return (<>
+        {/* Hero */}
+        <div>
+          <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
+            SCIENCE · EXAM OPERATIONS
+          </span>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+            ติดตามสถานะข้อสอบ
+          </h1>
+          <p className="text-sm text-slate-500 mt-2">
+            {selectedCourse.Course_id} · {selectedCourse.Course_Name} / กลุ่มเรียน {selectedCourse.sec}
+          </p>
+        </div>
 
-              <div>
-                <Label className="text-slate-700 mb-1">ชื่อรายวิชา (Course Name) *</Label>
-                <Input type="text" placeholder="เช่น ปัญญาประดิษฐ์ (Artificial Intelligence)" value={newCourseName} onChange={(e) => setNewCourseName(e.target.value)} required/>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label className="text-slate-700 mb-1">ภาคเรียน</Label>
-                  <Select value={newCourseTerm} onChange={(e) => setNewCourseTerm(e.target.value)}>
-                    <option value="1">ภาคเรียนที่ 1</option>
-                    <option value="2">ภาคเรียนที่ 2</option>
-                    <option value="3">ภาคฤดูร้อน</option>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-slate-700 mb-1">ปีการศึกษา</Label>
-                  <Input type="text" value={newCourseYear} onChange={(e) => setNewCourseYear(e.target.value)}/>
-                </div>
-                <div>
-                  <Label className="text-slate-700 mb-1">จำนวน นศ. (คน)</Label>
-                  <Input type="number" min="1" value={newCourseStudents} onChange={(e) => setNewCourseStudents(parseInt(e.target.value) || 1)}/>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-200 flex items-center justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setShowNewCourseModal(false)}>
-                  ยกเลิก
-                </Button>
-                <Button type="submit" className="px-5">
-                  บันทึกรายวิชา
-                </Button>
-              </div>
-            </form>
+        {!exam ? (<div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-10 text-center">
+            <p className="text-sm text-slate-500">ยังไม่ได้จัดส่งไฟล์ข้อสอบสำหรับรายวิชานี้</p>
+            <Button onClick={() => onOpenUploadModal(selectedCourse, null, false)} className="mt-3 bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+              <Upload className="w-4 h-4"/>
+              <span>จัดส่งข้อสอบ</span>
+            </Button>
+          </div>) : (<>
+          {/* Banner สถานะปัจจุบัน */}
+          <div className={`rounded-2xl border px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${exam.status === 'REJECTED'
+                ? 'border-amber-200 bg-amber-50'
+                : 'border-emerald-200 bg-emerald-50'}`}>
+            <div className="min-w-0">
+              <p className={`text-sm font-bold ${exam.status === 'REJECTED' ? 'text-amber-950' : 'text-emerald-900'}`}>
+                {STATUS_HEADLINE[exam.status] || statusConfig.label}
+              </p>
+              <p className={`text-xs mt-0.5 ${exam.status === 'REJECTED' ? 'text-amber-800' : 'text-emerald-800/80'}`}>
+                สอบ {exam.E_Date} เวลา {exam.E_Time} · เลขที่ข้อสอบ EX-{year}-{String(exam.E_No).padStart(4, '0')}
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => onNavigate?.('courses')} className="shrink-0 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+              กลับรายวิชา
+            </Button>
           </div>
-        </div>)}
 
-      {/* ── ข้อ 4: Confirm dialog ก่อนลบข้อสอบ (ใช้ Modal กลางของระบบ) ── */}
-      <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} size="sm">
-        <ModalHeader icon={AlertTriangle} title="ยืนยันการลบข้อสอบ" subtitle={deleteTarget ? `${deleteTarget.course.Course_id} — ${deleteTarget.exam.file_name}` : ''} onClose={() => setDeleteTarget(null)} className="from-rose-950 to-slate-900 border-rose-900"/>
-        <ModalBody className="text-sm space-y-3">
-          <p>
-            ยืนยันการลบข้อสอบวิชา <strong>{deleteTarget?.course.Course_id} {deleteTarget?.course.Course_Name}</strong> ออกจากระบบหรือไม่?
+          {/* สองคอลัมน์: ความคืบหน้า + รายละเอียด */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            {/* ความคืบหน้าข้อสอบ — vertical stepper */}
+            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+              <h3 className="font-display font-bold text-base text-slate-900">ความคืบหน้าข้อสอบ</h3>
+              <ol className="mt-5">
+                {steps.map((st, i) => {
+                const stepNo = i + 1;
+                const done = progress >= stepNo;
+                const isNext = progress + 1 === stepNo;
+                return (<li key={st.title} className="relative flex gap-3.5 pb-6 last:pb-0">
+                      {/* เส้นเชื่อม */}
+                      {i < steps.length - 1 && (<span className="absolute left-3.5 top-8 bottom-0 w-px bg-slate-200" aria-hidden="true"/>)}
+                      <span className={`relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${done
+                        ? 'bg-emerald-500 text-white'
+                        : isNext
+                            ? 'border-2 border-[#1A4B7A] text-[#1A4B7A] bg-white'
+                            : 'bg-slate-100 text-slate-400'}`}>
+                        {done ? (<Check className="w-4 h-4"/>) : (stepNo)}
+                      </span>
+                      <div className="pt-0.5">
+                        <p className={`text-sm font-bold ${done || isNext ? 'text-slate-900' : 'text-slate-400'}`}>
+                          {st.title}
+                        </p>
+                        <p className={`text-xs mt-0.5 ${done || isNext ? 'text-slate-500' : 'text-slate-300'}`}>
+                          {st.desc}
+                        </p>
+                      </div>
+                    </li>);
+            })}
+              </ol>
+
+              {exam.status === 'REJECTED' && exam.rejection_reason && (<div className="mt-4 text-xs text-rose-800 bg-rose-50 p-3 rounded-lg border border-rose-200 flex items-start space-x-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5"/>
+                  <span>
+                    <strong>ถูกส่งกลับแก้ไข:</strong> {exam.rejection_reason}
+                  </span>
+                </div>)}
+
+              {/* ประวัติการดำเนินงาน */}
+              {historyEntries.length > 0 && (<div className="mt-6 pt-5 border-t border-slate-100">
+                  <h4 className="text-sm font-bold text-slate-900">ประวัติการดำเนินงาน</h4>
+                  <div className="mt-3 space-y-2">
+                    {historyEntries.map((h, i) => (<div key={i} className="flex items-start gap-2 text-xs">
+                        <span className="text-slate-400 shrink-0 w-24">{h.date}</span>
+                        <span className="text-slate-600">{h.label}</span>
+                      </div>))}
+                  </div>
+                </div>)}
+            </div>
+
+            {/* รายละเอียดการสอบ */}
+            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+              <h3 className="font-display font-bold text-base text-slate-900">รายละเอียดการสอบ</h3>
+
+              <dl className="mt-5 space-y-4">
+                <div>
+                  <dt className="text-xs text-slate-400">วันและเวลาสอบ</dt>
+                  <dd className="text-sm font-bold text-slate-900 mt-0.5">
+                    {exam.E_Date} · {exam.E_Time}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-slate-400">ห้องสอบ</dt>
+                  <dd className="text-sm font-bold text-slate-900 mt-0.5">{exam.room}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-slate-400">จำนวนนักศึกษา</dt>
+                  <dd className="text-sm font-bold text-slate-900 mt-0.5">
+                    {selectedCourse.student_count} คน · จำนวนพิมพ์ {exam.total_copies + exam.copies_reserve} ชุด
+                  </dd>
+                </div>
+                <div className="pt-4 border-t border-slate-100">
+                  <dt className="text-xs text-slate-400">ไฟล์ข้อสอบ</dt>
+                  <dd className="text-sm font-bold text-slate-900 mt-0.5 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-slate-400 shrink-0"/>
+                    <span className="truncate">{exam.file_name}</span>
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="mt-6 space-y-2.5">
+                <Button variant="outline" onClick={() => onDownloadLogged?.(exam)} className="w-full border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+                  <Download className="w-4 h-4"/>
+                  <span>ดาวน์โหลด</span>
+                </Button>
+
+                {['SUBMITTED', 'VERIFIED', 'REJECTED'].includes(exam.status) && (<Button variant="outline" onClick={() => onOpenUploadModal(selectedCourse, exam, true)} className="w-full border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+                    <RefreshCw className="w-4 h-4"/>
+                    <span>แก้ไขการส่งข้อสอบ</span>
+                  </Button>)}
+
+                <Button variant="outline" onClick={() => { setCancelReason(''); onNavigate?.('cancel'); }} className="w-full border-rose-200 bg-white text-rose-600 hover:bg-rose-50 hover:text-rose-700">
+                  <Trash2 className="w-4 h-4"/>
+                  <span>ยกเลิกการส่งข้อสอบ</span>
+                </Button>
+              </div>
+
+              <p className="mt-4 text-xs text-slate-400">
+                การอัปโหลดใหม่จะบันทึกในประวัติการตรวจสอบ
+              </p>
+            </div>
+          </div>
+        </>)}
+      </>);
+    };
+    // ───────── หน้า 3: เพิ่มรายวิชา ─────────
+    const renderNewCoursePage = () => (<>
+      {/* Hero */}
+      <div>
+        <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
+          SCIENCE · EXAM OPERATIONS
+        </span>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+          เพิ่มรายวิชา
+        </h1>
+        <p className="text-sm text-slate-500 mt-2">
+          แต่งรายวิชาใหม่เข้าสู่ระบบ เพื่อเริ่มจัดส่งข้อสอบ
+        </p>
+      </div>
+
+      {/* สองคอลัมน์: ฟอร์ม + คำแนะนำ */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
+        {/* ฟอร์มข้อมูลรายวิชา */}
+        <form onSubmit={handleCreateCourse} className="lg:col-span-3 rounded-2xl bg-white border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+          <h3 className="font-display font-bold text-base text-slate-900">ข้อมูลรายวิชา</h3>
+
+          {newCourseError && (<div className="bg-rose-50 border border-rose-300 text-rose-800 px-3 py-2 rounded-lg flex items-center space-x-1.5 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600"/>
+              <span>{newCourseError}</span>
+            </div>)}
+
+          <div>
+            <Label htmlFor="new-course-id" className="text-slate-700 mb-1.5 block">
+              รหัสวิชา <span className="text-rose-500">*</span>
+            </Label>
+            <Input id="new-course-id" type="text" placeholder="เช่น CS 5555" value={newCourseCode} onChange={(e) => {
+            setNewCourseCode(e.target.value);
+            setNewCourseError('');
+        }} required className="uppercase"/>
+          </div>
+
+          <div>
+            <Label htmlFor="new-course-name" className="text-slate-700 mb-1.5 block">
+              ชื่อรายวิชา <span className="text-rose-500">*</span>
+            </Label>
+            <Input id="new-course-name" type="text" placeholder="เช่น โครงสร้างข้อมูล" value={newCourseName} onChange={(e) => setNewCourseName(e.target.value)} required/>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="new-course-sec" className="text-slate-700 mb-1.5 block">
+                กลุ่มเรียน (Sec) <span className="text-rose-500">*</span>
+              </Label>
+              <Input id="new-course-sec" type="text" placeholder="01" value={newCourseSec} onChange={(e) => setNewCourseSec(e.target.value)} required/>
+            </div>
+            <div>
+              <Label htmlFor="new-course-students" className="text-slate-700 mb-1.5 block">
+                จำนวนนักศึกษา <span className="text-rose-500">*</span>
+              </Label>
+              <Input id="new-course-students" type="number" min="1" placeholder="45" value={newCourseStudents} onChange={(e) => setNewCourseStudents(parseInt(e.target.value) || 1)} required/>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="new-course-credits" className="text-slate-700 mb-1.5 block">
+                หน่วยกิต <span className="text-rose-500">*</span>
+              </Label>
+              <Input id="new-course-credits" type="number" min="0" placeholder="3" value={newCourseCredits} onChange={(e) => setNewCourseCredits(parseInt(e.target.value) || 0)} required/>
+            </div>
+            <div>
+              <Label className="text-slate-700 mb-1.5 block">
+                ภาคเรียน · ปีการศึกษา <span className="text-rose-500">*</span>
+              </Label>
+              <div className="flex items-center gap-2">
+                <Select value={newCourseTerm} onChange={(e) => setNewCourseTerm(e.target.value)} aria-label="ภาคเรียน" className="flex-1">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">ฤดูร้อน</option>
+                </Select>
+                <span className="text-slate-400">/</span>
+                <Input type="text" value={newCourseYear} onChange={(e) => setNewCourseYear(e.target.value)} aria-label="ปีการศึกษา" className="flex-1"/>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            <Button type="button" variant="outline" onClick={() => onNavigate?.('courses')} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+              ยกเลิก
+            </Button>
+            <Button type="submit" className="bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+              <Plus className="w-4 h-4"/>
+              <span>เพิ่มรายวิชาเข้าสู่ระบบ</span>
+            </Button>
+          </div>
+        </form>
+
+        {/* คำแนะนำก่อนเริ่ม */}
+        <aside className="lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <h3 className="font-display font-bold text-base text-slate-900">เตรียมก่อนเริ่ม</h3>
+          <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+            ตรวจสอบว่าข้อมูลรายวิชาถูกต้องก่อนเพิ่มเข้าสู่ระบบ เพื่อให้ข้อสอบออกถูกต้องตั้งแต่ต้น
           </p>
-          <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
-            ไฟล์แนบใน Storage และประวัติที่ผูกกับรายการนี้จะถูกลบถาวร — ระบบบันทึก Audit Log ทุกครั้ง
+          <div className="mt-5 pt-4 border-t border-slate-100">
+            <p className="text-sm font-bold text-[#1A4B7A]">หลังเพิ่มรายวิชา</p>
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+              สามารถจัดส่งข้อสอบ ตั้งค่าข้อสอบต่าง ๆ และแก้ไขไฟล์ได้ในภายหลัง
+            </p>
+          </div>
+        </aside>
+      </div>
+    </>);
+    // ───────── หน้า 4: ยืนยันการยกเลิก ─────────
+    const renderCancelPage = () => {
+        if (!selectedCourse) {
+            onNavigate?.('courses');
+            return null;
+        }
+        return (<div>
+        <div>
+          <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-rose-600 bg-rose-50 rounded-md px-2.5 py-1">
+            ต้องการแก้ไขไฟล์หรือ?
+          </span>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+            ยืนยันการยกเลิก
+          </h1>
+          <p className="text-sm text-slate-500 mt-2">
+            ตรวจสอบรายการก่อนดำเนินการยกเลิกข้อสอบ
           </p>
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-            ยกเลิก
-          </Button>
-          <Button variant="destructive" onClick={() => {
-            onRemoveExam(deleteTarget.exam.E_No);
-            setDeleteTarget(null);
-        }}>
+        </div>
+
+        <div className="mt-6 rounded-2xl bg-white border border-slate-200 shadow-sm p-6 sm:p-8 max-w-2xl">
+          <span className="inline-block text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-md px-2.5 py-1">
+            ต้องการแก้ไขไฟล์หรือ?
+          </span>
+          <h2 className="font-display text-xl font-bold text-slate-900 mt-3">
+            ยกเลิกการส่งข้อสอบนี้?
+          </h2>
+          <p className="text-sm text-slate-600 mt-1.5">
+            {selectedCourse.Course_id} · {selectedCourse.Course_Name} / กลุ่มเรียน {selectedCourse.sec}
+          </p>
+          <p className="text-xs text-slate-500 mt-3 leading-relaxed">
+            เมื่อยืนยันแล้ว รายการข้อสอบและไฟล์แนบจะถูกลบออกจากระบบทันที และต้องจัดส่งไฟล์ใหม่ทั้งหมดในภายหลัง
+          </p>
+
+          <div className="mt-6">
+            <Label htmlFor="cancel-reason" className="text-slate-700 mb-1.5 block">
+              เหตุผลการยกเลิก <span className="text-rose-500">*</span>
+            </Label>
+            <textarea id="cancel-reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={3} placeholder="อธิบายเหตุผลการยกเลิกข้อสอบ" className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]"/>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs">
+            <p className="font-bold text-amber-950 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5"/>
+              <span>การยืนยันมีผลทันที</span>
+            </p>
+            <p className="text-amber-800 mt-0.5">
+              ระบบจะลบไฟล์แนบและบันทึกประวัติ Audit Log ของการยกเลิกนี้โดยอัตโนมัติ
+            </p>
+          </div>
+
+          <div className="mt-6 flex items-center justify-end gap-2.5">
+            <Button variant="outline" onClick={() => onNavigate?.('tracking')} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+              ย้อนกลับ
+            </Button>
+            <Button variant="destructive" onClick={() => {
+            if (selectedExam) {
+                onRemoveExam(selectedExam.E_No);
+            }
+            setCancelReason('');
+            onNavigate?.('courses');
+        }} disabled={!cancelReason.trim()} title={cancelReason.trim() ? 'ยืนยันการยกเลิกการส่งข้อสอบ' : 'กรุณาระบุเหตุผลการยกเลิกก่อน'}>
             <Trash2 className="w-4 h-4"/>
-            <span>ลบถาวร</span>
+            <span>ยืนยันการยกเลิก</span>
           </Button>
-        </ModalFooter>
-      </Modal>
+          </div>
+        </div>
+      </div>);
+    };
+    // ───────── หน้า 5: แนบไฟล์ข้อสอบ (wizard 4 ขั้น: ไฟล์ → ข้อมูลการสอบ → ใบปะหน้าซอง → ตรวจสอบและส่ง) ─────────
+    const renderUploadPage = () => {
+        if (!uploadContext?.course) {
+            onNavigate?.('courses');
+            return null;
+        }
+        return (<ExamUploadWizard key={`${uploadContext.course.Course_id}-${uploadContext.existingExam?.E_No ?? 'new'}-${uploadContext.isReupload}`} course={uploadContext.course} existingExam={uploadContext.existingExam} isReupload={uploadContext.isReupload} onDone={() => onNavigate?.('courses')} onUploadSubmit={onUploadSubmit} onPreviewExam={onPreviewExam}/>);
+    };
+    return (<div className="max-w-6xl mx-auto space-y-6">
+      {/* แถบบน: ภาคเรียน/ปี (ชื่อระบบอยู่ที่แถบบนของ SidebarShell แล้ว) */}
+      <div className="flex items-center justify-end">
+        <div className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 shrink-0">
+          ภาคเรียน {term} / {year}
+        </div>
+      </div>
+
+      {page === 'tracking' ? renderTrackingPage() : page === 'cancel' ? renderCancelPage() : page === 'new-course' ? renderNewCoursePage() : page === 'upload' ? renderUploadPage() : renderCoursesPage()}
     </div>);
 };

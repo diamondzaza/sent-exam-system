@@ -36,7 +36,7 @@ export const STATUS_LABELS = {
         step: 6,
     },
     READY_FOR_EXAM: {
-        label: 'พร้อมสอบ (ในห้องมั่นคง)',
+        label: 'พร้อมสอบ',
         badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-300',
         step: 7,
     },

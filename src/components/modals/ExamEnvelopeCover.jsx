@@ -53,9 +53,8 @@ const buildFormFromExam = (exam) => {
         facultyName: 'คณะวิทยาศาสตร์',
         reserveSets: String(exam.copies_reserve ?? ''),
         examAuthor: exam.teacher_name ?? '',
-        proctors: [exam.proctors?.[0] ?? '', exam.proctors?.[1] ?? '', exam.proctors?.[2] ?? ''],
-        note: exam.envelope_notes ?? '',
-        // เว้นว่างไว้กรอกหน้างานจริง: envelopeNo, attendedCount, absentCount, absentees, office
+        // ผู้คุมสอบ / หมายเหตุ / จำนวนเข้าสอบ-ขาดสอบ / รายชื่อผู้ขาดสอบ — เว้นว่างไว้เขียนด้วยลายมือในห้องสอบ
+        // (แสดงเป็นบรรทัดประว่างในเอกสารที่พิมพ์)
     };
 };
 
@@ -67,7 +66,7 @@ const Input = ({ label, value, onChange, className = '' }) => (
             type="text"
             value={value}
             onChange={onChange}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-white"
         />
     </div>
 );
@@ -85,14 +84,6 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
     const [tab, setTab] = useState('form'); // 'form' | 'doc'
     const [form, setForm] = useState(() => buildFormFromExam(exam));
     const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
-    const setAbsentee = (i, key) => (e) => {
-        const arr = form.absentees.map((a, idx) => (idx === i ? { ...a, [key]: e.target.value } : a));
-        setForm({ ...form, absentees: arr });
-    };
-    const setProctor = (i) => (e) => {
-        const arr = form.proctors.map((p, idx) => (idx === i ? e.target.value : p));
-        setForm({ ...form, proctors: arr });
-    };
     // ข้อ 6: tab ถือว่ากรอกครบเมื่อข้อมูลการสอบหลักครบ (auto-fill ให้ส่วนใหญ่แล้ว)
     const formComplete = [form.subject, form.subjectCode, form.examDay, form.examMonth, form.examYearBE, form.examTime, form.examRoom, form.studentCount, form.examCopies]
         .every((v) => String(v).trim() !== '');
@@ -116,9 +107,9 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
     return (<div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-slate-300 overflow-hidden flex flex-col max-h-[94vh]">
         {/* Modal Header */}
-        <div className="no-print bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
+        <div className="no-print bg-[#1A4B7A] text-white px-6 py-4 flex items-center justify-between border-b border-[#153D63]">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/30">
+            <div className="p-2 bg-white/10 text-white/80 rounded-lg border border-white/20">
               <FileText className="w-5 h-5"/>
             </div>
             <div>
@@ -141,11 +132,11 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
 
         {/* Tabs (สลับระหว่างฟอร์มกรอก กับ เอกสารใบปะหน้า) */}
         <div className="no-print flex space-x-2 px-6 pt-4 border-b border-slate-200 text-xs font-medium">
-          <button onClick={() => setTab('form')} className={`px-4 py-2.5 rounded-t-xl transition-all flex items-center gap-1.5 ${tab === 'form' ? 'bg-slate-100 text-indigo-700 font-bold border-t-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>
+          <button onClick={() => setTab('form')} className={`px-4 py-2.5 rounded-t-xl transition-all flex items-center gap-1.5 ${tab === 'form' ? 'bg-slate-100 text-[#1A4B7A] font-bold border-t-2 border-[#1A4B7A]' : 'text-slate-500 hover:text-slate-800'}`}>
             {formComplete && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true"/>}
             1. ฟอร์มกรอกข้อมูล
           </button>
-          <button onClick={() => setTab('doc')} className={`px-4 py-2.5 rounded-t-xl transition-all flex items-center gap-1.5 ${tab === 'doc' ? 'bg-slate-100 text-indigo-700 font-bold border-t-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>
+          <button onClick={() => setTab('doc')} className={`px-4 py-2.5 rounded-t-xl transition-all flex items-center gap-1.5 ${tab === 'doc' ? 'bg-slate-100 text-[#1A4B7A] font-bold border-t-2 border-[#1A4B7A]' : 'text-slate-500 hover:text-slate-800'}`}>
             {formComplete && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true"/>}
             2. ใบปะหน้า (ตัวอย่าง/พิมพ์)
           </button>
@@ -187,7 +178,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
                           type="checkbox"
                           checked={form[key]}
                           onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
-                          className="w-4 h-4 accent-indigo-600"
+                          className="w-4 h-4 accent-[#1A4B7A]"
                         />
                         <span>{label}</span>
                       </label>))}
@@ -200,29 +191,19 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input label="ผู้ออกข้อสอบ" value={form.examAuthor} onChange={set('examAuthor')}/>
                   <Input label="ห้องทำงาน" value={form.office} onChange={set('office')}/>
-                  <Input label="จำนวนนักศึกษาที่เข้าสอบ (คน)" value={form.attendedCount} onChange={set('attendedCount')}/>
-                  <Input label="จำนวนนักศึกษาที่ขาดสอบ (คน)" value={form.absentCount} onChange={set('absentCount')}/>
                 </div>
               </div>
 
-              {/* รายชื่อผู้ขาดสอบ */}
-              <div>
-                <p className="font-display font-bold text-sm text-slate-900 mb-3">รายชื่อนักศึกษาที่ขาดสอบ</p>
-                <div className="space-y-2">
-                  {form.absentees.map((a, i) => (<div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Input label={`รหัส (${i + 1})`} value={a.code} onChange={setAbsentee(i, 'code')}/>
-                      <Input label={`ชื่อ-สกุล (${i + 1})`} value={a.name} onChange={setAbsentee(i, 'name')}/>
-                    </div>))}
-                </div>
-              </div>
-
-              {/* ผู้คุมสอบ + หมายเหตุ */}
-              <div>
-                <p className="font-display font-bold text-sm text-slate-900 mb-3">ผู้คุมสอบและหมายเหตุ</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {form.proctors.map((p, i) => (<Input key={i} label={`ผู้คุมสอบ (${i + 1})`} value={p} onChange={setProctor(i)}/>))}
-                  <Input label="หมายเหตุ" value={form.note} onChange={set('note')} className="sm:col-span-2"/>
-                </div>
+              {/* ส่วนที่เขียนด้วยลายมือในห้องสอบ — ไม่มี input ในฟอร์ม */}
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs">
+                <p className="font-semibold text-amber-950 flex items-center gap-1.5">
+                  <Printer className="w-3.5 h-3.5"/>
+                  <span>ส่วนที่เว้นไว้เขียนด้วยลายมือในห้องสอบ</span>
+                </p>
+                <p className="text-amber-800 mt-1 leading-relaxed">
+                  จำนวนนักศึกษาที่เข้าสอบ/ขาดสอบ · รายชื่อนักศึกษาที่ขาดสอบ · ผู้คุมสอบและภาระหน้าที่ · หมายเหตุ
+                  — ในใบปะหน้าที่พิมพ์ออกมาจะเป็นบรรทัดว่างสำหรับเขียนเองที่หน้างาน
+                </p>
               </div>
 
               <div className="pt-2 border-t border-slate-200 flex items-center justify-between">

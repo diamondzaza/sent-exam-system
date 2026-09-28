@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Lock, KeyRound, UploadCloud, Printer, ShieldCheck, LogIn, AlertCircle, UserPlus, Eye, EyeOff, Loader2, } from 'lucide-react';
+import { UploadCloud, Printer, ShieldCheck, LogIn, AlertCircle, UserPlus, Eye, EyeOff, Loader2, } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 // แปลข้อความ error ของ Supabase เป็นภาษาไทย
@@ -87,35 +87,30 @@ export const LoginPage = ({ onLogin }) => {
         }
     };
 
-    return (<div className="min-h-screen flex flex-col lg:flex-row bg-slate-950">
+    return (<div className="min-h-screen flex flex-col lg:flex-row bg-white">
       {/* ═══ แผงขวา: ฟอร์มล็อกอิน (ขึ้นก่อนบนมือถือ) ═══ */}
-      <div className="order-1 lg:order-2 relative lg:w-1/2 bg-slate-100 flex items-center justify-center p-4 sm:p-8 overflow-hidden">
-        {/* Subtle background pattern: dot grid + gradient blob */}
-        <div aria-hidden="true" className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', backgroundSize: '22px 22px' }}></div>
-        <div aria-hidden="true" className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-indigo-400/20 blur-3xl pointer-events-none"></div>
-        <div aria-hidden="true" className="absolute -bottom-24 -left-16 w-72 h-72 rounded-full bg-purple-400/15 blur-3xl pointer-events-none"></div>
+      <div className="order-1 lg:order-2 relative lg:w-1/2 bg-slate-50 flex items-center justify-center p-4 sm:p-8 overflow-hidden">
+        {/* โลโก้คณะ มุมขวาบน */}
+        <div className="absolute top-6 right-6 sm:top-8 sm:right-10 flex items-center gap-2.5">
+          <img src="/logosci-psu.png" alt="ตราสัญลักษณ์คณะวิทยาศาสตร์ มหาวิทยาลัยสงขลานครินทร์" className="h-11 w-auto object-contain"/>
+        </div>
 
-        <Card className="relative z-10 shadow-2xl w-full max-w-md overflow-hidden bg-white">
-          {/* Card Header */}
-          <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-6">
-            <div className="w-11 h-11 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center mb-3 border border-indigo-500/30">
-              <Lock className="w-5 h-5"/>
-            </div>
-            <h2 className="font-display text-3xl font-bold">เข้าสู่ระบบ</h2>
-            <p className="text-sm text-slate-300 mt-1.5">
+        <Card className="relative z-10 shadow-xl w-full max-w-md bg-white rounded-2xl border border-slate-100">
+          <div className="p-7 sm:p-9">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-slate-900">
+              เข้าสู่ระบบ
+            </h2>
+            <p className="text-sm text-slate-500 mt-1.5 mb-7">
               ยืนยันตัวตนเพื่อเข้าใช้งานตามบทบาทของท่าน
             </p>
-          </div>
 
-          {/* Form */}
-          <div className="p-6 sm:p-7">
             <form onSubmit={handleLogin} className="space-y-5" noValidate>
               {/* อีเมล */}
               <div>
-                <Label htmlFor="login-email" className="font-medium mb-2 block">
-                  อีเมล (Email) <span className="text-rose-500">*</span>
+                <Label htmlFor="login-email" className="font-medium mb-2 block text-slate-800">
+                  ชื่อ
                 </Label>
-                <Input id="login-email" type="email" placeholder="เช่น somchai.j@sci.ac.th" value={email} onChange={(e) => setEmail(e.target.value)} required aria-required="true" aria-label="อีเมลสำหรับเข้าสู่ระบบ" aria-invalid={Boolean(emailError)} aria-describedby={emailError ? 'login-email-error' : undefined} autoComplete="email" className={emailError ? 'border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500' : 'focus-visible:ring-indigo-500 focus-visible:border-indigo-500'}/>
+                <Input id="login-email" type="email" placeholder="name@sci.ac.th" value={email} onChange={(e) => setEmail(e.target.value)} required aria-required="true" aria-label="อีเมลสำหรับเข้าสู่ระบบ" aria-invalid={Boolean(emailError)} aria-describedby={emailError ? 'login-email-error' : undefined} autoComplete="email" className={emailError ? 'border-red-500 focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]' : 'focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]'}/>
                 {emailError && (<p id="login-email-error" className="mt-1.5 text-xs text-red-600 flex items-center space-x-1">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0"/>
                     <span>{emailError}</span>
@@ -124,12 +119,12 @@ export const LoginPage = ({ onLogin }) => {
 
               {/* รหัสผ่าน */}
               <div>
-                <Label htmlFor="login-password" className="font-medium mb-2 block">
-                  รหัสผ่าน (Password) <span className="text-rose-500">*</span>
+                <Label htmlFor="login-password" className="font-medium mb-2 block text-slate-800">
+                  รหัสผ่าน
                 </Label>
                 <div className="relative">
-                  <Input id="login-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required aria-required="true" aria-label="รหัสผ่านสำหรับเข้าสู่ระบบ" aria-invalid={Boolean(passwordError)} aria-describedby={passwordError ? 'login-password-error' : undefined} autoComplete="current-password" className={passwordError ? 'pr-10 border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500' : 'pr-10 focus-visible:ring-indigo-500 focus-visible:border-indigo-500'}/>
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'} aria-pressed={showPassword} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors">
+                  <Input id="login-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required aria-required="true" aria-label="รหัสผ่านสำหรับเข้าสู่ระบบ" aria-invalid={Boolean(passwordError)} aria-describedby={passwordError ? 'login-password-error' : undefined} autoComplete="current-password" className={passwordError ? 'pr-10 border-red-500 focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]' : 'pr-10 focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]'}/>
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'} aria-pressed={showPassword} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#1A4B7A] transition-colors">
                     {showPassword ? (<EyeOff className="w-4 h-4"/>) : (<Eye className="w-4 h-4"/>)}
                   </button>
                 </div>
@@ -137,10 +132,11 @@ export const LoginPage = ({ onLogin }) => {
                     <AlertCircle className="w-3.5 h-3.5 shrink-0"/>
                     <span>{passwordError}</span>
                   </p>)}
-                <p className="mt-2 text-sm text-slate-600 flex items-center space-x-1.5">
-                  <KeyRound className="w-3.5 h-3.5 shrink-0"/>
-                  <span>ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบ</span>
-                </p>
+                <div className="mt-2 text-right">
+                  <a href="#" className="text-xs text-slate-500 hover:text-[#1A4B7A] hover:underline underline-offset-2 transition-colors">
+                    ลืมรหัสผ่าน?
+                  </a>
+                </div>
               </div>
 
               {/* Error แจ้งเตือนการล็อกอิน (จาก server) */}
@@ -149,84 +145,56 @@ export const LoginPage = ({ onLogin }) => {
                   <span className="leading-relaxed">{error}</span>
                 </div>)}
 
-              <Button type="submit" className="w-full py-2.5" disabled={loading}>
+              <Button type="submit" className="w-full py-2.5 bg-[#1A4B7A] hover:bg-[#153D63] text-white" disabled={loading}>
                 {loading ? (<Loader2 className="w-4 h-4 animate-spin" aria-hidden="true"/>) : (<LogIn className="w-4 h-4"/>)}
                 <span>{loading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}</span>
               </Button>
             </form>
-          </div>
 
-          <div className="px-6 pb-6">
-            <div className="border-t border-slate-200 pt-4 text-center">
-              <a href="/request-account" className="inline-flex items-center space-x-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+            <p className="mt-6 text-center text-xs text-slate-500">
+              ยังไม่มีบัญชี?{' '}
+              <a href="/request-account" className="inline-flex items-center space-x-1 font-semibold text-[#1A4B7A] hover:text-[#153D63] hover:underline underline-offset-2">
                 <UserPlus className="w-3.5 h-3.5"/>
-                <span>ยังไม่มีบัญชี? — ขอสมัครบัญชีจากผู้ดูแลระบบ</span>
+                <span>ขอสมัครบัญชีจากผู้ดูแลระบบ</span>
               </a>
-            </div>
+            </p>
           </div>
         </Card>
       </div>
 
       {/* ═══ แผงซ้าย: แบรนด์ + จุดเด่นระบบ (อยู่ด้านล่างบนมือถือ) ═══ */}
-      <div className="order-2 lg:order-1 relative lg:w-1/2 bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 text-white flex flex-col justify-center overflow-hidden">
-        {/* Decorative glow circles */}
-        <div aria-hidden="true" className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none"></div>
-        <div aria-hidden="true" className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-indigo-400/10 blur-3xl pointer-events-none"></div>
-
-        <div className="relative z-10 px-8 sm:px-14 py-12 max-w-xl">
-          {/* Logo & System Name */}
-          <div className="flex items-center space-x-4 mb-8">
-            <div className="w-14 h-14 rounded-xl bg-white shadow-lg ring-2 ring-indigo-400/40 shrink-0 flex items-center justify-center p-1.5 overflow-hidden">
-              <img src="/logoscipsu.png" alt="ตราสัญลักษณ์คณะวิทยาศาสตร์ มหาวิทยาลัยสงขลานครินทร์" className="h-full w-full object-contain"/>
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-indigo-300 tracking-wider uppercase">
-                คณะวิทยาศาสตร์
-              </span>
-              <h1 className="font-display text-lg sm:text-xl font-bold leading-tight mt-0.5">
-                ระบบบริหารจัดการและจัดพิมพ์ข้อสอบ
-              </h1>
-            </div>
-          </div>
-
-          <h2 className="font-display text-2xl sm:text-3xl font-bold leading-snug mb-3">
-            จัดส่ง ตรวจสอบ และจัดพิมพ์ข้อสอบ
-            <span className="block text-indigo-200">ในระบบเดียว ปลอดภัยทุกขั้นตอน</span>
-          </h2>
-          <p className="text-sm text-indigo-100 leading-relaxed mb-8">
-            ติดตามการส่ง ตรวจสอบ และจัดพิมพ์ข้อสอบของท่านได้จากหน้านี้
-          </p>
+      <div className="order-2 lg:order-1 relative lg:w-1/2 bg-[#1A4B7A] text-white flex flex-col overflow-hidden">
+        <div className="relative z-10 px-8 sm:px-14 py-12 my-auto">
+          <h1 className="font-display font-bold leading-[1.45] mb-10 text-[length:clamp(28px,5vw,44px)] lg:text-[length:clamp(24px,calc(3vw_-_6px),36px)]">
+            ระบบบริหารจัดการและ<span className="whitespace-nowrap">จัดพิมพ์ข้อสอบ</span>
+            <span className="block">คณะวิทยาศาสตร์</span>
+          </h1>
 
           {/* Feature Highlights — ซ่อนบนจอเล็ก (ให้ฟอร์มอยู่เหนือจอพอดี) */}
-          <div className="hidden sm:block space-y-3 text-sm">
+          <div className="hidden sm:block space-y-6 text-base">
             {[
             {
                 icon: UploadCloud,
                 title: 'จัดส่งข้อสอบเข้าสู่ระบบ',
-                desc: 'อัปโหลดไฟล์พร้อมระบุจำนวนพิมพ์และใบปะหน้าซอง',
             },
             {
                 icon: Printer,
                 title: 'ติดตามสถานะการจัดพิมพ์',
-                desc: 'ดูความคืบหน้าได้ถึงขั้นตอนส่งมอบซอง',
             },
             {
                 icon: ShieldCheck,
                 title: 'ป้องกันข้อสอบรั่วไหล',
-                desc: 'บันทึก Audit Log ทุกครั้ง + ลิงก์ดาวน์โหลดหมดอายุ',
             },
-        ].map((item) => (<div key={item.title} className="flex items-start space-x-3">
-                <div className="p-2 bg-indigo-500/20 text-indigo-300 rounded-lg border border-indigo-400/30 shrink-0">
-                  <item.icon className="w-4 h-4"/>
-                </div>
-                <div>
-                  <p className="font-semibold text-white">{item.title}</p>
-                  <p className="text-indigo-200 mt-0.5">{item.desc}</p>
-                </div>
+        ].map((item) => (<div key={item.title} className="flex items-center space-x-4">
+                <item.icon className="w-6 h-6 text-white/90 shrink-0" strokeWidth={1.75}/>
+                <p className="font-medium text-white/95">{item.title}</p>
               </div>))}
           </div>
+        </div>
 
-          <div className="mt-10 pt-5 border-t border-indigo-400/20 text-xs text-indigo-300">
+        {/* เส้นคั่น + ข้อความท้ายแผง */}
+        <div className="relative z-10 mt-auto px-8 sm:px-14 pb-8">
+          <div className="border-t border-white/20 pt-4 text-xs text-white/60">
             ระบบบริหารจัดการและจัดพิมพ์ข้อสอบ คณะวิทยาศาสตร์
           </div>
         </div>

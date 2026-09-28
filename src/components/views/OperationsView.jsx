@@ -72,7 +72,7 @@ export const OperationsView = ({ currentUser, exams, onOpenEnvelope, onUpdateExa
         </Card>
 
         <Card className="p-4 border-emerald-200 bg-emerald-50/20">
-          <p className="text-xs text-emerald-800 font-medium">พร้อมสอบในห้องมั่นคง</p>
+          <p className="text-xs text-emerald-800 font-medium">พร้อมสอบ</p>
           <p className="text-2xl font-bold text-emerald-600 mt-1">
             {exams.filter((e) => e.status === 'READY_FOR_EXAM').length} วิชา
           </p>
@@ -97,7 +97,7 @@ export const OperationsView = ({ currentUser, exams, onOpenEnvelope, onUpdateExa
           <Label className="text-slate-600">สถานะ:</Label>
           <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-auto">
             <option value="ALL">ทุกสถานะการจัดสอบ</option>
-            <option value="READY_FOR_EXAM">พร้อมสอบ (ในห้องมั่นคง)</option>
+            <option value="READY_FOR_EXAM">พร้อมสอบ</option>
             <option value="DELIVERED_OD">ส่งมอบแล้ว (รอลงทะเบียน)</option>
             <option value="PRINTED">พิมพ์และบรรจุซองแล้ว</option>
             <option value="PRINTING">กำลังจัดพิมพ์</option>

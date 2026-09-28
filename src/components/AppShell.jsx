@@ -22,15 +22,15 @@
  */
 import React, { useState, useRef } from 'react';
 import { Header } from '@/components/layout/Header';
+import { SidebarShell } from '@/components/layout/SidebarShell';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { ExamEnvelopeCover } from '@/components/modals/ExamEnvelopeCover';
 import { ExamPreviewModal } from '@/components/modals/ExamPreviewModal';
-import { ExamUploadModal } from '@/components/modals/ExamUploadModal';
 import { TeacherView } from '@/components/views/TeacherView';
 import { AudioVisualView } from '@/components/views/AudioVisualView';
 import { OperationsView } from '@/components/views/OperationsView';
 import { AdminView } from '@/components/views/AdminView';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, LayoutDashboard, ClipboardList, BookOpen } from 'lucide-react';
 import { createClient, authFetch } from '@/lib/supabase/client';
 import { useUsers } from '@/hooks/useUsers';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -56,6 +56,9 @@ export default function AppShell() {
     const [previewExam, setPreviewExam] = useState(null);
     const [envelopeExam, setEnvelopeExam] = useState(null);
     const [toastMessage, setToastMessage] = useState(null);
+    // Teacher sidebar — หน้าปัจจุบัน / รายวิชาที่เลือก (UI state เท่านั้น)
+    const [teacherPage, setTeacherPage] = useState('courses');
+    const [teacherCourseId, setTeacherCourseId] = useState(null);
     // ดึงโปรไฟล์จากตาราง users ทุกครั้งที่มี session (กัน localStorage cache เก่าไม่ตรงกับฐานข้อมูล)
     React.useEffect(() => {
         if (authStatus !== 'authenticated')
@@ -118,9 +121,10 @@ export default function AppShell() {
             body: JSON.stringify({ action, subjectId, subjectName, details }),
         });
     };
-    // Teacher Handlers
+    // Teacher Handlers — เปิดหน้าฟอร์มจัดส่งข้อสอบ (wizard 4 ขั้น) แทน modal เดิม
     const handleOpenUploadModal = (course, existingExam, isReupload = false) => {
         setUploadModalData({ course, existingExam, isReupload });
+        setTeacherPage('upload');
     };
     const handleSubmitExamUpload = async (examData, isReupload, fileObject) => {
         if (!uploadModalData)
@@ -272,7 +276,7 @@ export default function AppShell() {
             notifType = 'info';
         }
         else if (newStatus === 'READY_FOR_EXAM') {
-            notifTitle = 'ข้อสอบจัดเก็บเข้าห้องมั่นคงแล้ว พร้อมสอบ';
+            notifTitle = 'ข้อสอบพร้อมสอบแล้ว';
             notifType = 'success';
         }
         else if (newStatus === 'REJECTED') {
@@ -510,22 +514,40 @@ export default function AppShell() {
         <p className="font-display text-sm text-slate-500">กำลังโหลดข้อมูลผู้ใช้...</p>
       </div>);
     }
+    // Teacher Sidebar layout — เมนูนำทางสลับ 4 หน้าย่อย (ตารางรายวิชา / ติดตามข้อสอบ / เพิ่มรายวิชา)
+    const teacherNavItems = [
+        { id: 'courses', label: 'ตารางรายวิชา', icon: LayoutDashboard, onClick: () => setTeacherPage('courses') },
+        { id: 'tracking', label: 'ติดตามข้อสอบ', icon: ClipboardList, onClick: () => setTeacherPage('tracking') },
+        { id: 'new-course', label: 'เพิ่มรายวิชา', icon: BookOpen, onClick: () => setTeacherPage('new-course') },
+    ];
+    // Toast Notification — ใช้ร่วมกันทั้ง 2 layout
+    const toastEl = toastMessage && (<div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white/95 backdrop-blur px-4 py-3 shadow-lg text-xs text-slate-700 animate-slideUp">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <CheckCircle2 className="w-4 h-4"/>
+        </span>
+        <span className="font-medium">{toastMessage}</span>
+      </div>);
+    // Teacher (บทบาทอาจารย์) — ใช้ layout แถบข้างใหม่ (SidebarShell)
+    if (currentUser.role === 'Teacher') {
+        return (<SidebarShell currentUser={currentUser} notifications={notifications} onLogout={handleLogout} onMarkNotificationRead={handleMarkNotificationRead} onMarkAllNotificationsRead={handleMarkAllNotificationsRead} navItems={teacherNavItems} activeNavId={teacherPage}>
+        {toastEl}
+        <TeacherView key={currentUser.id} currentUser={currentUser} courses={courses} exams={exams} page={teacherPage} onNavigate={setTeacherPage} selectedCourseId={teacherCourseId} onSelectCourse={setTeacherCourseId} uploadContext={uploadModalData} onUploadSubmit={handleSubmitExamUpload} onOpenUploadModal={handleOpenUploadModal} onPreviewExam={handlePreviewExam} onRemoveExam={handleRemoveExam} onAddNewCourse={handleAddNewCourse} onOpenEnvelope={handlePrintEnvelope} onDownloadLogged={handleDownloadLogged}/>
+        {/* Modals (ใช้ร่วมกับ layout บทบาทอื่น) */}
+
+        {previewExam && (<ExamPreviewModal exam={previewExam} currentUser={currentUser} onClose={() => setPreviewExam(null)} onDownloadLogged={handleDownloadLogged} onPrintRequested={handlePrintExam} onExamDecision={handleExamDecision} onToast={showToast}/>)}
+
+        {envelopeExam && (<ExamEnvelopeCover exam={envelopeExam} onClose={() => setEnvelopeExam(null)} onPrintRecorded={handleEnvelopePrintRecorded}/>)}
+      </SidebarShell>);
+    }
     return (<div className="min-h-screen flex flex-col bg-slate-100/70 text-slate-900 font-sans antialiased">
       {/* Toast Notification */}
-      {toastMessage && (<div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white/95 backdrop-blur px-4 py-3 shadow-lg text-xs text-slate-700 animate-slideUp">
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-            <CheckCircle2 className="w-4 h-4"/>
-          </span>
-          <span className="font-medium">{toastMessage}</span>
-        </div>)}
+      {toastEl}
 
       {/* Main App Header */}
       <Header currentUser={currentUser} notifications={notifications} onLogout={handleLogout} onMarkNotificationRead={handleMarkNotificationRead} onMarkAllNotificationsRead={handleMarkAllNotificationsRead}/>
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {currentUser.role === 'Teacher' && (<TeacherView key={currentUser.id} currentUser={currentUser} courses={courses} exams={exams} onOpenUploadModal={handleOpenUploadModal} onPreviewExam={handlePreviewExam} onRemoveExam={handleRemoveExam} onAddNewCourse={handleAddNewCourse} onOpenEnvelope={handlePrintEnvelope}/>)}
-
         {currentUser.role === 'AudioVisual' && (<AudioVisualView currentUser={currentUser} courses={courses} exams={exams} onPreviewExam={handlePreviewExam} onOpenEnvelope={handlePrintEnvelope} onUpdateExamStatus={handleUpdateExamStatus} onPrintExam={handlePrintExam}/>)}
 
         {currentUser.role === 'Operations' && (<OperationsView currentUser={currentUser} exams={exams} onOpenEnvelope={handlePrintEnvelope} onUpdateExamStatus={handleUpdateExamStatus}/>)}
@@ -541,8 +563,6 @@ export default function AppShell() {
       </footer>
 
       {/* Modals */}
-      {uploadModalData && (<ExamUploadModal course={uploadModalData.course} existingExam={uploadModalData.existingExam} isReupload={uploadModalData.isReupload} onClose={() => setUploadModalData(null)} onSubmitExam={handleSubmitExamUpload}/>)}
-
       {previewExam && (<ExamPreviewModal exam={previewExam} currentUser={currentUser} onClose={() => setPreviewExam(null)} onDownloadLogged={handleDownloadLogged} onPrintRequested={handlePrintExam} onExamDecision={handleExamDecision} onToast={showToast}/>)}
 
       {envelopeExam && (<ExamEnvelopeCover exam={envelopeExam} onClose={() => setEnvelopeExam(null)} onPrintRecorded={handleEnvelopePrintRecorded}/>)}
