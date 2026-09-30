@@ -10,26 +10,43 @@
  * ─────────────────────────────────────────────────────────
  */
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bell, CheckCheck, LogOut, Info, CheckCircle, AlertTriangle, LifeBuoy, } from 'lucide-react';
 
-export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotificationRead, onMarkAllNotificationsRead, navItems = [], activeNavId = null, children, }) => {
+export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotificationRead, onMarkAllNotificationsRead, onOpenNotification, navItems = [], activeNavId = null, children, }) => {
     const [showNotifMenu, setShowNotifMenu] = useState(false);
+    const bellRef = React.useRef(null);
+    // ปิด dropdown แจ้งเตือนด้วยปุ่ม Escape แล้วคืนโฟกัสที่ปุ่มกระดิ่ง
+    useEffect(() => {
+        if (!showNotifMenu)
+            return;
+        const onKey = (e) => {
+            if (e.key === 'Escape') {
+                setShowNotifMenu(false);
+                bellRef.current?.focus();
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [showNotifMenu]);
     // แสดงเฉพาะการแจ้งเตือนที่ออกถึงบทบาทของผู้ใช้ปัจจุบัน (หรือแบบทั่วไป)
     const visibleNotifs = notifications.filter((n) => !n.targetRole || n.targetRole === 'ALL' || n.targetRole === currentUser.role);
     const unreadCount = visibleNotifs.filter((n) => !n.isRead).length;
 
     return (<div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 text-slate-900 font-sans antialiased">
+      {/* พื้นหลังดักคลิก — ปิด dropdown แจ้งเตือนเมื่อคลิกนอกเมนู */}
+      {showNotifMenu && (<div className="fixed inset-0 z-30" onClick={() => setShowNotifMenu(false)} aria-hidden="true"/>)}
+
       {/* ═══ แถบข้าง (Sidebar) ═══ */}
       <aside className="bg-[#1A4B7A] text-white lg:w-64 shrink-0 lg:sticky lg:top-0 lg:h-screen flex flex-col">
         {/* แบรนด์ */}
         <div className="px-6 pt-6 pb-2 shrink-0">
           <p className="font-display text-lg font-bold tracking-wide">SCI / EXAM</p>
-          <p className="text-xs text-white/60 mt-0.5">คณะวิทยาศาสตร์</p>
+          <p className="text-xs text-white/70 mt-0.5">คณะวิทยาศาสตร์</p>
         </div>
 
         {/* เมนูนำทาง — รับจาก props (active ตามหน้าปัจจุบัน) */}
-        <nav className="px-3 py-4 space-y-1 flex lg:flex-col gap-1 overflow-x-auto shrink-0" aria-label="เมนูอาจารย์">
+        <nav className="px-3 py-4 space-y-1 flex lg:flex-col gap-1 overflow-x-auto shrink-0" aria-label="เมนูหลัก">
           {navItems.map((item) => (<button key={item.id || item.label} onClick={item.onClick} aria-current={activeNavId === item.id ? 'page' : undefined} className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors ${activeNavId === item.id
             ? 'bg-white/15 text-white'
             : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
@@ -52,7 +69,7 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
               <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
               สถานะระบบ: ปกติ
             </p>
-            <p className="text-white/60 mt-1">อัปเดตล่าสุด • ภาคเรียนที่ 1/2569</p>
+            <p className="text-white/70 mt-1">อัปเดตล่าสุด • ภาคเรียนที่ 1/2569</p>
           </div>
 
           {/* ผู้ใช้ + ออกจากระบบ */}
@@ -63,7 +80,7 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold leading-none truncate">{currentUser.name}</p>
-                <p className="text-xs text-white/60 mt-1 truncate">{currentUser.department || 'อาจารย์ผู้สอน'}</p>
+                <p className="text-xs text-white/70 mt-1 truncate">{currentUser.department || 'อาจารย์ผู้สอน'}</p>
               </div>
             </div>
             <button onClick={onLogout} title="ออกจากระบบ" aria-label="ออกจากระบบ" className="p-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors shrink-0">
@@ -84,14 +101,14 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
             <div className="flex items-center gap-2 shrink-0">
               {/* ศูนย์การแจ้งเตือน (ย้ายจาก Header เดิม) */}
               <div className="relative">
-                <button onClick={() => setShowNotifMenu(!showNotifMenu)} aria-label="การแจ้งเตือน" className="relative p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition-colors">
+                <button ref={bellRef} onClick={() => setShowNotifMenu(!showNotifMenu)} aria-label="การแจ้งเตือน" aria-expanded={showNotifMenu} aria-haspopup="true" className="relative p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition-colors">
                   <Bell className="w-4 h-4"/>
                   {unreadCount > 0 && (<span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">
                       {unreadCount}
                     </span>)}
                 </button>
 
-                {showNotifMenu && (<div className="absolute right-0 mt-2 w-[calc(100vw-2.5rem)] sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
+                {showNotifMenu && (<div role="dialog" aria-label="การแจ้งเตือนความคืบหน้า" className="absolute right-0 mt-2 w-[calc(100vw-2.5rem)] sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
                     <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <Bell className="w-4 h-4 text-[#1A4B7A]"/>
@@ -103,21 +120,25 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
                         </button>)}
                     </div>
                     <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                      {visibleNotifs.length === 0 ? (<div className="p-6 text-center text-xs text-slate-400">ไม่มีการแจ้งเตือนใหม่</div>) : (visibleNotifs.map((notif) => (<div key={notif.id} onClick={() => onMarkNotificationRead(notif.id)} className={`p-3 text-xs hover:bg-slate-50 transition-colors cursor-pointer flex items-start space-x-2.5 ${!notif.isRead ? 'bg-[#1A4B7A]/5' : ''}`}>
+                      {visibleNotifs.length === 0 ? (<div className="p-6 text-center text-xs text-slate-500">ไม่มีการแจ้งเตือนใหม่</div>) : (visibleNotifs.map((notif) => (<button key={notif.id} type="button" onClick={() => {
+                        onMarkNotificationRead(notif.id);
+                        onOpenNotification?.(notif);
+                        setShowNotifMenu(false);
+                    }} className={`w-full text-left p-3 text-xs hover:bg-slate-50 transition-colors flex items-start space-x-2.5 ${!notif.isRead ? 'bg-[#1A4B7A]/5' : ''}`}>
                             <div className="mt-0.5 shrink-0">
                               {notif.type === 'success' ? (<CheckCircle className="w-4 h-4 text-emerald-600"/>) : notif.type === 'warning' ? (<AlertTriangle className="w-4 h-4 text-amber-600"/>) : (<Info className="w-4 h-4 text-[#1A4B7A]"/>)}
                             </div>
                             <div className="flex-1 space-y-0.5">
                               <div className="flex items-center justify-between gap-2">
                                 <p className="font-semibold text-slate-900">{notif.title}</p>
-                                <span className="text-slate-400 shrink-0">{notif.timestamp}</span>
+                                <span className="text-slate-500 shrink-0">{notif.timestamp}</span>
                               </div>
                               <p className="text-slate-600 leading-relaxed">{notif.message}</p>
                             </div>
                             {!notif.isRead && (<div className="w-2 h-2 rounded-full bg-[#1A4B7A] mt-1 shrink-0"></div>)}
-                          </div>)))}
+                          </button>)))}
                     </div>
-                    <div className="p-2 bg-slate-50 text-center border-t border-slate-100 text-xs text-slate-400">
+                    <div className="p-2 bg-slate-50 text-center border-t border-slate-100 text-xs text-slate-500">
                       ระบบแจ้งเตือนอัตโนมัติเมื่อสถานะข้อสอบมีการเปลี่ยนแปลง
                     </div>
                   </div>)}
@@ -130,7 +151,7 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
         <main className="flex-1 px-5 sm:px-8 py-6 sm:py-8">{children}</main>
 
         {/* ท้ายหน้า */}
-        <footer className="px-5 sm:px-8 pb-6 text-center text-xs text-slate-400">
+        <footer className="px-5 sm:px-8 pb-6 text-center text-xs text-slate-500">
           ระบบบริหารจัดการและจัดพิมพ์ข้อสอบ คณะวิทยาศาสตร์
         </footer>
       </div>

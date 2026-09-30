@@ -110,8 +110,8 @@ export const LoginPage = ({ onLogin }) => {
                 <Label htmlFor="login-email" className="font-medium mb-2 block text-slate-800">
                   ชื่อ
                 </Label>
-                <Input id="login-email" type="email" placeholder="name@sci.ac.th" value={email} onChange={(e) => setEmail(e.target.value)} required aria-required="true" aria-label="อีเมลสำหรับเข้าสู่ระบบ" aria-invalid={Boolean(emailError)} aria-describedby={emailError ? 'login-email-error' : undefined} autoComplete="email" className={emailError ? 'border-red-500 focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]' : 'focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]'}/>
-                {emailError && (<p id="login-email-error" className="mt-1.5 text-xs text-red-600 flex items-center space-x-1">
+                <Input id="login-email" type="email" placeholder="อีเมลของท่าน" value={email} onChange={(e) => setEmail(e.target.value)} required aria-required="true" aria-label="อีเมลสำหรับเข้าสู่ระบบ" aria-invalid={Boolean(emailError)} aria-describedby={emailError ? 'login-email-error' : undefined} autoComplete="email" className={emailError ? 'border-rose-500 focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]' : 'focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]'}/>
+                {emailError && (<p id="login-email-error" className="mt-1.5 text-xs text-rose-600 flex items-center space-x-1">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0"/>
                     <span>{emailError}</span>
                   </p>)}
@@ -123,12 +123,12 @@ export const LoginPage = ({ onLogin }) => {
                   รหัสผ่าน
                 </Label>
                 <div className="relative">
-                  <Input id="login-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required aria-required="true" aria-label="รหัสผ่านสำหรับเข้าสู่ระบบ" aria-invalid={Boolean(passwordError)} aria-describedby={passwordError ? 'login-password-error' : undefined} autoComplete="current-password" className={passwordError ? 'pr-10 border-red-500 focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]' : 'pr-10 focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]'}/>
+                  <Input id="login-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required aria-required="true" aria-label="รหัสผ่านสำหรับเข้าสู่ระบบ" aria-invalid={Boolean(passwordError)} aria-describedby={passwordError ? 'login-password-error' : undefined} autoComplete="current-password" className={passwordError ? 'pr-10 border-rose-500 focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]' : 'pr-10 focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]'}/>
                   <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'} aria-pressed={showPassword} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#1A4B7A] transition-colors">
                     {showPassword ? (<EyeOff className="w-4 h-4"/>) : (<Eye className="w-4 h-4"/>)}
                   </button>
                 </div>
-                {passwordError && (<p id="login-password-error" className="mt-1.5 text-xs text-red-600 flex items-center space-x-1">
+                {passwordError && (<p id="login-password-error" className="mt-1.5 text-xs text-rose-600 flex items-center space-x-1">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0"/>
                     <span>{passwordError}</span>
                   </p>)}
@@ -145,7 +145,7 @@ export const LoginPage = ({ onLogin }) => {
                   <span className="leading-relaxed">{error}</span>
                 </div>)}
 
-              <Button type="submit" className="w-full py-2.5 bg-[#1A4B7A] hover:bg-[#153D63] text-white" disabled={loading}>
+              <Button type="submit" className="w-full py-2.5 " disabled={loading}>
                 {loading ? (<Loader2 className="w-4 h-4 animate-spin" aria-hidden="true"/>) : (<LogIn className="w-4 h-4"/>)}
                 <span>{loading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}</span>
               </Button>

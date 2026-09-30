@@ -34,4 +34,4 @@ dist/
 
 
 #plugins
-.playwright-mcp
+.playwright-mcp/

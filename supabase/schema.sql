@@ -55,6 +55,7 @@ create table exams (
   e_time            text not null,
   subject_id        text not null,
   subject_name      text not null,
+  exam_set          text,                   -- ชุดข้อสอบ 'A' | 'B' | 'C' (รายวิชาเดียวส่งได้หลายชุด)
   exam_type         text not null,          -- 'กลางภาค' | 'ปลายภาค' | 'สอบแก้ตัว'
   course_year       text not null,
   term              text not null,

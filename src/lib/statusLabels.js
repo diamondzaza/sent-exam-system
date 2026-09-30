@@ -1,4 +1,4 @@
-/* ค่าคงที่แสดงผลของสถานะข้อสอบทั้ง 8 สถานะ */
+/* ค่าคงที่แสดงผลของสถานะข้อสอบทั้ง 8 สถานะ — จุดเดียวของระบบ (badge/label/filter) */
 export const STATUS_LABELS = {
     DRAFT: {
         label: 'ยังไม่ได้ส่งข้อสอบ',
@@ -11,7 +11,7 @@ export const STATUS_LABELS = {
         step: 2,
     },
     REJECTED: {
-        label: 'ขอให้อัปโหลดใหม่ (ส่งกลับแก้ไข)',
+        label: 'ส่งกลับให้แก้ไข',
         badgeClass: 'bg-rose-50 text-rose-800 border-rose-300',
         step: 2,
     },
@@ -41,3 +41,35 @@ export const STATUS_LABELS = {
         step: 7,
     },
 };
+
+/* สถานะ "ยังไม่ส่ง" สำหรับรายวิชาที่ยังไม่มีข้อสอบ — จุดเดียวของระบบ */
+export const NO_EXAM_STATUS = {
+    label: 'ยังไม่ส่ง',
+    badgeClass: 'bg-slate-100 text-slate-600 border-slate-200',
+};
+
+/* ตัวเลือกกรองสถานะ (ใช้ร่วมทุก filter bar — อ้าง label จาก STATUS_LABELS โดยตรง) */
+export const STATUS_FILTER_OPTIONS = [
+    { value: 'SUBMITTED', label: STATUS_LABELS.SUBMITTED.label },
+    { value: 'REJECTED', label: STATUS_LABELS.REJECTED.label },
+    { value: 'VERIFIED', label: STATUS_LABELS.VERIFIED.label },
+    { value: 'PRINTING', label: STATUS_LABELS.PRINTING.label },
+    { value: 'PRINTED', label: STATUS_LABELS.PRINTED.label },
+    { value: 'DELIVERED_OD', label: STATUS_LABELS.DELIVERED_OD.label },
+    { value: 'READY_FOR_EXAM', label: STATUS_LABELS.READY_FOR_EXAM.label },
+];
+
+/* บทบาทผู้ใช้ — ใช้ร่วมใน filter และฟอร์มทุกจุด */
+export const ROLE_OPTIONS = [
+    { value: 'Teacher', label: 'อาจารย์ผู้สอน (Teacher)' },
+    { value: 'AudioVisual', label: 'ฝ่ายโสตฯ (AudioVisual)' },
+    { value: 'Operations', label: 'ฝ่ายดำเนินการสอบ (Operations)' },
+    { value: 'Admin', label: 'ผู้ดูแลระบบ (Admin)' },
+];
+export const ROLE_BADGE_LABEL = { Teacher: 'อาจารย์', AudioVisual: 'ฝ่ายโสตฯ', Operations: 'ฝ่ายดำเนินการ', Admin: 'ผู้ดูแลระบบ' };
+
+/* กฎการแก้ไข/ยกเลิกของอาจารย์:
+   - แก้ไข (อัปโหลดไฟล์ใหม่) ได้เฉพาะระหว่างที่หน่วยโสตฯ ยังตรวจสอบอยู่ (SUBMITTED / REJECTED)
+   - ยกเลิกได้ถึงก่อนเริ่มจัดพิมพ์เท่านั้น (SUBMITTED / VERIFIED / REJECTED) */
+export const EDITABLE_STATUSES = ['SUBMITTED', 'REJECTED'];
+export const CANCELABLE_STATUSES = ['SUBMITTED', 'VERIFIED', 'REJECTED'];

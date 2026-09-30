@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 const buttonVariants = cva("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 /* NOTE: [&_svg]:size-4 has higher specificity than per-instance w-*/h-* classes — icons inside buttons are always 16px */", {
     variants: {
         variant: {
-            default: 'bg-primary text-primary-foreground shadow-xs hover:bg-indigo-700',
+            default: 'bg-primary text-primary-foreground shadow-xs hover:bg-brand-hover',
             destructive: 'bg-destructive text-destructive-foreground shadow-xs hover:bg-rose-700',
             outline: 'border border-input bg-card shadow-xs hover:bg-secondary hover:text-secondary-foreground',
             secondary: 'bg-secondary text-secondary-foreground shadow-xs hover:bg-slate-200',

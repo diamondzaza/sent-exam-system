@@ -11,13 +11,14 @@
  */
 'use client';
 import React, { useState } from 'react';
-import { STATUS_LABELS } from '@/lib/statusLabels';
+import { STATUS_LABELS, STATUS_FILTER_OPTIONS } from '@/lib/statusLabels';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, ShieldCheck, Search, Printer, FileCheck, Inbox, } from 'lucide-react';
+import { formatThaiDate } from '@/lib/formatDate';
 export const OperationsView = ({ currentUser, exams, page = 'schedule', onNavigate, onOpenEnvelope, onUpdateExamStatus, }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
@@ -49,17 +50,20 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
                   <span className="font-mono text-sm font-bold bg-[#1A4B7A]/10 text-[#1A4B7A] px-2.5 py-0.5 rounded-md border border-[#1A4B7A]/20">
                     {exam.Subject_ID}
                   </span>
-                  <h4 className="text-base font-bold text-slate-900">{exam.Subject_Name}</h4>
+                  <span className="inline-flex items-center rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2 py-0.5 text-xs font-bold">
+                    ชุด {exam.exam_set || 'A'}
+                  </span>
+                  <h4 className="font-display text-base font-bold text-slate-900">{exam.Subject_Name}</h4>
                   <Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-600 pt-1">
                   <div className="flex items-center space-x-1">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400"/>
-                    <span>{exam.E_Date}</span>
+                    <Calendar className="w-3.5 h-3.5 text-slate-500"/>
+                    <span>{formatThaiDate(exam.E_Date)}</span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <Clock className="w-3.5 h-3.5 text-slate-400"/>
+                    <Clock className="w-3.5 h-3.5 text-slate-500"/>
                     <span>{exam.E_Time}</span>
                   </div>
                   <div className="flex items-center space-x-1">
@@ -67,7 +71,7 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
                     <span className="font-semibold text-slate-900">{exam.room}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400">ยอดที่ต้องแจก: </span>
+                    <span className="text-slate-500">ยอดที่ต้องแจก: </span>
                     <span className="font-bold text-slate-900">{exam.total_copies} ชุด</span>
                   </div>
                 </div>
@@ -86,7 +90,7 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
                   <span>ใบปะหน้าซอง</span>
                 </Button>
 
-                {canConfirmReceipt && (<Button onClick={() => handleConfirmReceipt(exam)} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                {canConfirmReceipt && (<Button onClick={() => handleConfirmReceipt(exam)} size="sm">
                     <FileCheck className="w-4 h-4"/>
                     <span>ลงทะเบียนรับซอง</span>
                   </Button>)}
@@ -102,11 +106,7 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
     // ───────── หน้า 1: ตารางรายวิชาจัดสอบ ─────────
     const renderSchedulePage = () => (<>
       {/* Hero */}
-      <div>
-        <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
-          SCIENCE · EXAM OPERATIONS
-        </span>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+      <div>        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
           ตารางรายวิชาจัดสอบ
         </h1>
         <p className="text-sm text-slate-500 mt-2">
@@ -121,7 +121,7 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
             { label: 'ส่งมอบแล้ว รอลงทะเบียน', value: exams.filter((e) => e.status === 'DELIVERED_OD').length },
             { label: 'พร้อมสอบ', value: exams.filter((e) => e.status === 'READY_FOR_EXAM').length },
             { label: 'อยู่ระหว่างจัดพิมพ์', value: exams.filter((e) => e.status === 'PRINTING').length },
-        ].map((stat) => (<div key={stat.label} className="rounded-xl bg-white border border-slate-200/80 px-5 py-4">
+        ].map((stat) => (<div key={stat.label} className="rounded-2xl bg-white border border-slate-200/80 px-5 py-4">
               <p className="font-display text-2xl sm:text-3xl font-bold text-slate-900">{stat.value}</p>
               <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
             </div>))}
@@ -130,26 +130,22 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
       {/* Search & Filter */}
       <div className="rounded-2xl bg-white border border-slate-200/80 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"/>
-          <Input type="text" placeholder="ค้นหารหัสวิชา ชื่อวิชา ห้องสอบ หรืออาจารย์" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9"/>
+          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5"/>
+          <Input type="text" placeholder="ค้นหารหัสวิชา ชื่อวิชา ห้องสอบ หรืออาจารย์" aria-label="ค้นหารหัสวิชา ชื่อวิชา ห้องสอบ หรืออาจารย์" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9"/>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <Label className="text-slate-600">สถานะ:</Label>
           <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-auto">
             <option value="ALL">ทุกสถานะ</option>
-            <option value="READY_FOR_EXAM">พร้อมสอบ</option>
-            <option value="DELIVERED_OD">ส่งมอบแล้ว รอลงทะเบียน</option>
-            <option value="PRINTED">พิมพ์และบรรจุซองแล้ว</option>
-            <option value="PRINTING">กำลังจัดพิมพ์</option>
-            <option value="SUBMITTED">รอโสตฯ ตรวจสอบ</option>
+            {STATUS_FILTER_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
           </Select>
 
           <Label className="text-slate-600 ml-2">วันที่สอบ:</Label>
           <Select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="w-auto">
             <option value="ALL">ทุกวันสอบ</option>
             {uniqueDates.map((date) => (<option key={date} value={date}>
-                {date}
+                {formatThaiDate(date)}
               </option>))}
           </Select>
         </div>
@@ -162,7 +158,7 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
             <h3 className="font-display font-bold text-base text-slate-900">
               ความพร้อมของรายวิชาจัดสอบ
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               ห้องสอบ จำนวนนักศึกษา และสถานะการรับมอบซองข้อสอบ
             </p>
           </div>
@@ -173,7 +169,7 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
         </div>
 
         <div className="divide-y divide-slate-100">
-          {filteredExams.length === 0 ? (<div className="p-12 text-center text-slate-400 text-xs">
+          {filteredExams.length === 0 ? (<div className="p-12 text-center text-slate-500 text-xs">
               ไม่พบรายวิชาจัดสอบตามเงื่อนไขที่เลือก
             </div>) : (filteredExams.map((exam) => renderExamRow(exam)))}
         </div>
@@ -182,11 +178,7 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
     // ───────── หน้า 2: รับมอบซองข้อสอบ ─────────
     const renderIntakePage = () => (<>
       {/* Hero */}
-      <div>
-        <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
-          SCIENCE · EXAM OPERATIONS
-        </span>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+      <div>        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
           รับมอบซองข้อสอบ
         </h1>
         <p className="text-sm text-slate-500 mt-2">
@@ -197,7 +189,7 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
           <h3 className="font-display font-bold text-base text-slate-900">
-            รอลงทะเบียนรับมอบ <span className="text-slate-400 font-normal">({intakeExams.length})</span>
+            รอลงทะเบียนรับมอบ <span className="text-slate-500 font-normal">({intakeExams.length})</span>
           </h3>
           <Badge className="bg-amber-50 text-amber-800 border-amber-300">
             รอดำเนินการ {intakeExams.length} รายการ
@@ -208,7 +200,7 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
           {intakeExams.length === 0 ? (<div className="p-12 text-center">
               <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-3"/>
               <p className="text-sm text-slate-500">ไม่มีซองข้อสอบรอรับมอบในขณะนี้</p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 เมื่อฝ่ายโสตฯ ส่งมอบซองข้อสอบ รายการจะแสดงที่นี่ให้ลงทะเบียนรับ
               </p>
               <Button size="sm" variant="outline" onClick={() => onNavigate?.('schedule')} className="mt-4 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">

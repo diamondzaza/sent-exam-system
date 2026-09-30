@@ -19,6 +19,8 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Search, UserPlus, ShieldAlert, Edit2, Trash2, X, Check, XCircle, AlertCircle, } from 'lucide-react';
+import { useEscape } from '@/hooks/useEscape';
+import { ROLE_OPTIONS, ROLE_BADGE_LABEL } from '@/lib/statusLabels';
 export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAddUser, onUpdateUser, onToggleUserStatus, onDeleteUser, onRefreshUsers, }) => {
     // User Management State
     const [searchUser, setSearchUser] = useState('');
@@ -118,6 +120,19 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     const [watermarkEnabled, setWatermarkEnabled] = useState(true);
     const [requireOTPDownload, setRequireOTPDownload] = useState(true);
     const [restrictIPs, setRestrictIPs] = useState(true);
+    useEscape(Boolean(approvingReq), () => setApprovingReq(null));
+    useEscape(showAddUserModal, () => setShowAddUserModal(false));
+    // ป้ายกิจกรรมภาษาไทยสำหรับ Audit Log (โค้ดดิบใช้เป็น fallback)
+    const LOG_ACTION_LABELS = {
+        VIEW_EXAM: 'เข้าดูข้อสอบ',
+        DOWNLOAD_EXAM: 'ดาวน์โหลดข้อสอบ',
+        PRINT_EXAM: 'พิมพ์ข้อสอบ',
+        PRINT_ENVELOPE: 'พิมพ์หน้าซอง',
+        UPLOAD_EXAM: 'อัปโหลดข้อสอบ',
+        UPDATE_STATUS: 'ปรับสถานะ',
+        LOGIN: 'เข้าสู่ระบบ',
+        REUPLOAD_EXAM: 'อัปโหลดไฟล์ใหม่',
+    };
     const filteredUsers = users.filter((u) => {
         const matchesSearch = u.name.toLowerCase().includes(searchUser.toLowerCase()) ||
             u.username.toLowerCase().includes(searchUser.toLowerCase()) ||
@@ -185,18 +200,14 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     const renderUsersPage = () => (<>
       {/* Hero */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
-            SCIENCE · EXAM OPERATIONS
-          </span>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+        <div>          <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
             จัดการผู้ใช้งาน
           </h1>
           <p className="text-sm text-slate-500 mt-2">
             สวัสดี {currentUser.name} — เพิ่มบัญชี แก้ไขสิทธิ์ และระงับการใช้งานของผู้ใช้ทุกบทบาท
           </p>
         </div>
-        <Button onClick={handleOpenAddUser} className="shrink-0 bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+        <Button onClick={handleOpenAddUser} className="shrink-0 ">
           <UserPlus className="w-4 h-4"/>
           <span>เพิ่มผู้ใช้ใหม่</span>
         </Button>
@@ -209,7 +220,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
             { label: 'อาจารย์ผู้สอน', value: users.filter((u) => u.role === 'Teacher').length },
             { label: 'เจ้าหน้าที่', value: users.filter((u) => ['AudioVisual', 'Operations'].includes(u.role)).length },
             { label: 'ระงับชั่วคราว', value: users.filter((u) => u.status !== 'active').length },
-        ].map((stat) => (<div key={stat.label} className="rounded-xl bg-white border border-slate-200/80 px-5 py-4">
+        ].map((stat) => (<div key={stat.label} className="rounded-2xl bg-white border border-slate-200/80 px-5 py-4">
               <p className="font-display text-2xl sm:text-3xl font-bold text-slate-900">{stat.value}</p>
               <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
             </div>))}
@@ -218,18 +229,15 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
       {/* Search and Filters */}
       <div className="rounded-2xl bg-white border border-slate-200/80 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"/>
-          <Input type="text" placeholder="ค้นหาชื่อ ชื่อผู้ใช้ อีเมล หรือรหัสผู้ใช้" value={searchUser} onChange={(e) => setSearchUser(e.target.value)} className="pl-9"/>
+          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5"/>
+          <Input type="text" placeholder="ค้นหาชื่อ ชื่อผู้ใช้ อีเมล หรือรหัสผู้ใช้" aria-label="ค้นหาชื่อ ชื่อผู้ใช้ อีเมล หรือรหัสผู้ใช้" value={searchUser} onChange={(e) => setSearchUser(e.target.value)} className="pl-9"/>
         </div>
 
         <div className="flex items-center space-x-2 text-xs">
           <span className="text-slate-600">กรองบทบาท:</span>
           <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="w-auto sm:w-44">
             <option value="ALL">ทุกบทบาท</option>
-            <option value="Teacher">อาจารย์ผู้สอน (Teacher)</option>
-            <option value="AudioVisual">ฝ่ายโสตฯ (AudioVisual)</option>
-            <option value="Operations">ฝ่ายดำเนินการสอบ (Operations)</option>
-            <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
+            {ROLE_OPTIONS.map((r) => (<option key={r.value} value={r.value}>{r.label}</option>))}
           </Select>
         </div>
       </div>
@@ -251,7 +259,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-800">
               {filteredUsers.length === 0 ? (<tr>
-                  <td colSpan={7} className="p-10 text-center text-slate-400">
+                  <td colSpan={7} className="p-10 text-center text-slate-500">
                     ไม่พบผู้ใช้ที่ตรงกับการค้นหา
                   </td>
                 </tr>) : (filteredUsers.map((u) => (<tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
@@ -265,21 +273,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
                     <div className="text-xs text-slate-500">{u.email}</div>
                   </td>
                   <td className="p-3">
-                    <Badge variant={u.role === 'Teacher'
-                ? 'success'
-                : u.role === 'AudioVisual'
-                    ? 'info'
-                    : u.role === 'Operations'
-                        ? 'warning'
-                        : 'purple'}>
-                      {u.role === 'Teacher'
-                ? 'อาจารย์'
-                : u.role === 'AudioVisual'
-                    ? 'ฝ่ายโสตฯ'
-                    : u.role === 'Operations'
-                        ? 'ฝ่ายดำเนินการ'
-                        : 'ผู้ดูแลระบบ'}
-                    </Badge>
+                    <Badge className="bg-slate-100 text-slate-700 border-slate-200">{ROLE_BADGE_LABEL[u.role] || u.role}</Badge>
                   </td>
                   <td className="p-3 text-xs text-slate-600 max-w-xs truncate">
                     {u.department}
@@ -300,7 +294,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
                 if (confirm(`ต้องการลบผู้ใช้ ${u.name} หรือไม่?`)) {
                     onDeleteUser(u.id);
                 }
-            }} className="size-7 text-slate-400 hover:text-rose-600 hover:bg-rose-50" title="ลบผู้ใช้">
+            }} className="size-7 text-slate-500 hover:text-rose-600 hover:bg-rose-50" title="ลบผู้ใช้">
                         <Trash2 className="w-3.5 h-3.5"/>
                       </Button>
                     </div>
@@ -314,11 +308,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     // ───────── หน้า 2: บันทึกความปลอดภัย ─────────
     const renderLogsPage = () => (<>
       {/* Hero */}
-      <div>
-        <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
-          SCIENCE · EXAM OPERATIONS
-        </span>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+      <div>        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
           บันทึกความปลอดภัย
         </h1>
         <p className="text-sm text-slate-500 mt-2">
@@ -340,8 +330,8 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
       {/* Search & Filter */}
       <div className="rounded-2xl bg-white border border-slate-200/80 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"/>
-          <Input type="text" placeholder="ค้นหาตามผู้ใช้งาน รหัสวิชา รายละเอียด หรือ IP" value={searchLog} onChange={(e) => setSearchLog(e.target.value)} className="pl-9"/>
+          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5"/>
+          <Input type="text" placeholder="ค้นหาตามผู้ใช้งาน รหัสวิชา รายละเอียด หรือ IP" aria-label="ค้นหาตามผู้ใช้งาน รหัสวิชา รายละเอียด หรือ IP" value={searchLog} onChange={(e) => setSearchLog(e.target.value)} className="pl-9"/>
         </div>
 
         <div className="flex items-center space-x-2 text-xs">
@@ -373,7 +363,11 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-800">
-              {filteredLogs.map((log) => (<tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
+              {filteredLogs.length === 0 ? (<tr>
+                  <td colSpan={6} className="p-10 text-center text-slate-500">
+                    ไม่พบรายการที่ตรงกับการค้นหา/ตัวกรอง
+                  </td>
+                </tr>) : (filteredLogs.map((log) => (<tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
                   <td className="p-3 font-mono text-xs text-slate-500">{log.timestamp}</td>
                   <td className="p-3">
                     <div className="font-bold text-slate-900">{log.userName}</div>
@@ -391,13 +385,13 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
                         : log.action === 'UPLOAD_EXAM'
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : 'bg-slate-100 text-slate-700 border-slate-300'}`}>
-                      {log.action}
+                      {LOG_ACTION_LABELS[log.action] || log.action}
                     </Badge>
                   </td>
                   <td className="p-3 font-mono font-bold text-[#1A4B7A]">{log.subjectId}</td>
                   <td className="p-3 text-xs text-slate-700">{log.details}</td>
                   <td className="p-3 font-mono text-xs text-slate-500">{log.ipAddress}</td>
-                </tr>))}
+                </tr>)))}
             </tbody>
           </table>
         </div>
@@ -406,11 +400,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     // ───────── หน้า 3: คำขอเปิดบัญชี ─────────
     const renderRequestsPage = () => (<>
       {/* Hero */}
-      <div>
-        <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
-          SCIENCE · EXAM OPERATIONS
-        </span>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+      <div>        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
           คำขอเปิดบัญชี
         </h1>
         <p className="text-sm text-slate-500 mt-2">
@@ -426,14 +416,14 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
       {/* คำขอรอพิจารณา */}
       <div className="flex items-center justify-between">
         <h3 className="font-display font-bold text-base text-slate-900">
-          รอพิจารณา <span className="text-slate-400 font-normal">({pendingRequests.length})</span>
+          รอพิจารณา <span className="text-slate-500 font-normal">({pendingRequests.length})</span>
         </h3>
         <Button variant="outline" size="sm" onClick={refreshAccountRequests} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700 text-xs">
           รีเฟรช
         </Button>
       </div>
 
-      {pendingRequests.length === 0 && (<div className="rounded-2xl bg-white border border-slate-200/80 p-10 text-center text-xs text-slate-400">
+      {pendingRequests.length === 0 && (<div className="rounded-2xl bg-white border border-slate-200/80 p-10 text-center text-xs text-slate-500">
           ไม่มีคำขอเปิดบัญชีที่รอพิจารณา
         </div>)}
 
@@ -468,14 +458,14 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
       {/* พิจารณาแล้ว */}
       {reviewedRequests.length > 0 && (<div className="pt-2">
           <h3 className="font-display font-bold text-base text-slate-900 mb-2">
-            พิจารณาแล้ว <span className="text-slate-400 font-normal">({reviewedRequests.length})</span>
+            พิจารณาแล้ว <span className="text-slate-500 font-normal">({reviewedRequests.length})</span>
           </h3>
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm divide-y divide-slate-100">
             {reviewedRequests.map((req) => (<div key={req.id} className="p-3 flex items-center justify-between gap-3 text-xs">
                 <div className="min-w-0">
                   <span className="font-semibold text-slate-800">{req.name}</span>
-                  <span className="text-slate-400"> • {req.email} • </span>
-                  <span className="text-slate-400">{new Date(req.created_at).toLocaleString('th-TH')}</span>
+                  <span className="text-slate-500"> • {req.email} • </span>
+                  <span className="text-slate-500">{new Date(req.created_at).toLocaleString('th-TH')}</span>
                 </div>
                 <Badge className={`shrink-0 rounded ${req.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-rose-50 text-rose-700 border-rose-300'}`}>
                   {req.status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธแล้ว'}
@@ -485,11 +475,11 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
         </div>)}
 
       {/* Modal อนุมัติ — ตั้งบทบาท + รหัสผ่านเริ่มต้น */}
-      {approvingReq && (<div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+      {approvingReq && (<div role="dialog" aria-modal="true" aria-labelledby="approve-title" className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="bg-[#1A4B7A] text-white px-5 py-4 flex items-center justify-between">
               <div>
-                <h3 className="font-display font-semibold text-sm">อนุมัติบัญชีใหม่</h3>
+                <h3 id="approve-title" className="font-display font-semibold text-sm">อนุมัติบัญชีใหม่</h3>
                 <p className="text-xs text-white/60">{approvingReq.name} ({approvingReq.email})</p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setApprovingReq(null)} className="text-white/60 hover:text-white hover:bg-white/10" aria-label="ปิด">
@@ -504,16 +494,13 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
               <div>
                 <Label className="mb-1">บทบาทในระบบ</Label>
                 <Select value={approveRole} onChange={(e) => setApproveRole(e.target.value)}>
-                  <option value="Teacher">อาจารย์ผู้สอน (Teacher)</option>
-                  <option value="AudioVisual">ฝ่ายโสตฯ (AudioVisual)</option>
-                  <option value="Operations">ฝ่ายดำเนินการสอบ (Operations)</option>
-                  <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
+                  {ROLE_OPTIONS.map((r) => (<option key={r.value} value={r.value}>{r.label}</option>))}
                 </Select>
               </div>
               <div>
                 <Label className="mb-1">รหัสผ่านเริ่มต้น (แจ้งผู้ใช้โดยตรง) *</Label>
                 <Input type="text" value={approvePassword} onChange={(e) => setApprovePassword(e.target.value)} placeholder="อย่างน้อย 6 ตัวอักษร" minLength={6}/>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-slate-500">
                   ระบบจะสร้างบัญชีล็อกอินด้วยอีเมล {approvingReq.email} + รหัสผ่านนี้ทันที
                 </p>
               </div>
@@ -533,11 +520,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     // ───────── หน้า 4: นโยบายป้องกันข้อสอบรั่วไหล ─────────
     const renderPoliciesPage = () => (<>
       {/* Hero */}
-      <div>
-        <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
-          SCIENCE · EXAM OPERATIONS
-        </span>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+      <div>        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
           นโยบายป้องกันข้อสอบรั่วไหล
         </h1>
         <p className="text-sm text-slate-500 mt-2">
@@ -589,16 +572,16 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
       {page === 'logs' ? renderLogsPage() : page === 'requests' ? renderRequestsPage() : page === 'policies' ? renderPoliciesPage() : renderUsersPage()}
 
       {/* Add / Edit User Modal */}
-      {showAddUserModal && (<div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+      {showAddUserModal && (<div role="dialog" aria-modal="true" aria-labelledby="user-form-title" className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden">
             <div className="bg-[#1A4B7A] text-white px-6 py-4 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <UserPlus className="w-5 h-5 text-white/80"/>
-                <h3 className="font-display font-bold text-sm">
+                <h3 id="user-form-title" className="font-display font-bold text-sm">
                   {editingUser ? 'แก้ไขข้อมูลผู้ใช้งาน' : 'เพิ่มผู้ใช้งานใหม่'}
                 </h3>
               </div>
-              <button onClick={() => setShowAddUserModal(false)} className="p-1 text-white/60 hover:text-white rounded-lg">
+              <button onClick={() => setShowAddUserModal(false)} className="p-1 text-white/60 hover:text-white rounded-lg" aria-label="ปิด">
                 <X className="w-5 h-5"/>
               </button>
             </div>
@@ -606,13 +589,13 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
             <form onSubmit={handleSaveUser} className="p-6 space-y-4 text-xs">
               <div>
                 <Label className="mb-1">ชื่อ - นามสกุล (พร้อมคำนำหน้า) *</Label>
-                <Input type="text" placeholder="เช่น ผศ.ดร.สมเกียรติ สว่างวงศ์" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required/>
+                <Input type="text" placeholder="ชื่อ-นามสกุลพร้อมคำนำหน้า" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required/>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="mb-1">ชื่อผู้ใช้งาน (Username) *</Label>
-                  <Input type="text" placeholder="เช่น somkiat.s" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required/>
+                  <Input type="text" placeholder="ชื่อผู้ใช้ภาษาอังกฤษ ไม่มีช่องว่าง" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required/>
                 </div>
 
                 <div>
@@ -629,12 +612,12 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="mb-1">อีเมลสำหรับล็อกอิน *</Label>
-                  <Input type="email" placeholder="somkiat@sci.ac.th" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required/>
+                  <Input type="email" placeholder="อีเมลสำหรับล็อกอิน" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required/>
                 </div>
 
                 <div>
                   <Label className="mb-1">เบอร์โทรศัพท์</Label>
-                  <Input type="text" placeholder="081-xxx-xxxx" value={formData.tel} onChange={(e) => setFormData({ ...formData, tel: e.target.value })}/>
+                  <Input type="text" placeholder="เบอร์โทรศัพท์ที่ติดต่อได้" value={formData.tel} onChange={(e) => setFormData({ ...formData, tel: e.target.value })}/>
                 </div>
               </div>
 
@@ -643,7 +626,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
                   {editingUser ? 'รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)' : 'รหัสผ่านสำหรับล็อกอิน *'}
                 </Label>
                 <Input type="password" placeholder="อย่างน้อย 6 ตัวอักษร" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required={!editingUser} minLength={6}/>
-                {!editingUser && (<p className="mt-1 text-xs text-slate-400">
+                {!editingUser && (<p className="mt-1 text-xs text-slate-500">
                     ผู้ใช้จะล็อกอินด้วยอีเมลด้านบน + รหัสผ่านนี้ทันทีหลังบันทึก
                   </p>)}
               </div>
@@ -657,7 +640,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
                 <Button type="button" variant="outline" onClick={() => setShowAddUserModal(false)}>
                   ยกเลิก
                 </Button>
-                <Button type="submit" className="bg-[#1A4B7A] hover:bg-[#153D63] text-white">
+                <Button type="submit" className="">
                   {editingUser ? 'บันทึกการแก้ไข' : 'บันทึกผู้ใช้'}
                 </Button>
               </div>
