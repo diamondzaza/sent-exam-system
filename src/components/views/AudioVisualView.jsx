@@ -1,11 +1,11 @@
 /**
  * ─────────────────────────────────────────────────────────
  * ชื่อไฟล์: AudioVisualView.jsx
- * หน้าที่ของหน้านี้: หน้างานสำหรับหน่วยเทคโนโลยีการศึกษา (โสตทัศน์) — การ์ด KPI
- *   ของ pipeline (รอตรวจ / กำลังพิมพ์ / พิมพ์แล้ว / ส่งมอบแล้ว), ค้นหา + กรองสถานะ,
- *   เลือกรายวิชาจากตาราง แล้วดำเนินการในคิวผลิต: ตรวจสอบผ่าน (VERIFIED),
- *   ปฏิเสธพร้อมเหตุผล (REJECTED), เริ่มพิมพ์ (PRINTING), พิมพ์เสร็จ (PRINTED),
- *   ส่งมอบฝ่ายดำเนินการ (DELIVERED_OD)
+ * หน้าที่ของหน้านี้: หน้างานฝ่ายโสตทัศน์ 2 หน้าย่อย (แสดงภายใน SidebarShell) —
+ *   1. queue     : คิวตรวจสอบและผลิตข้อสอบ — สถิติ, ค้นหา/กรอง, รายการข้อสอบ
+ *                  พร้อมปุ่มดำเนินการตามสถานะ (อนุมัติ / ส่งกลับ / เริ่มพิมพ์ /
+ *                  พิมพ์เสร็จ / ส่งมอบ) และปุ่มตรวจข้อสอบ / พิมพ์ซอง / พิมพ์ข้อสอบจริง
+ *   2. directory : รายวิชาและอาจารย์ผู้ประสานงาน — ตารางติดต่อ + สถานะ
  * ผู้ใช้งาน: เจ้าหน้าที่หน่วยโสตทัศน์ (AudioVisual)
  * ─────────────────────────────────────────────────────────
  */
@@ -13,14 +13,14 @@
 import React, { useState } from 'react';
 import { STATUS_LABELS } from '@/lib/statusLabels';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
-import { Printer, CheckCircle, Eye, AlertTriangle, Search, Filter, Send, CheckCheck, RotateCcw, BookOpen, User, Phone, } from 'lucide-react';
-export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExam, onOpenEnvelope, onUpdateExamStatus, onPrintExam, }) => {
+import { Printer, CheckCircle, Eye, AlertTriangle, Search, Send, CheckCheck, RotateCcw, User, Phone, X, } from 'lucide-react';
+const NO_EXAM_STATUS = { label: 'ยังไม่ส่งข้อสอบ', badgeClass: 'bg-slate-100 text-slate-600 border-slate-200' };
+export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queue', onNavigate, onPreviewExam, onOpenEnvelope, onUpdateExamStatus, onPrintExam, }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [selectedCourseId, setSelectedCourseId] = useState('ALL');
@@ -52,15 +52,15 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
             });
         }
     });
-    // Filter subjects for the Directory Section
+    // Filter subjects for the Directory Page
     const filteredSubjects = subjectList.filter((item) => {
         const matchesSearch = item.courseId.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.courseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.teacherName.toLowerCase().includes(searchQuery.toLowerCase());
+            (item.teacherName || '').toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus = statusFilter === 'ALL' || (item.exam ? item.exam.status === statusFilter : false);
         return matchesSearch && matchesStatus;
     });
-    // Filter exams for the Production Section
+    // Filter exams for the Queue Page
     const filteredExams = exams.filter((exam) => {
         const matchesCourse = selectedCourseId === 'ALL' || exam.Subject_ID === selectedCourseId;
         const matchesSearch = exam.Subject_ID.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,6 +71,13 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
         return matchesCourse && matchesSearch && matchesStatus;
     });
     const selectedSubjectItem = subjectList.find((s) => s.courseId === selectedCourseId);
+    // เปิดคิวของรายวิชาใดวิชาหนึ่งจากหน้ารายวิชา
+    const openCourseQueue = (courseId) => {
+        setSelectedCourseId(courseId);
+        setSearchQuery('');
+        setStatusFilter('ALL');
+        onNavigate?.('queue');
+    };
     const handleApprove = (exam) => {
         onUpdateExamStatus(exam.E_No, 'VERIFIED', 'ฝ่ายโสตฯ ตรวจสอบความสมบูรณ์ของเอกสารแล้ว พร้อมจัดพิมพ์');
     };
@@ -91,231 +98,66 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
         setRejectingExam(null);
         setRejectReason('');
     };
-    return (<div className="space-y-6">
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 text-white shadow-md relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <Badge className="bg-indigo-500/30 text-indigo-300 border-indigo-500/30 rounded-full font-medium">
-                หน่วยเทคโนโลยีการศึกษา (ฝ่ายโสตฯ)
-              </Badge>
-            </div>
-            <h2 className="font-display text-xl sm:text-2xl font-bold">
-              ระบบตรวจสอบและผลิตจัดพิมพ์ข้อสอบ
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-              ผู้ปฏิบัติงาน: {currentUser.name} • {currentUser.location || 'ห้องผลิตสื่อและพิมพ์ข้อสอบ ชั้น 2'}
-              <br />
-              ตรวจรับไฟล์ข้อสอบ จัดพิมพ์ และส่งมอบซองข้อสอบให้ฝ่ายจัดสอบ
-            </p>
-          </div>
-        </div>
+    // ───────── หน้า 1: คิวตรวจสอบและผลิตข้อสอบ ─────────
+    const renderQueuePage = () => (<>
+      {/* Hero */}
+      <div>
+        <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
+          SCIENCE · EXAM OPERATIONS
+        </span>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+          คิวตรวจสอบและผลิตข้อสอบ
+        </h1>
+        <p className="text-sm text-slate-500 mt-2">
+          สวัสดี {currentUser.name} — ตรวจรับไฟล์ จัดพิมพ์ และส่งมอบซองข้อสอบให้ฝ่ายจัดสอบ
+        </p>
       </div>
 
-      {/* Production Pipeline Overview */}
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="p-4 border-amber-200 bg-amber-50/30">
-          <p className="text-xs text-amber-800 font-medium">รอตรวจสอบ</p>
-          <p className="text-2xl font-bold text-amber-600 mt-1">
-            {exams.filter((e) => e.status === 'SUBMITTED').length} รายการ
-          </p>
-        </Card>
-
-        <Card className="p-4 border-indigo-200 bg-indigo-50/30">
-          <p className="text-xs text-indigo-800 font-medium">กำลังจัดพิมพ์</p>
-          <p className="text-2xl font-bold text-indigo-600 mt-1">
-            {exams.filter((e) => e.status === 'PRINTING').length} รายการ
-          </p>
-        </Card>
-
-        <Card className="p-4 border-purple-200 bg-purple-50/30">
-          <p className="text-xs text-purple-800 font-medium">พิมพ์เสร็จ/รอส่งมอบ</p>
-          <p className="text-2xl font-bold text-purple-600 mt-1">
-            {exams.filter((e) => e.status === 'PRINTED').length} รายการ
-          </p>
-        </Card>
-
-        <Card className="p-4 border-teal-200 bg-teal-50/30">
-          <p className="text-xs text-teal-800 font-medium">ส่งมอบฝ่ายจัดสอบแล้ว</p>
-          <p className="text-2xl font-bold text-teal-600 mt-1">
-            {exams.filter((e) => ['DELIVERED_OD', 'READY_FOR_EXAM'].includes(e.status)).length} รายการ
-          </p>
-        </Card>
+        {[
+            { label: 'รอตรวจสอบ', value: exams.filter((e) => e.status === 'SUBMITTED').length },
+            { label: 'กำลังจัดพิมพ์', value: exams.filter((e) => e.status === 'PRINTING').length },
+            { label: 'พิมพ์เสร็จ รอส่งมอบ', value: exams.filter((e) => e.status === 'PRINTED').length },
+            { label: 'ส่งมอบแล้ว', value: exams.filter((e) => ['DELIVERED_OD', 'READY_FOR_EXAM'].includes(e.status)).length },
+        ].map((stat) => (<div key={stat.label} className="rounded-xl bg-white border border-slate-200/80 px-5 py-4">
+              <p className="font-display text-2xl sm:text-3xl font-bold text-slate-900">{stat.value}</p>
+              <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
+            </div>))}
       </div>
 
-      {/* Search & Filter Bar */}
-      <Card className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Search & Filter */}
+      <div className="rounded-2xl bg-white border border-slate-200/80 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"/>
-          <Input type="text" placeholder="ค้นหารหัสวิชา ชื่อวิชา หรืออาจารย์ผู้สอน" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 rounded-xl"/>
+          <Input type="text" placeholder="ค้นหาเลขที่ข้อสอบ รหัสวิชา ชื่อวิชา หรืออาจารย์" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 rounded-xl"/>
         </div>
-
-        <div className="flex items-center space-x-2 text-xs">
-          <Filter className="w-4 h-4 text-slate-400"/>
+        <div className="flex items-center space-x-2 text-xs shrink-0">
           <span className="text-slate-600">กรองสถานะ:</span>
           <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-auto rounded-xl">
-            <option value="ALL">สถานะทั้งหมด</option>
+            <option value="ALL">ทุกสถานะ</option>
             <option value="SUBMITTED">รอตรวจสอบ</option>
             <option value="VERIFIED">ตรวจสอบแล้ว</option>
             <option value="PRINTING">กำลังจัดพิมพ์</option>
             <option value="PRINTED">พิมพ์และบรรจุซองแล้ว</option>
-            <option value="DELIVERED_OD">ส่งมอบฝ่ายดำเนินการแล้ว</option>
+            <option value="DELIVERED_OD">ส่งมอบแล้ว</option>
             <option value="REJECTED">ส่งกลับแก้ไข</option>
           </Select>
         </div>
-      </Card>
+      </div>
 
-      {/* SECTION 1: รายการวิชาและชื่ออาจารย์ (FIRST: Subject & Teacher Directory) */}
-      <Card className="overflow-hidden">
-        <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/70">
-          <div className="space-y-0.5">
-            <div className="flex items-center space-x-2">
-              <Badge className="rounded-md border-transparent bg-indigo-100 text-indigo-800">
-                ขั้นตอนที่ 1
-              </Badge>
-              <h3 className="font-display font-bold text-base text-slate-900 flex items-center space-x-2">
-                <BookOpen className="w-4 h-4 text-indigo-600"/>
-                <span>รายการวิชาและอาจารย์ผู้ประสานงาน</span>
-              </h3>
-            </div>
-            <p className="text-xs text-slate-500">
-              เลือกวิชาเพื่อดูรายการข้อสอบและจัดการการพิมพ์ด้านล่าง
-            </p>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Button size="sm" variant={selectedCourseId === 'ALL' ? 'default' : 'outline'} onClick={() => setSelectedCourseId('ALL')}>
-              แสดงข้อสอบทุกวิชา ({subjectList.length})
-            </Button>
-          </div>
+      {/* คิวงาน */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm">
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h3 className="font-display font-bold text-base text-slate-900">
+            {selectedCourseId === 'ALL' ? 'รายการข้อสอบทุกวิชา' : `รายวิชา ${selectedCourseId} ${selectedSubjectItem?.courseName || ''}`}
+          </h3>
+          {selectedCourseId !== 'ALL' && (<Button size="sm" variant="outline" onClick={() => setSelectedCourseId('ALL')} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+              ดูทุกวิชา
+            </Button>)}
         </div>
 
-        {/* Subjects & Instructors Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100/70 text-slate-700 border-b border-slate-200">
-              <tr>
-                <th className="py-3 px-4 font-semibold">รหัสวิชาและชื่อวิชา</th>
-                <th className="py-3 px-4 font-semibold">อาจารย์ผู้สอน</th>
-                <th className="py-3 px-4 font-semibold">เบอร์โทรติดต่อ</th>
-                <th className="py-3 px-4 font-semibold">วัน/เวลา/ห้องสอบ</th>
-                <th className="py-3 px-4 font-semibold">ยอดพิมพ์</th>
-                <th className="py-3 px-4 font-semibold">สถานะข้อสอบ</th>
-                <th className="py-3 px-4 font-semibold text-right">การจัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {filteredSubjects.length === 0 ? (<tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">
-                    ไม่พบข้อมูลรายวิชาและอาจารย์ที่ตรงกับการค้นหา
-                  </td>
-                </tr>) : (filteredSubjects.map((item) => {
-            const isSelected = selectedCourseId === item.courseId;
-            const statusConfig = item.exam ? STATUS_LABELS[item.exam.status] : null;
-            return (<tr key={item.courseId} onClick={() => setSelectedCourseId(item.courseId)} className={`cursor-pointer transition-colors ${isSelected
-                    ? 'bg-indigo-50/70 hover:bg-indigo-50 font-medium'
-                    : 'hover:bg-slate-50'}`}>
-                      {/* Course */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center space-x-2">
-                          <span className={`font-mono text-xs font-bold px-2 py-0.5 rounded border ${isSelected
-                    ? 'bg-indigo-600 text-white border-indigo-700'
-                    : 'bg-slate-100 text-slate-800 border-slate-300'}`}>
-                            {item.courseId}
-                          </span>
-                          <span className="font-semibold text-slate-900">{item.courseName}</span>
-                        </div>
-                      </td>
-
-                      {/* Instructor Name */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center space-x-1.5 text-slate-800">
-                          <User className="w-3.5 h-3.5 text-slate-400"/>
-                          <span className="font-medium">{item.teacherName}</span>
-                        </div>
-                      </td>
-
-                      {/* Instructor Tel */}
-                      <td className="py-3 px-4 text-slate-600">
-                        <div className="flex items-center space-x-1 font-mono text-xs">
-                          <Phone className="w-3 h-3 text-slate-400"/>
-                          <span>{item.teacherTel}</span>
-                        </div>
-                      </td>
-
-                      {/* Schedule & Room */}
-                      <td className="py-3 px-4 text-slate-600">
-                        {item.exam ? (<div>
-                            <div>{item.exam.E_Date} ({item.exam.E_Time})</div>
-                            <div className="text-slate-500 text-xs">ห้อง: {item.exam.room}</div>
-                          </div>) : (<span className="text-slate-400">ยังไม่กำหนด</span>)}
-                      </td>
-
-                      {/* Copies */}
-                      <td className="py-3 px-4">
-                        {item.exam ? (<span className="font-semibold text-slate-900">
-                            {item.exam.total_copies + item.exam.copies_reserve} ชุด
-                          </span>) : (<span className="text-slate-400">{item.studentCount} คน</span>)}
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-3 px-4">
-                        {statusConfig ? (<Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>) : (<Badge className="bg-slate-100 text-slate-700 border-slate-300">ยังไม่ส่งข้อสอบ</Badge>)}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end space-x-1.5" onClick={(e) => e.stopPropagation()}>
-                          {item.exam ? (<>
-                              <Button size="sm" variant={isSelected ? 'default' : 'outline'} className={isSelected ? '' : 'text-indigo-700 border-indigo-200 hover:bg-indigo-50'} onClick={() => setSelectedCourseId(item.courseId)}>
-                                {isSelected ? 'กำลังเลือก' : 'เลือกวิชานี้'}
-                              </Button>
-                              <Button variant="ghost" size="icon" className="size-7 text-slate-600 hover:text-indigo-600" onClick={() => item.exam && onPreviewExam(item.exam)} title="ดูตัวอย่างข้อสอบ">
-                                <Eye className="w-3.5 h-3.5"/>
-                              </Button>
-                              <Button variant="ghost" size="icon" className="size-7 text-purple-600 hover:bg-purple-50 hover:text-purple-700" onClick={() => item.exam && onOpenEnvelope(item.exam)} title="พิมพ์ใบปะหน้าซองข้อสอบ">
-                                <Printer className="w-3.5 h-3.5"/>
-                              </Button>
-                            </>) : (<span className="text-slate-400 text-xs">รออาจารย์จัดส่ง</span>)}
-                        </div>
-                      </td>
-                    </tr>);
-        }))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* SECTION 2: รายการข้อสอบและกระบวนการจัดพิมพ์ (Exam Work Orders & Printing Pipeline) */}
-      <Card className="overflow-hidden">
-        <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60">
-          <div className="space-y-0.5">
-            <div className="flex items-center space-x-2">
-              <Badge className="rounded-md border-transparent bg-slate-800 text-white">
-                ขั้นตอนที่ 2
-              </Badge>
-              <h3 className="font-display font-bold text-base text-slate-900">
-                {selectedCourseId === 'ALL'
-            ? 'รายการข้อสอบและกระบวนการจัดพิมพ์ (ทุกรายวิชา)'
-            : `รายการข้อสอบและกระบวนการจัดพิมพ์: ${selectedCourseId} ${selectedSubjectItem?.courseName || ''}`}
-              </h3>
-            </div>
-            <p className="text-xs text-slate-500">
-              {selectedCourseId === 'ALL'
-            ? `พบ ${filteredExams.length} รายการข้อสอบที่ต้องดำเนินการ`
-            : `อาจารย์ผู้รับผิดชอบ: ${selectedSubjectItem?.teacherName || '-'} • โทร: ${selectedSubjectItem?.teacherTel || '-'}`}
-            </p>
-          </div>
-
-          <div className="flex items-center space-x-2 text-xs">
-            {selectedCourseId !== 'ALL' && (<Button size="sm" variant="secondary" onClick={() => setSelectedCourseId('ALL')}>
-                ดูข้อสอบทุกวิชา
-              </Button>)}
-          </div>
-        </div>
-
-        <div className="divide-y divide-slate-200">
+        <div className="divide-y divide-slate-100">
           {filteredExams.length === 0 ? (<div className="p-12 text-center text-slate-400 text-xs">
               {selectedCourseId !== 'ALL'
                 ? `รายวิชา ${selectedCourseId} ยังไม่มีไฟล์ข้อสอบส่งเข้ามาในระบบ`
@@ -323,16 +165,14 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
             </div>) : (filteredExams.map((exam) => {
             const statusConfig = STATUS_LABELS[exam.status];
             return (<div key={exam.E_No} className="p-6 hover:bg-slate-50/50 transition-colors space-y-4">
+                  {/* หัวแถว + ปุ่มเครื่องมือ */}
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    {/* Left details */}
-                    <div className="space-y-1.5 flex-1">
+                    <div className="space-y-1.5 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-sm font-bold bg-slate-100 text-slate-800 px-2.5 py-0.5 rounded border border-slate-300">
+                        <span className="font-mono text-sm font-bold bg-[#1A4B7A]/10 text-[#1A4B7A] px-2.5 py-0.5 rounded-md border border-[#1A4B7A]/20">
                           {exam.E_No}
                         </span>
-                        <span className="font-mono text-sm font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                          {exam.Subject_ID}
-                        </span>
+                        <span className="font-mono text-sm font-bold text-slate-900">{exam.Subject_ID}</span>
                         <h4 className="text-base font-bold text-slate-900">{exam.Subject_Name}</h4>
                         <Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>
                       </div>
@@ -352,7 +192,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
                         </div>
                         <div>
                           <span className="text-slate-400">ยอดพิมพ์: </span>
-                          <span className="font-bold text-indigo-700">
+                          <span className="font-bold text-[#1A4B7A]">
                             {exam.total_copies} + {exam.copies_reserve} = {exam.total_copies + exam.copies_reserve} ชุด
                           </span>
                         </div>
@@ -371,26 +211,25 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
                         </div>)}
                     </div>
 
-                    {/* Right action toolbars */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => onPreviewExam(exam)} title="เปิดดูตัวอย่างไฟล์ข้อสอบ">
-                        <Eye className="w-3.5 h-3.5 text-indigo-600"/>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => onPreviewExam(exam)} title="เปิดดูตัวอย่างไฟล์ข้อสอบ" className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+                        <Eye className="w-3.5 h-3.5 text-[#1A4B7A]"/>
                         <span>ตรวจข้อสอบ</span>
                       </Button>
 
-                      <Button variant="outline" size="sm" className="text-indigo-800 border-indigo-200 hover:bg-indigo-50" onClick={() => onOpenEnvelope(exam)} title="พิมพ์ใบปะหน้าซองข้อสอบ">
-                        <Printer className="w-3.5 h-3.5 text-indigo-600"/>
+                      <Button variant="outline" size="sm" onClick={() => onOpenEnvelope(exam)} title="พิมพ์ใบปะหน้าซองข้อสอบ" className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+                        <Printer className="w-3.5 h-3.5 text-[#1A4B7A]"/>
                         <span>พิมพ์หน้าซอง</span>
                       </Button>
 
-                      <Button size="sm" className="bg-slate-800 hover:bg-slate-700 text-white" onClick={() => onPrintExam(exam)} title="สั่งพิมพ์ข้อสอบจริงเข้าเครื่องพิมพ์">
-                        <Printer className="w-3.5 h-3.5 text-amber-300"/>
+                      <Button size="sm" className="bg-[#1A4B7A] hover:bg-[#153D63] text-white" onClick={() => onPrintExam(exam)} title="สั่งพิมพ์ข้อสอบจริงเข้าเครื่องพิมพ์">
+                        <Printer className="w-3.5 h-3.5"/>
                         <span>พิมพ์ข้อสอบ</span>
                       </Button>
                     </div>
                   </div>
 
-                  {/* Production Status Workflow Buttons */}
+                  {/* การปรับสถานะ */}
                   <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <span className="text-slate-500 font-semibold">การปรับสถานะ:</span>
 
@@ -409,7 +248,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
                           </Button>
                         </>)}
 
-                      {exam.status === 'VERIFIED' && (<Button size="sm" onClick={() => handleStartPrinting(exam)}>
+                      {exam.status === 'VERIFIED' && (<Button size="sm" onClick={() => handleStartPrinting(exam)} className="bg-[#1A4B7A] hover:bg-[#153D63] text-white">
                           <Printer className="w-3.5 h-3.5"/>
                           <span>เริ่มจัดพิมพ์</span>
                         </Button>)}
@@ -433,7 +272,128 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
                 </div>);
         }))}
         </div>
-      </Card>
+      </div>
+    </>);
+    // ───────── หน้า 2: รายวิชาและอาจารย์ผู้ประสานงาน ─────────
+    const renderDirectoryPage = () => (<>
+      {/* Hero */}
+      <div>
+        <span className="inline-block text-[11px] font-bold tracking-[0.18em] text-[#1A4B7A] bg-[#1A4B7A]/10 rounded-md px-2.5 py-1">
+          SCIENCE · EXAM OPERATIONS
+        </span>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
+          รายวิชาและอาจารย์ผู้ประสานงาน
+        </h1>
+        <p className="text-sm text-slate-500 mt-2">
+          ข้อมูลติดต่ออาจารย์ผู้สอนและสถานะข้อสอบของแต่ละรายวิชา
+        </p>
+      </div>
+
+      {/* Search & Filter */}
+      <div className="rounded-2xl bg-white border border-slate-200/80 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"/>
+          <Input type="text" placeholder="ค้นหารหัสวิชา ชื่อวิชา หรืออาจารย์ผู้สอน" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 rounded-xl"/>
+        </div>
+        <div className="flex items-center space-x-2 text-xs shrink-0">
+          <span className="text-slate-600">กรองสถานะ:</span>
+          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-auto rounded-xl">
+            <option value="ALL">ทุกสถานะ</option>
+            <option value="SUBMITTED">รอตรวจสอบ</option>
+            <option value="VERIFIED">ตรวจสอบแล้ว</option>
+            <option value="PRINTING">กำลังจัดพิมพ์</option>
+            <option value="PRINTED">พิมพ์และบรรจุซองแล้ว</option>
+            <option value="DELIVERED_OD">ส่งมอบแล้ว</option>
+            <option value="REJECTED">ส่งกลับแก้ไข</option>
+          </Select>
+        </div>
+      </div>
+
+      {/* ตารางรายวิชา */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 text-slate-700 border-b border-slate-200">
+              <tr>
+                <th className="py-3 px-4 font-semibold">รหัสวิชาและชื่อวิชา</th>
+                <th className="py-3 px-4 font-semibold">อาจารย์ผู้สอน</th>
+                <th className="py-3 px-4 font-semibold">เบอร์โทรติดต่อ</th>
+                <th className="py-3 px-4 font-semibold">วัน/เวลา/ห้องสอบ</th>
+                <th className="py-3 px-4 font-semibold">ยอดพิมพ์</th>
+                <th className="py-3 px-4 font-semibold">สถานะข้อสอบ</th>
+                <th className="py-3 px-4 font-semibold text-right">การจัดการ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredSubjects.length === 0 ? (<tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                    ไม่พบข้อมูลรายวิชาและอาจารย์ที่ตรงกับการค้นหา
+                  </td>
+                </tr>) : (filteredSubjects.map((item) => {
+            const statusConfig = item.exam ? STATUS_LABELS[item.exam.status] : NO_EXAM_STATUS;
+            return (<tr key={item.courseId} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono text-xs font-bold px-2 py-0.5 rounded border bg-slate-100 text-slate-800 border-slate-300">
+                            {item.courseId}
+                          </span>
+                          <span className="font-semibold text-slate-900">{item.courseName}</span>
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4">
+                        <div className="flex items-center space-x-1.5 text-slate-800">
+                          <User className="w-3.5 h-3.5 text-slate-400"/>
+                          <span className="font-medium">{item.teacherName}</span>
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4 text-slate-600">
+                        <div className="flex items-center space-x-1 font-mono text-xs">
+                          <Phone className="w-3 h-3 text-slate-400"/>
+                          <span>{item.teacherTel}</span>
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4 text-slate-600">
+                        {item.exam ? (<div>
+                            <div>{item.exam.E_Date} ({item.exam.E_Time})</div>
+                            <div className="text-slate-500 text-xs">ห้อง: {item.exam.room}</div>
+                          </div>) : (<span className="text-slate-400">ยังไม่กำหนด</span>)}
+                      </td>
+
+                      <td className="py-3 px-4">
+                        {item.exam ? (<span className="font-semibold text-slate-900">
+                            {item.exam.total_copies + item.exam.copies_reserve} ชุด
+                          </span>) : (<span className="text-slate-400">{item.studentCount} คน</span>)}
+                      </td>
+
+                      <td className="py-3 px-4">
+                        <Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>
+                      </td>
+
+                      <td className="py-3 px-4 text-right">
+                        {item.exam ? (<div className="flex items-center justify-end space-x-1.5">
+                            <Button size="sm" variant="outline" onClick={() => openCourseQueue(item.courseId)} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+                              ดูคิววิชานี้
+                            </Button>
+                            <Button variant="ghost" size="icon" className="size-7 text-slate-600 hover:text-[#1A4B7A]" onClick={() => onPreviewExam(item.exam)} title="ดูตัวอย่างข้อสอบ">
+                              <Eye className="w-3.5 h-3.5"/>
+                            </Button>
+                            <Button variant="ghost" size="icon" className="size-7 text-slate-600 hover:text-[#1A4B7A]" onClick={() => onOpenEnvelope(item.exam)} title="พิมพ์ใบปะหน้าซองข้อสอบ">
+                              <Printer className="w-3.5 h-3.5"/>
+                            </Button>
+                          </div>) : (<span className="text-slate-400 text-xs">รออาจารย์จัดส่ง</span>)}
+                      </td>
+                    </tr>);
+        }))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>);
+    return (<div className="max-w-6xl mx-auto space-y-6">
+      {page === 'directory' ? renderDirectoryPage() : renderQueuePage()}
 
       {/* Reject Modal */}
       {rejectingExam && (<div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
@@ -443,6 +403,9 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, onPreviewExa
                 <AlertTriangle className="w-5 h-5 text-rose-300"/>
                 <h3 className="font-display font-bold text-sm">ส่งกลับแก้ไขข้อสอบ</h3>
               </div>
+              <button onClick={() => setRejectingExam(null)} className="p-1 text-white/60 hover:text-white rounded-lg" aria-label="ปิด">
+                <X className="w-5 h-5"/>
+              </button>
             </div>
 
             <form onSubmit={handleConfirmReject} className="p-6 space-y-4 text-xs">

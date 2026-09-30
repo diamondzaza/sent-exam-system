@@ -40,13 +40,14 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
 
         {/* ส่วนท้ายแถบข้าง */}
         <div className="mt-auto px-3 pb-5 pt-4 space-y-3 shrink-0">
-          <a href="/request-account" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors">
+          {/* ลิงก์ติดต่อผู้ดูแลระบบ — ซ่อนเมื่อผู้ใช้เป็น Admin เอง */}
+          {currentUser.role !== 'Admin' && (<a href="/request-account" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors">
             <LifeBuoy className="w-4 h-4 shrink-0"/>
             <span>ติดต่อผู้ดูแลระบบ</span>
-          </a>
+          </a>)}
 
-          {/* สถานะระบบ */}
-          <div className="rounded-xl bg-white/10 px-3.5 py-3 text-xs">
+          {/* สถานะระบบ (ซ่อนบนมือถือ — sidebar ยุบเป็นแถบบนให้กระชับ) */}
+          <div className="hidden lg:block rounded-xl bg-white/10 px-3.5 py-3 text-xs">
             <p className="flex items-center gap-2 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
               สถานะระบบ: ปกติ

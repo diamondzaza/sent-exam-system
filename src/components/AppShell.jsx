@@ -21,7 +21,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useRef } from 'react';
-import { Header } from '@/components/layout/Header';
 import { SidebarShell } from '@/components/layout/SidebarShell';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { ExamEnvelopeCover } from '@/components/modals/ExamEnvelopeCover';
@@ -30,7 +29,7 @@ import { TeacherView } from '@/components/views/TeacherView';
 import { AudioVisualView } from '@/components/views/AudioVisualView';
 import { OperationsView } from '@/components/views/OperationsView';
 import { AdminView } from '@/components/views/AdminView';
-import { CheckCircle2, LayoutDashboard, ClipboardList, BookOpen } from 'lucide-react';
+import { CheckCircle2, LayoutDashboard, ClipboardList, BookOpen, Users, Shield, Sliders } from 'lucide-react';
 import { createClient, authFetch } from '@/lib/supabase/client';
 import { useUsers } from '@/hooks/useUsers';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -59,6 +58,10 @@ export default function AppShell() {
     // Teacher sidebar — หน้าปัจจุบัน / รายวิชาที่เลือก (UI state เท่านั้น)
     const [teacherPage, setTeacherPage] = useState('courses');
     const [teacherCourseId, setTeacherCourseId] = useState(null);
+    // หน้าปัจจุบันของบทบาทอื่น (UI state เท่านั้น)
+    const [avPage, setAvPage] = useState('queue');
+    const [opsPage, setOpsPage] = useState('schedule');
+    const [adminPage, setAdminPage] = useState('users');
     // ดึงโปรไฟล์จากตาราง users ทุกครั้งที่มี session (กัน localStorage cache เก่าไม่ตรงกับฐานข้อมูล)
     React.useEffect(() => {
         if (authStatus !== 'authenticated')
@@ -520,51 +523,58 @@ export default function AppShell() {
         { id: 'tracking', label: 'ติดตามข้อสอบ', icon: ClipboardList, onClick: () => setTeacherPage('tracking') },
         { id: 'new-course', label: 'เพิ่มรายวิชา', icon: BookOpen, onClick: () => setTeacherPage('new-course') },
     ];
-    // Toast Notification — ใช้ร่วมกันทั้ง 2 layout
+    // AudioVisual — คิวตรวจสอบและผลิต / รายวิชาและผู้ประสานงาน
+    const avNavItems = [
+        { id: 'queue', label: 'คิวตรวจสอบและผลิต', icon: ClipboardList, onClick: () => setAvPage('queue') },
+        { id: 'directory', label: 'รายวิชาและผู้ประสานงาน', icon: BookOpen, onClick: () => setAvPage('directory') },
+    ];
+    // Operations — ตารางจัดสอบ / รับมอบซอง
+    const opsNavItems = [
+        { id: 'schedule', label: 'ตารางจัดสอบ', icon: LayoutDashboard, onClick: () => setOpsPage('schedule') },
+        { id: 'intake', label: 'รับมอบซอง', icon: ClipboardList, onClick: () => setOpsPage('intake') },
+    ];
+    // Admin — ผู้ใช้ / Audit Log / คำขอเปิดบัญชี / นโยบาย
+    const adminNavItems = [
+        { id: 'users', label: 'จัดการผู้ใช้งาน', icon: Users, onClick: () => setAdminPage('users') },
+        { id: 'logs', label: 'บันทึกความปลอดภัย', icon: Shield, onClick: () => setAdminPage('logs') },
+        { id: 'requests', label: 'คำขอเปิดบัญชี', icon: ClipboardList, onClick: () => setAdminPage('requests') },
+        { id: 'policies', label: 'นโยบายป้องกันข้อสอบรั่วไหล', icon: Sliders, onClick: () => setAdminPage('policies') },
+    ];
+    // เลือก nav / หน้าปัจจุบัน / setter ตามบทบาท
+    const roleNav = {
+        Teacher: teacherNavItems,
+        AudioVisual: avNavItems,
+        Operations: opsNavItems,
+        Admin: adminNavItems,
+    }[currentUser.role] ?? [];
+    const rolePage = {
+        Teacher: teacherPage,
+        AudioVisual: avPage,
+        Operations: opsPage,
+        Admin: adminPage,
+    }[currentUser.role] ?? '';
+    // Toast Notification — ใช้ร่วมกันทุก layout
     const toastEl = toastMessage && (<div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white/95 backdrop-blur px-4 py-3 shadow-lg text-xs text-slate-700 animate-slideUp">
         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
           <CheckCircle2 className="w-4 h-4"/>
         </span>
         <span className="font-medium">{toastMessage}</span>
       </div>);
-    // Teacher (บทบาทอาจารย์) — ใช้ layout แถบข้างใหม่ (SidebarShell)
-    if (currentUser.role === 'Teacher') {
-        return (<SidebarShell currentUser={currentUser} notifications={notifications} onLogout={handleLogout} onMarkNotificationRead={handleMarkNotificationRead} onMarkAllNotificationsRead={handleMarkAllNotificationsRead} navItems={teacherNavItems} activeNavId={teacherPage}>
+    // ทุกบทบาทใช้ layout แถบข้างเดียวกัน (SidebarShell)
+    return (<SidebarShell currentUser={currentUser} notifications={notifications} onLogout={handleLogout} onMarkNotificationRead={handleMarkNotificationRead} onMarkAllNotificationsRead={handleMarkAllNotificationsRead} navItems={roleNav} activeNavId={rolePage}>
         {toastEl}
-        <TeacherView key={currentUser.id} currentUser={currentUser} courses={courses} exams={exams} page={teacherPage} onNavigate={setTeacherPage} selectedCourseId={teacherCourseId} onSelectCourse={setTeacherCourseId} uploadContext={uploadModalData} onUploadSubmit={handleSubmitExamUpload} onOpenUploadModal={handleOpenUploadModal} onPreviewExam={handlePreviewExam} onRemoveExam={handleRemoveExam} onAddNewCourse={handleAddNewCourse} onOpenEnvelope={handlePrintEnvelope} onDownloadLogged={handleDownloadLogged}/>
-        {/* Modals (ใช้ร่วมกับ layout บทบาทอื่น) */}
 
+        {currentUser.role === 'Teacher' && (<TeacherView key={currentUser.id} currentUser={currentUser} courses={courses} exams={exams} page={teacherPage} onNavigate={setTeacherPage} selectedCourseId={teacherCourseId} onSelectCourse={setTeacherCourseId} uploadContext={uploadModalData} onUploadSubmit={handleSubmitExamUpload} onOpenUploadModal={handleOpenUploadModal} onPreviewExam={handlePreviewExam} onRemoveExam={handleRemoveExam} onAddNewCourse={handleAddNewCourse} onOpenEnvelope={handlePrintEnvelope} onDownloadLogged={handleDownloadLogged}/>)}
+
+        {currentUser.role === 'AudioVisual' && (<AudioVisualView currentUser={currentUser} courses={courses} exams={exams} page={avPage} onNavigate={setAvPage} onPreviewExam={handlePreviewExam} onOpenEnvelope={handlePrintEnvelope} onUpdateExamStatus={handleUpdateExamStatus} onPrintExam={handlePrintExam}/>)}
+
+        {currentUser.role === 'Operations' && (<OperationsView currentUser={currentUser} exams={exams} page={opsPage} onNavigate={setOpsPage} onOpenEnvelope={handlePrintEnvelope} onUpdateExamStatus={handleUpdateExamStatus}/>)}
+
+        {currentUser.role === 'Admin' && (<AdminView currentUser={currentUser} users={users} auditLogs={auditLogs} page={adminPage} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onToggleUserStatus={handleToggleUserStatus} onDeleteUser={handleDeleteUser} onRefreshUsers={refreshUsers}/>)}
+
+        {/* Modals (ใช้ร่วมทุกบทบาท) */}
         {previewExam && (<ExamPreviewModal exam={previewExam} currentUser={currentUser} onClose={() => setPreviewExam(null)} onDownloadLogged={handleDownloadLogged} onPrintRequested={handlePrintExam} onExamDecision={handleExamDecision} onToast={showToast}/>)}
 
         {envelopeExam && (<ExamEnvelopeCover exam={envelopeExam} onClose={() => setEnvelopeExam(null)} onPrintRecorded={handleEnvelopePrintRecorded}/>)}
       </SidebarShell>);
-    }
-    return (<div className="min-h-screen flex flex-col bg-slate-100/70 text-slate-900 font-sans antialiased">
-      {/* Toast Notification */}
-      {toastEl}
-
-      {/* Main App Header */}
-      <Header currentUser={currentUser} notifications={notifications} onLogout={handleLogout} onMarkNotificationRead={handleMarkNotificationRead} onMarkAllNotificationsRead={handleMarkAllNotificationsRead}/>
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {currentUser.role === 'AudioVisual' && (<AudioVisualView currentUser={currentUser} courses={courses} exams={exams} onPreviewExam={handlePreviewExam} onOpenEnvelope={handlePrintEnvelope} onUpdateExamStatus={handleUpdateExamStatus} onPrintExam={handlePrintExam}/>)}
-
-        {currentUser.role === 'Operations' && (<OperationsView currentUser={currentUser} exams={exams} onOpenEnvelope={handlePrintEnvelope} onUpdateExamStatus={handleUpdateExamStatus}/>)}
-
-        {currentUser.role === 'Admin' && (<AdminView currentUser={currentUser} users={users} auditLogs={auditLogs} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onToggleUserStatus={handleToggleUserStatus} onDeleteUser={handleDeleteUser} onRefreshUsers={refreshUsers}/>)}
-      </main>
-
-      {/* Footer */}
-      <footer className="no-print bg-white border-t border-slate-200 mt-auto py-4 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4">
-          ระบบบริหารจัดการและจัดพิมพ์ข้อสอบ คณะวิทยาศาสตร์
-        </div>
-      </footer>
-
-      {/* Modals */}
-      {previewExam && (<ExamPreviewModal exam={previewExam} currentUser={currentUser} onClose={() => setPreviewExam(null)} onDownloadLogged={handleDownloadLogged} onPrintRequested={handlePrintExam} onExamDecision={handleExamDecision} onToast={showToast}/>)}
-
-      {envelopeExam && (<ExamEnvelopeCover exam={envelopeExam} onClose={() => setEnvelopeExam(null)} onPrintRecorded={handleEnvelopePrintRecorded}/>)}
-    </div>);
 }
