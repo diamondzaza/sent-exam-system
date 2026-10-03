@@ -11,9 +11,9 @@
  */
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Bell, CheckCheck, LogOut, Info, CheckCircle, AlertTriangle, LifeBuoy, } from 'lucide-react';
+import { Bell, CheckCheck, LogOut, Info, CheckCircle, AlertTriangle, } from 'lucide-react';
 
-export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotificationRead, onMarkAllNotificationsRead, onOpenNotification, navItems = [], activeNavId = null, children, }) => {
+export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotificationRead, onMarkAllNotificationsRead, onOpenNotification, navItems = [], activeNavId = null, statusNote = null, children, }) => {
     const [showNotifMenu, setShowNotifMenu] = useState(false);
     const bellRef = React.useRef(null);
     // ปิด dropdown แจ้งเตือนด้วยปุ่ม Escape แล้วคืนโฟกัสที่ปุ่มกระดิ่ง
@@ -57,19 +57,13 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
 
         {/* ส่วนท้ายแถบข้าง */}
         <div className="mt-auto px-3 pb-5 pt-4 space-y-3 shrink-0">
-          {/* ลิงก์ติดต่อผู้ดูแลระบบ — ซ่อนเมื่อผู้ใช้เป็น Admin เอง */}
-          {currentUser.role !== 'Admin' && (<a href="/request-account" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors">
-            <LifeBuoy className="w-4 h-4 shrink-0"/>
-            <span>ติดต่อผู้ดูแลระบบ</span>
-          </a>)}
-
           {/* สถานะระบบ (ซ่อนบนมือถือ — sidebar ยุบเป็นแถบบนให้กระชับ) */}
           <div className="hidden lg:block rounded-xl bg-white/10 px-3.5 py-3 text-xs">
             <p className="flex items-center gap-2 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
               สถานะระบบ: ปกติ
             </p>
-            <p className="text-white/70 mt-1">อัปเดตล่าสุด • ภาคเรียนที่ 1/2569</p>
+            {statusNote && (<p className="text-white/70 mt-1">{statusNote}</p>)}
           </div>
 
           {/* ผู้ใช้ + ออกจากระบบ */}

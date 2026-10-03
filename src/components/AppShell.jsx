@@ -29,8 +29,9 @@ import { TeacherView } from '@/components/views/TeacherView';
 import { AudioVisualView } from '@/components/views/AudioVisualView';
 import { OperationsView } from '@/components/views/OperationsView';
 import { AdminView } from '@/components/views/AdminView';
-import { CheckCircle2, LayoutDashboard, ClipboardList, BookOpen, Users, Shield, Sliders, Archive } from 'lucide-react';
+import { CheckCircle2, LayoutDashboard, ClipboardList, BookOpen, Users, Shield, Sliders, Archive, Flag } from 'lucide-react';
 import { ExamArchiveView } from '@/components/views/ExamArchiveView';
+import { ReportIssueView } from '@/components/views/ReportIssueView';
 import { createClient, authFetch } from '@/lib/supabase/client';
 import { useUsers } from '@/hooks/useUsers';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -126,6 +127,11 @@ export default function AppShell() {
     const handleOpenUpload = (course, existingExam, isReupload = false) => {
         setUploadContext({ course, existingExam, isReupload });
         setRolePages((prev) => ({ ...prev, Teacher: 'upload' }));
+    };
+    // พิมพ์ใบปะหน้าซองจาก wizard — บันทึก Audit Log เหมือน flow เดิม
+    const handleWizardEnvelopePrint = (course) => {
+        addAuditLog('PRINT_ENVELOPE', course.Course_id, course.Course_Name, 'สั่งพิมพ์ใบปะหน้าซองข้อสอบมาตรฐานคณะวิทยาศาสตร์');
+        showToast('บันทึกประวัติการพิมพ์ใบปะหน้าซองเรียบร้อย');
     };
     const handleSubmitExamUpload = async (examData, isReupload, fileObject) => {
         if (!uploadContext)
@@ -519,32 +525,33 @@ export default function AppShell() {
             setRolePages((prev) => ({ ...prev, Admin: 'logs' }));
         }
     };
-    const archiveNavItem = { id: 'archive', label: 'ข้อสอบเก่า', icon: Archive, onClick: () => setRolePage('archive') };
+    // เมนูแจ้งปัญหา — ทุกบทบาทยกเว้น Admin (ผู้ดูแลไม่ต้องแจ้งตัวเอง)
+    const reportIssueNavItem = { id: 'report-issue', label: 'แจ้งปัญหา', icon: Flag, onClick: () => setRolePage('report-issue') };
     const teacherNavItems = [
         { id: 'courses', label: 'ตารางรายวิชา', icon: LayoutDashboard, onClick: () => setRolePage('courses') },
         { id: 'tracking', label: 'ติดตามข้อสอบ', icon: ClipboardList, onClick: () => setRolePage('tracking') },
         { id: 'new-course', label: 'เพิ่มรายวิชา', icon: BookOpen, onClick: () => setRolePage('new-course') },
         archiveNavItem,
+        reportIssueNavItem,
     ];
-    // AudioVisual — คิวตรวจสอบและผลิต / รายวิชาและผู้ประสานงาน
+    // AudioVisual — คิวตรวจสอบและผลิต / รายวิชาและผู้ประสานงาน (คลังข้อสอบเก่าเป็นของอาจารย์เท่านั้น)
     const avNavItems = [
         { id: 'queue', label: 'คิวตรวจสอบและผลิต', icon: ClipboardList, onClick: () => setRolePage('queue') },
         { id: 'directory', label: 'รายวิชาและผู้ประสานงาน', icon: BookOpen, onClick: () => setRolePage('directory') },
-        archiveNavItem,
+        reportIssueNavItem,
     ];
     // Operations — ตารางจัดสอบ / รับมอบซอง
     const opsNavItems = [
         { id: 'schedule', label: 'ตารางจัดสอบ', icon: LayoutDashboard, onClick: () => setRolePage('schedule') },
         { id: 'intake', label: 'รับมอบซอง', icon: ClipboardList, onClick: () => setRolePage('intake') },
-        archiveNavItem,
+        reportIssueNavItem,
     ];
-    // Admin — ผู้ใช้ / Audit Log / คำขอเปิดบัญชี / นโยบาย
+    // Admin — ผู้ใช้ / Audit Log / คำขอเปิดบัญชี / นโยบาย (ไม่มีเมนูแจ้งปัญหา — ผู้ดูแลคือผู้รับแจ้ง)
     const adminNavItems = [
         { id: 'users', label: 'จัดการผู้ใช้งาน', icon: Users, onClick: () => setRolePage('users') },
         { id: 'logs', label: 'บันทึกความปลอดภัย', icon: Shield, onClick: () => setRolePage('logs') },
         { id: 'requests', label: 'คำขอเปิดบัญชี', icon: ClipboardList, onClick: () => setRolePage('requests') },
         { id: 'policies', label: 'นโยบายป้องกันข้อสอบรั่วไหล', icon: Sliders, onClick: () => setRolePage('policies') },
-        archiveNavItem,
     ];
     // เลือก nav ตามบทบาท
     const roleNav = {
@@ -565,12 +572,14 @@ export default function AppShell() {
     const archiveExams = currentUser.role === 'Teacher'
         ? exams.filter((e) => e.teacher_id === currentUser.id || currentUser.id === 'T001')
         : exams;
-    return (<SidebarShell currentUser={currentUser} notifications={notifications} onLogout={handleLogout} onMarkNotificationRead={handleMarkNotificationRead} onMarkAllNotificationsRead={handleMarkAllNotificationsRead} onOpenNotification={handleOpenNotification} navItems={roleNav} activeNavId={rolePageNow}>
+    return (<SidebarShell currentUser={currentUser} notifications={notifications} onLogout={handleLogout} onMarkNotificationRead={handleMarkNotificationRead} onMarkAllNotificationsRead={handleMarkAllNotificationsRead} onOpenNotification={handleOpenNotification} navItems={roleNav} activeNavId={rolePageNow} statusNote={courses[0]?.Course_year ? `ภาคเรียนที่ ${courses[0].term}/${courses[0].Course_year}` : null}>
         {toastEl}
 
         {rolePageNow === 'archive' && (<ExamArchiveView currentUser={currentUser} exams={archiveExams} onPreviewExam={handlePreviewExam} onDownloadLogged={handleDownloadLogged}/>)}
 
-        {rolePageNow !== 'archive' && currentUser.role === 'Teacher' && (<TeacherView key={currentUser.id} currentUser={currentUser} courses={courses} exams={exams} page={rolePageNow} onNavigate={setRolePage} selectedCourseId={teacherCourseId} onSelectCourse={setTeacherCourseId} selectedExamNo={teacherExamNo} onSelectExam={setTeacherExamNo} uploadContext={uploadContext} onUploadSubmit={handleSubmitExamUpload} onOpenUpload={handleOpenUpload} onPreviewExam={handlePreviewExam} onRemoveExam={handleRemoveExam} onAddNewCourse={handleAddNewCourse} onOpenEnvelope={handlePrintEnvelope} onDownloadLogged={handleDownloadLogged}/>)}
+        {rolePageNow === 'report-issue' && (<ReportIssueView currentUser={currentUser}/>)}
+
+        {rolePageNow !== 'archive' && currentUser.role === 'Teacher' && (<TeacherView key={currentUser.id} currentUser={currentUser} courses={courses} exams={exams} page={rolePageNow} onNavigate={setRolePage} selectedCourseId={teacherCourseId} onSelectCourse={setTeacherCourseId} selectedExamNo={teacherExamNo} onSelectExam={setTeacherExamNo} uploadContext={uploadContext} onUploadSubmit={handleSubmitExamUpload} onOpenUpload={handleOpenUpload} onPreviewExam={handlePreviewExam} onRemoveExam={handleRemoveExam} onAddNewCourse={handleAddNewCourse} onOpenEnvelope={handlePrintEnvelope} onDownloadLogged={handleDownloadLogged} onEnvelopePrintRecorded={handleWizardEnvelopePrint}/>)}
 
         {rolePageNow !== 'archive' && currentUser.role === 'AudioVisual' && (<AudioVisualView currentUser={currentUser} courses={courses} exams={exams} page={rolePageNow} onNavigate={setRolePage} onPreviewExam={handlePreviewExam} onOpenEnvelope={handlePrintEnvelope} onUpdateExamStatus={handleUpdateExamStatus} onPrintExam={handlePrintExam}/>)}
 

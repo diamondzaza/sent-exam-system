@@ -108,7 +108,7 @@ export const LoginPage = ({ onLogin }) => {
               {/* อีเมล */}
               <div>
                 <Label htmlFor="login-email" className="font-medium mb-2 block text-slate-800">
-                  ชื่อ
+                  อีเมล
                 </Label>
                 <Input id="login-email" type="email" placeholder="อีเมลของท่าน" value={email} onChange={(e) => setEmail(e.target.value)} required aria-required="true" aria-label="อีเมลสำหรับเข้าสู่ระบบ" aria-invalid={Boolean(emailError)} aria-describedby={emailError ? 'login-email-error' : undefined} autoComplete="email" className={emailError ? 'border-rose-500 focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]' : 'focus-visible:ring-[#1A4B7A] focus-visible:border-[#1A4B7A]'}/>
                 {emailError && (<p id="login-email-error" className="mt-1.5 text-xs text-rose-600 flex items-center space-x-1">

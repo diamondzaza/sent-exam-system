@@ -179,7 +179,7 @@ const EXAM_UPLOAD_STEPS = [
     { n: 3, label: 'ใบปะหน้าซอง' },
     { n: 4, label: 'ตรวจสอบและส่ง' },
 ];
-const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], onDone, onUploadSubmit, onPreviewExam, }) => {
+const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], onDone, onUploadSubmit, onPreviewExam, onEnvelopePrintRecorded, }) => {
     const [step, setStep] = useState(1);
     const [examType, setExamType] = useState(existingExam?.exam_type || '');
     const [examDate, setExamDate] = useState(existingExam?.E_Date || '');
@@ -368,6 +368,13 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], onD
             onPreviewExam?.(existingExam);
             return;
         }
+    };
+    // พิมพ์ใบปะหน้าซอง — บันทึก Audit Log แล้วสั่งพิมพ์เฉพาะ element ใบปะหน้า (CSS printing-envelope)
+    const handlePrintEnvelope = () => {
+        onEnvelopePrintRecorded?.(course);
+        document.body.classList.add('printing-envelope');
+        window.print();
+        setTimeout(() => document.body.classList.remove('printing-envelope'), 500);
     };
     const handleSubmit = async () => {
         if (!fileUploaded || !fileName) {
@@ -821,6 +828,10 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], onD
                 ผิดหรือต้องการแก้ไข — กดย้อนกลับไปขั้นตอน "ใบปะหน้าซอง" ได้ · ส่วนเข้าสอบ/ขาดสอบ/ผู้คุมสอบ/หมายเหตุ เว้นไว้เขียนด้วยลายมือที่หน้างานจริง
               </p>
             </div>
+            <Button type="button" onClick={handlePrintEnvelope} size="sm" className="no-print shrink-0" title="พิมพ์ใบปะหน้าซองข้อสอบ (พร้อมบันทึก Audit Log)">
+              <Printer className="w-3.5 h-3.5"/>
+              <span>พิมพ์ใบปะหน้า</span>
+            </Button>
           </div>
           {/* ตัวอย่างเอกสาร — จอแคบเลื่อนดูแนวนอนได้ ไม่ถูกตัดขอบ */}
           <div className="overflow-x-auto px-2 sm:px-4 pb-4">
@@ -840,7 +851,7 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], onD
         </div>)}
     </div>);
 };
-export const TeacherView = ({ currentUser, courses, exams, page = 'courses', onNavigate, selectedCourseId, onSelectCourse, selectedExamNo, onSelectExam, uploadContext = null, onUploadSubmit, onOpenUpload, onPreviewExam, onRemoveExam, onAddNewCourse, onOpenEnvelope, onDownloadLogged, }) => {
+export const TeacherView = ({ currentUser, courses, exams, page = 'courses', onNavigate, selectedCourseId, onSelectCourse, selectedExamNo, onSelectExam, uploadContext = null, onUploadSubmit, onOpenUpload, onPreviewExam, onRemoveExam, onAddNewCourse, onOpenEnvelope, onDownloadLogged, onEnvelopePrintRecorded, }) => {
     const [newCourseCode, setNewCourseCode] = useState('');
     const [newCourseName, setNewCourseName] = useState('');
     const [newCourseTerm, setNewCourseTerm] = useState('1');
@@ -1515,7 +1526,7 @@ export const TeacherView = ({ currentUser, courses, exams, page = 'courses', onN
             onNavigate?.('courses');
             return null;
         }
-        return (<ExamUploadWizard key={`${uploadContext.course.Course_id}-${uploadContext.existingExam?.E_No ?? 'new'}-${uploadContext.isReupload}`} course={uploadContext.course} existingExam={uploadContext.existingExam} isReupload={uploadContext.isReupload} usedSets={exams.filter((e) => e.Subject_ID === uploadContext.course.Course_id && e.E_No !== uploadContext.existingExam?.E_No).map((e) => e.exam_set || 'A')} onDone={() => onNavigate?.('courses')} onUploadSubmit={onUploadSubmit} onPreviewExam={onPreviewExam}/>);
+        return (<ExamUploadWizard key={`${uploadContext.course.Course_id}-${uploadContext.existingExam?.E_No ?? 'new'}-${uploadContext.isReupload}`} course={uploadContext.course} existingExam={uploadContext.existingExam} isReupload={uploadContext.isReupload} usedSets={exams.filter((e) => e.Subject_ID === uploadContext.course.Course_id && e.E_No !== uploadContext.existingExam?.E_No).map((e) => e.exam_set || 'A')} onDone={() => onNavigate?.('courses')} onUploadSubmit={onUploadSubmit} onPreviewExam={onPreviewExam} onEnvelopePrintRecorded={onEnvelopePrintRecorded}/>);
     };
     return (<div className="max-w-6xl mx-auto space-y-6">
       {/* แถบบน: ภาคเรียน/ปี (ชื่อระบบอยู่ที่แถบบนของ SidebarShell แล้ว) */}

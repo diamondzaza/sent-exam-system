@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
-import { Printer, CheckCircle, Eye, AlertTriangle, Search, Send, CheckCheck, RotateCcw, User, Phone, X, FileText, } from 'lucide-react';
+import { Printer, CheckCircle, Eye, AlertTriangle, Search, Send, CheckCheck, RotateCcw, User, Phone, X, FileText, MoveHorizontal, } from 'lucide-react';
 import { formatThaiDate } from '@/lib/formatDate';
 import { useEscape } from '@/hooks/useEscape';
 export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queue', onNavigate, onPreviewExam, onOpenEnvelope, onUpdateExamStatus, onPrintExam, }) => {
@@ -380,10 +380,10 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
                             <Button size="sm" variant="outline" onClick={() => openCourseQueue(item.courseId)} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
                               ดูคิววิชานี้
                             </Button>
-                            <Button variant="ghost" size="icon" className="size-7 text-slate-600 hover:text-[#1A4B7A]" onClick={() => onPreviewExam(exam)} title="ดูตัวอย่างข้อสอบ">
+                            <Button variant="ghost" size="icon" className="size-9 text-slate-600 hover:text-[#1A4B7A]" onClick={() => onPreviewExam(exam)} title="ดูตัวอย่างข้อสอบ">
                               <Eye className="w-3.5 h-3.5"/>
                             </Button>
-                            <Button variant="ghost" size="icon" className="size-7 text-slate-600 hover:text-[#1A4B7A]" onClick={() => onOpenEnvelope(exam)} title="พิมพ์ใบปะหน้าซองข้อสอบ">
+                            <Button variant="ghost" size="icon" className="size-9 text-slate-600 hover:text-[#1A4B7A]" onClick={() => onOpenEnvelope(exam)} title="พิมพ์ใบปะหน้าซองข้อสอบ">
                               <Printer className="w-3.5 h-3.5"/>
                             </Button>
                           </div>) : (<span className="text-slate-500 text-xs">รออาจารย์จัดส่ง</span>)}
@@ -394,6 +394,10 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
             </tbody>
           </table>
         </div>
+        <p className="sm:hidden flex items-center gap-1.5 px-4 py-2.5 text-[11px] text-slate-500 border-t border-slate-100 bg-slate-50">
+          <MoveHorizontal className="w-3.5 h-3.5"/>
+          เลื่อนตารางไปทางขวาเพื่อดูข้อมูลทั้งหมด
+        </p>
       </div>
     </>);
     return (<div className="max-w-6xl mx-auto space-y-6">

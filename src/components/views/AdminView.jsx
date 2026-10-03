@@ -18,8 +18,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, UserPlus, ShieldAlert, Edit2, Trash2, X, Check, XCircle, AlertCircle, } from 'lucide-react';
-import { useEscape } from '@/hooks/useEscape';
+import { Search, UserPlus, ShieldAlert, Edit2, Trash2, X, Check, XCircle, AlertCircle, MoveHorizontal, } from 'lucide-react';
+import { useDialogA11y } from '@/hooks/useEscape';
 import { ROLE_OPTIONS, ROLE_BADGE_LABEL } from '@/lib/statusLabels';
 export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAddUser, onUpdateUser, onToggleUserStatus, onDeleteUser, onRefreshUsers, }) => {
     // User Management State
@@ -122,6 +122,8 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     const [restrictIPs, setRestrictIPs] = useState(true);
     useEscape(Boolean(approvingReq), () => setApprovingReq(null));
     useEscape(showAddUserModal, () => setShowAddUserModal(false));
+    const approveDialogRef = useDialogA11y({ active: Boolean(approvingReq), onClose: () => setApprovingReq(null) });
+    const userDialogRef = useDialogA11y({ active: showAddUserModal, onClose: () => setShowAddUserModal(false) });
     // ป้ายกิจกรรมภาษาไทยสำหรับ Audit Log (โค้ดดิบใช้เป็น fallback)
     const LOG_ACTION_LABELS = {
         VIEW_EXAM: 'เข้าดูข้อสอบ',
@@ -132,6 +134,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
         UPDATE_STATUS: 'ปรับสถานะ',
         LOGIN: 'เข้าสู่ระบบ',
         REUPLOAD_EXAM: 'อัปโหลดไฟล์ใหม่',
+        REPORT_ISSUE: 'แจ้งปัญหาการใช้งาน',
     };
     const filteredUsers = users.filter((u) => {
         const matchesSearch = u.name.toLowerCase().includes(searchUser.toLowerCase()) ||
@@ -286,15 +289,15 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
                     </button>
                   </td>
                   <td className="p-3 text-right">
-                    <div className="flex items-center justify-end space-x-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenEditUser(u)} className="size-7 text-slate-600 hover:text-[#1A4B7A]" title="แก้ไขข้อมูลผู้ใช้">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenEditUser(u)} className="size-9 text-slate-600 hover:text-[#1A4B7A]" title="แก้ไขข้อมูลผู้ใช้">
                         <Edit2 className="w-3.5 h-3.5"/>
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => {
                 if (confirm(`ต้องการลบผู้ใช้ ${u.name} หรือไม่?`)) {
                     onDeleteUser(u.id);
                 }
-            }} className="size-7 text-slate-500 hover:text-rose-600 hover:bg-rose-50" title="ลบผู้ใช้">
+            }} className="size-9 text-slate-500 hover:text-rose-600 hover:bg-rose-50" title="ลบผู้ใช้">
                         <Trash2 className="w-3.5 h-3.5"/>
                       </Button>
                     </div>
@@ -303,6 +306,10 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
             </tbody>
           </table>
         </div>
+        <p className="sm:hidden flex items-center gap-1.5 px-4 py-2.5 text-[11px] text-slate-500 border-t border-slate-100 bg-slate-50">
+          <MoveHorizontal className="w-3.5 h-3.5"/>
+          เลื่อนตารางไปทางขวาเพื่อดูข้อมูลทั้งหมด
+        </p>
       </div>
     </>);
     // ───────── หน้า 2: บันทึกความปลอดภัย ─────────
@@ -395,6 +402,10 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
             </tbody>
           </table>
         </div>
+        <p className="sm:hidden flex items-center gap-1.5 px-4 py-2.5 text-[11px] text-slate-500 border-t border-slate-100 bg-slate-50">
+          <MoveHorizontal className="w-3.5 h-3.5"/>
+          เลื่อนตารางไปทางขวาเพื่อดูข้อมูลทั้งหมด
+        </p>
       </div>
     </>);
     // ───────── หน้า 3: คำขอเปิดบัญชี ─────────
@@ -476,7 +487,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
 
       {/* Modal อนุมัติ — ตั้งบทบาท + รหัสผ่านเริ่มต้น */}
       {approvingReq && (<div role="dialog" aria-modal="true" aria-labelledby="approve-title" className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+          <div ref={approveDialogRef} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="bg-[#1A4B7A] text-white px-5 py-4 flex items-center justify-between">
               <div>
                 <h3 id="approve-title" className="font-display font-semibold text-sm">อนุมัติบัญชีใหม่</h3>
@@ -573,7 +584,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
 
       {/* Add / Edit User Modal */}
       {showAddUserModal && (<div role="dialog" aria-modal="true" aria-labelledby="user-form-title" className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden">
+          <div ref={userDialogRef} className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden">
             <div className="bg-[#1A4B7A] text-white px-6 py-4 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <UserPlus className="w-5 h-5 text-white/80"/>
