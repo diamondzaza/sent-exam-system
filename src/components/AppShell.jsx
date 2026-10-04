@@ -50,7 +50,8 @@ export default function AppShell() {
     const [currentUser, setCurrentUser] = useCurrentUser();
     const [courses, , refreshCourses] = useCourses(authStatus === 'authenticated');
     const [exams, , refreshExams] = useExams(authStatus === 'authenticated');
-    const [auditLogs, , refreshAuditLogs] = useAuditLogs(authStatus === 'authenticated');
+    // audit-logs เป็น endpoint เฉพาะ Admin (GET อื่นจะ 403) — ยิงเฉพาะเมื่อ role เป็น Admin
+    const [auditLogs, , refreshAuditLogs] = useAuditLogs(authStatus === 'authenticated' && currentUser?.role === 'Admin');
     const [notifications, setNotifications, refreshNotifications] = useNotifications(authStatus === 'authenticated');
     // Modal states
     const [uploadContext, setUploadContext] = useState(null);
@@ -527,6 +528,7 @@ export default function AppShell() {
     };
     // เมนูแจ้งปัญหา — ทุกบทบาทยกเว้น Admin (ผู้ดูแลไม่ต้องแจ้งตัวเอง)
     const reportIssueNavItem = { id: 'report-issue', label: 'แจ้งปัญหา', icon: Flag, onClick: () => setRolePage('report-issue') };
+    const archiveNavItem = { id: 'archive', label: 'ข้อสอบเก่า', icon: Archive, onClick: () => setRolePage('archive') };
     const teacherNavItems = [
         { id: 'courses', label: 'ตารางรายวิชา', icon: LayoutDashboard, onClick: () => setRolePage('courses') },
         { id: 'tracking', label: 'ติดตามข้อสอบ', icon: ClipboardList, onClick: () => setRolePage('tracking') },
