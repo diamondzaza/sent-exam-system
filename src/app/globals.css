@@ -74,7 +74,56 @@
 @layer base {
   body {
     font-family: var(--font-prompt), ui-sans-serif, system-ui, -apple-system, sans-serif;
+    overflow-wrap: break-word;
   }
+
+  /* Let tables scroll as a unit instead of splitting headings and identifiers. */
+  th {
+    white-space: nowrap;
+  }
+}
+
+/* Metadata uses its content width rather than four equally squeezed columns. */
+.exam-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 1.5rem;
+  row-gap: 0.5rem;
+}
+.exam-metadata > div {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.25rem;
+  max-width: 100%;
+  min-width: 0;
+}
+.exam-metadata > div > span:first-child {
+  white-space: nowrap;
+}
+.exam-metadata > div > svg {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Move buttons to the next line when their content no longer fits beside a row. */
+.exam-row-layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.exam-row-layout > :first-child {
+  flex: 1 1 30rem;
+  min-width: 0;
+  max-width: 100%;
+}
+.exam-row-layout > :last-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
 }
 
 @media print {
@@ -103,6 +152,7 @@
     left: 0;
     top: 0;
     width: 100%;
+    min-width: 0 !important;
     max-height: none !important;
     overflow: visible !important;
     padding: 0 !important;

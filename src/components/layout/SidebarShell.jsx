@@ -153,12 +153,12 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
                             <div className="mt-0.5 shrink-0">
                               {notif.type === 'success' ? (<CheckCircle className="w-4 h-4 text-emerald-600"/>) : notif.type === 'warning' ? (<AlertTriangle className="w-4 h-4 text-amber-600"/>) : (<Info className="w-4 h-4 text-[#1A4B7A]"/>)}
                             </div>
-                            <div className="flex-1 space-y-0.5">
-                              <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0 space-y-0.5">
+                              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                                 <p className="font-semibold text-slate-900">{notif.title}</p>
-                                <span className="text-slate-500 shrink-0">{notif.timestamp}</span>
+                                <span className="text-slate-500 shrink-0 whitespace-nowrap">{notif.timestamp}</span>
                               </div>
-                              <p className="text-slate-600 leading-relaxed">{notif.message}</p>
+                              <p className="text-slate-600 leading-relaxed break-words">{notif.message}</p>
                             </div>
                             {!notif.isRead && (<div className="w-2 h-2 rounded-full bg-[#1A4B7A] mt-1 shrink-0"></div>)}
                           </button>)))}

@@ -44,35 +44,35 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
         const isReady = exam.status === 'READY_FOR_EXAM';
         const canConfirmReceipt = exam.status === 'DELIVERED_OD';
         return (<div key={exam.E_No} className="p-6 hover:bg-slate-50/50 transition-colors space-y-4">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="exam-row-layout justify-between">
               <div className="space-y-1.5 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-sm font-bold bg-[#1A4B7A]/10 text-[#1A4B7A] px-2.5 py-0.5 rounded-md border border-[#1A4B7A]/20">
                     {exam.Subject_ID}
                   </span>
-                  <span className="inline-flex items-center rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2 py-0.5 text-xs font-bold">
+                  <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2 py-0.5 text-xs font-bold">
                     ชุด {exam.exam_set || 'A'}
                   </span>
                   <h4 className="font-display text-base font-bold text-slate-900">{exam.Subject_Name}</h4>
                   <Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-600 pt-1">
-                  <div className="flex items-center space-x-1">
+                <div className="exam-metadata text-xs text-slate-600 pt-1">
+                  <div className="flex items-center gap-1 whitespace-nowrap">
                     <Calendar className="w-3.5 h-3.5 text-slate-500"/>
                     <span>{formatThaiDate(exam.E_Date)}</span>
                   </div>
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center gap-1 whitespace-nowrap">
                     <Clock className="w-3.5 h-3.5 text-slate-500"/>
                     <span>{exam.E_Time}</span>
                   </div>
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-[#1A4B7A]"/>
                     <span className="font-semibold text-slate-900">{exam.room}</span>
                   </div>
                   <div>
                     <span className="text-slate-500">ยอดที่ต้องแจก: </span>
-                    <span className="font-bold text-slate-900">{exam.total_copies} ชุด</span>
+                    <span className="whitespace-nowrap font-bold text-slate-900">{exam.total_copies} ชุด</span>
                   </div>
                 </div>
 
@@ -187,7 +187,7 @@ export const OperationsView = ({ currentUser, exams, page = 'schedule', onNaviga
       </div>
 
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <h3 className="font-display font-bold text-base text-slate-900">
             รอลงทะเบียนรับมอบ <span className="text-slate-500 font-normal">({intakeExams.length})</span>
           </h3>

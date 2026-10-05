@@ -10,7 +10,7 @@
  */
 'use client';
 import React, { useState } from 'react';
-import { formatThaiDate } from '@/lib/formatDate';
+import { ExamSchedule } from '@/components/ui/exam-schedule';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Archive, Download, Eye, Inbox, } from 'lucide-react';
@@ -65,7 +65,7 @@ export const ExamArchiveView = ({ currentUser, exams, onPreviewExam, onDownloadL
 
       {/* รายการข้อสอบ */}
       {years.length > 0 && (<div className="rounded-2xl bg-white border border-slate-200 shadow-sm">
-          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+          <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-display font-bold text-base text-slate-900">
               ข้อสอบจัดเก็บ · ปีการศึกษา {year} · {TERM_LABELS[activeTerm] || activeTerm}
             </h3>
@@ -79,20 +79,20 @@ export const ExamArchiveView = ({ currentUser, exams, onPreviewExam, onDownloadL
                 <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-3"/>
                 <p className="text-sm text-slate-500">ไม่มีข้อสอบจัดเก็บในภาคเรียนนี้</p>
                 <p className="text-xs text-slate-500 mt-1">เลือกภาคเรียนอื่นด้านบน หรือปีการศึกษาอื่น</p>
-              </div>) : (archivedExams.map((exam) => (<div key={exam.E_No} className="px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50/60 transition-colors">
+              </div>) : (archivedExams.map((exam) => (<div key={exam.E_No} className="exam-row-layout px-5 py-4 justify-between hover:bg-slate-50/60 transition-colors">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-sm font-bold text-slate-900">{exam.Subject_ID}</span>
-                      <span className="inline-flex items-center rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2 py-0.5 text-xs font-bold">
+                      <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2 py-0.5 text-xs font-bold">
                         ชุด {exam.exam_set || 'A'}
                       </span>
                       <h4 className="font-display text-sm font-bold text-slate-900">{exam.Subject_Name}</h4>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
-                      สอบ {formatThaiDate(exam.E_Date)} ({exam.E_Time})
+                      สอบ <ExamSchedule date={exam.E_Date} time={exam.E_Time}/>
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0 max-w-full">
                     <Button variant="outline" size="sm" onClick={() => onPreviewExam?.(exam)} title="เปิดดูตัวอย่างไฟล์ข้อสอบ" className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
                       <Eye className="w-3.5 h-3.5 text-[#1A4B7A]"/>
                       <span>ดูข้อสอบ</span>

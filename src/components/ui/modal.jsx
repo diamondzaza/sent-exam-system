@@ -47,17 +47,17 @@ export function Modal({ open, onClose, size = 'md', children, className }) {
 }
 
 export function ModalHeader({ icon: Icon, title, subtitle, onClose, right, className }) {
-    return (<div className={cn('no-print bg-[#1A4B7A] text-white px-6 py-4 flex items-center justify-between border-b border-[#153D63]', className)}>
+    return (<div className={cn('no-print bg-[#1A4B7A] text-white px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-[#153D63]', className)}>
       <div className="flex items-center space-x-3 min-w-0">
         {Icon && (<div className="p-2 bg-white/15 text-white/90 rounded-lg border border-white/25 shrink-0">
             <Icon className="w-5 h-5"/>
           </div>)}
         <div className="min-w-0">
-          <h2 className="font-display font-semibold text-base truncate">{title}</h2>
-          {subtitle && (<p className="text-xs text-white/70 mt-0.5 truncate">{subtitle}</p>)}
+          <h2 className="font-display font-semibold text-base break-words">{title}</h2>
+          {subtitle && (<p className="text-xs text-white/70 mt-0.5 break-words">{subtitle}</p>)}
         </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex flex-wrap items-center gap-2 shrink-0 max-w-full">
         {right}
         {onClose && (<button type="button" onClick={onClose} aria-label="ปิดหน้าต่าง" className="text-white/70 hover:text-white hover:bg-white/10 rounded-lg p-1.5 transition-colors">
             <X className="w-5 h-5"/>
@@ -71,7 +71,7 @@ export function ModalBody({ children, className }) {
 }
 
 export function ModalFooter({ children, className }) {
-    return (<div className={cn('no-print bg-white border-t border-slate-200 px-6 py-3 flex items-center justify-between gap-3', className)}>
+    return (<div className={cn('no-print bg-white border-t border-slate-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3', className)}>
       {children}
     </div>);
 }

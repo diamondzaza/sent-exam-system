@@ -26,7 +26,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Upload, UploadCloud, RefreshCw, Trash2, Eye, AlertTriangle, AlertCircle, Plus, Printer, Download, MoreVertical, Check, FileText, FileCheck, LoaderCircle, CheckCircle2, Inbox, } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { formatThaiDate } from '@/lib/formatDate';
+import { ExamSchedule } from '@/components/ui/exam-schedule';
 // ข้อความสรุปสถานะสำหรับ banner หน้าติดตามสถานะ
 const STATUS_HEADLINE = {
     SUBMITTED: 'รับไฟล์แล้ว · รอเจ้าหน้าที่ตรวจสอบ',
@@ -587,17 +587,17 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
             : fileUploaded
                 ? 'border-emerald-400 bg-emerald-50/30'
                 : 'border-slate-300 bg-slate-50 hover:bg-slate-100/70'}`}>
-              {fileUploaded && fileName ? (<div className="flex items-center justify-between bg-white border border-emerald-300 p-3 rounded-lg shadow-2xs">
-                  <div className="flex items-center space-x-3 text-left">
-                    <div className="p-2 bg-emerald-100 text-emerald-700 rounded-md">
+              {fileUploaded && fileName ? (<div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-emerald-300 p-3 rounded-lg shadow-2xs">
+                  <div className="flex items-center gap-3 min-w-0 max-w-full text-left">
+                    <div className="p-2 bg-emerald-100 text-emerald-700 rounded-md shrink-0">
                       <FileCheck className="w-6 h-6"/>
                     </div>
-                    <div>
-                      <p className="font-semibold text-xs text-slate-900">{fileName}</p>
+                    <div className="min-w-0">
+                      <p className="break-words font-semibold text-xs text-slate-900">{fileName}</p>
                       <p className="text-xs text-slate-500">ขนาด {fileSize} · พร้อมจัดส่ง</p>
                     </div>
                   </div>
-                  <label className="text-xs text-[#1A4B7A] hover:text-[#153D63] font-medium cursor-pointer underline px-2">
+                  <label className="whitespace-nowrap shrink-0 text-xs text-[#1A4B7A] hover:text-[#153D63] font-medium cursor-pointer underline px-2">
                     เปลี่ยนไฟล์
                     <input type="file" accept=".pdf,.doc,.docx" onChange={handleFileInput} className="hidden"/>
                   </label>
@@ -767,9 +767,9 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
             ['จำนวนชุดที่พิมพ์', `${totalCopies} ชุด + สำรอง ${copiesReserve || 0} ชุด`],
             ['สิ่งที่อนุญาตให้นำเข้าห้อง', selectedMaterials.join(', ')],
             ['คำชี้แจงพิเศษ', envelopeNotes || '—'],
-        ].map(([label, value]) => (<div key={label} className="flex items-start justify-between gap-4 text-sm">
+        ].map(([label, value]) => (<div key={label} className="flex flex-col sm:flex-row sm:items-start justify-between gap-x-4 gap-y-1 text-sm">
                   <dt className="text-slate-500 shrink-0">{label}</dt>
-                  <dd className="font-semibold text-slate-900 text-right">{value || '—'}</dd>
+                  <dd className="min-w-0 break-words font-semibold text-slate-900 sm:text-right">{value || '—'}</dd>
                 </div>))}
             </dl>
 
@@ -989,7 +989,7 @@ export const TeacherView = ({ currentUser, courses, exams, notifications = [], o
 
       {/* รายวิชาในภาคเรียนนี้ */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <h3 className="font-display font-bold text-base text-slate-900">รายวิชาในภาคเรียนนี้</h3>
           <Button variant="outline" size="sm" onClick={() => onNavigate?.('new-course')}>
             <Plus className="w-4 h-4"/>
@@ -1038,7 +1038,7 @@ export const TeacherView = ({ currentUser, courses, exams, notifications = [], o
                         <div className="flex flex-col md:flex-row md:items-center gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="inline-flex items-center rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2 py-0.5 text-xs font-bold">
+                              <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2 py-0.5 text-xs font-bold">
                                 ชุด {setLabel}
                               </span>
                               <h4 className="font-display text-sm font-bold text-slate-900">{exam.Subject_Name}</h4>
@@ -1046,7 +1046,7 @@ export const TeacherView = ({ currentUser, courses, exams, notifications = [], o
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 md:justify-end shrink-0">
+                          <div className="flex flex-wrap items-center gap-2 md:justify-end shrink-0 max-w-full">
                             <Button variant="outline" size="sm" onClick={() => openTracking(course.Course_id)} title="ติดตามสถานะข้อสอบของรายวิชานี้" className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
                               <Eye className="w-4 h-4 text-[#1A4B7A]"/>
                               <span>ดูรายละเอียด</span>
@@ -1126,14 +1126,14 @@ export const TeacherView = ({ currentUser, courses, exams, notifications = [], o
                         return (<div key={exam.E_No} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 transition-colors">
                             <div className="min-w-0">
                               <p className="text-sm font-bold text-slate-900 flex items-center gap-2 flex-wrap">
-                                <span className="inline-flex items-center rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2 py-0.5 text-xs font-bold">
+                                <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2 py-0.5 text-xs font-bold">
                                   ชุด {exam.exam_set || 'A'}
                                 </span>
                                 {course.Course_id} · {course.Course_Name}
                               </p>
                               <p className="text-xs text-slate-500 mt-0.5">กลุ่มเรียน {course.sec}</p>
                             </div>
-                            <div className="flex items-center gap-3 shrink-0">
+                            <div className="flex flex-wrap items-center gap-3 shrink-0 max-w-full">
                               <Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>
                               <Button size="sm" variant="outline" onClick={() => openTracking(course.Course_id)}>
                                 ดูสถานะ
@@ -1178,7 +1178,7 @@ export const TeacherView = ({ currentUser, courses, exams, notifications = [], o
           return (<div key={exam.E_No} className="space-y-5">
           {/* ป้ายชุดข้อสอบ */}
           <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2.5 py-1 text-sm font-bold">
+            <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2.5 py-1 text-sm font-bold">
               ชุด {setLabel}
             </span>
             <Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>
@@ -1193,7 +1193,7 @@ export const TeacherView = ({ currentUser, courses, exams, notifications = [], o
                 {STATUS_HEADLINE[exam.status] || statusConfig.label}
               </p>
               <p className={`text-xs mt-0.5 ${exam.status === 'REJECTED' ? 'text-rose-800' : 'text-emerald-800/80'}`}>
-                สอบ {formatThaiDate(exam.E_Date)} เวลา {exam.E_Time} · เลขที่ข้อสอบ {exam.E_No}
+                สอบ <ExamSchedule date={exam.E_Date} time={exam.E_Time}/> · <span className="whitespace-nowrap">เลขที่ข้อสอบ {exam.E_No}</span>
               </p>
             </div>
             {examIdx === 0 && (<Button variant="outline" onClick={() => { onSelectCourse?.(null); onNavigate?.('tracking'); }} className="shrink-0 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
@@ -1260,7 +1260,7 @@ export const TeacherView = ({ currentUser, courses, exams, notifications = [], o
                 <div>
                   <dt className="text-xs text-slate-500">วันและเวลาสอบ</dt>
                   <dd className="text-sm font-bold text-slate-900 mt-0.5">
-                    {formatThaiDate(exam.E_Date)} · {exam.E_Time}
+                    <ExamSchedule date={exam.E_Date} time={exam.E_Time}/>
                   </dd>
                 </div>
                 <div>
@@ -1451,7 +1451,7 @@ export const TeacherView = ({ currentUser, courses, exams, notifications = [], o
                 <p className="text-sm font-bold text-slate-900 truncate">{notif.title}</p>
                 <p className="text-xs text-slate-600 leading-relaxed">{notif.message}</p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 shrink-0 max-w-full">
                 <span className="text-xs text-slate-500 whitespace-nowrap">{notif.timestamp}</span>
                 {!notif.isRead && (<span className="w-2 h-2 rounded-full bg-[#1A4B7A] shrink-0" aria-label="ยังไม่ได้อ่าน"/>)}
               </div>

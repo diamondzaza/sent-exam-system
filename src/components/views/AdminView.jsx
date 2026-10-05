@@ -318,7 +318,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
           <Input type="text" placeholder="ค้นหาชื่อ ชื่อผู้ใช้ อีเมล หรือรหัสผู้ใช้" aria-label="ค้นหาชื่อ ชื่อผู้ใช้ อีเมล หรือรหัสผู้ใช้" value={searchUser} onChange={(e) => setSearchUser(e.target.value)} className="pl-9"/>
         </div>
 
-        <div className="flex items-center space-x-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-slate-600">กรองบทบาท:</span>
           <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="w-auto sm:w-44">
             <option value="ALL">ทุกบทบาท</option>
@@ -330,7 +330,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
       {/* Users Table */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full min-w-[900px] text-left text-xs border-collapse">
             <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
               <tr>
                 <th className="p-3 w-20">รหัส</th>
@@ -351,7 +351,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
                   <td className="p-3 font-mono font-bold text-slate-600">{u.id}</td>
                   <td className="p-3">
                     <div className="font-bold text-slate-900">{u.name}</div>
-                    <div className="text-xs text-slate-500">{u.tel}</div>
+                    <div className="whitespace-nowrap text-xs text-slate-500">{u.tel}</div>
                   </td>
                   <td className="p-3">
                     <div className="text-[#1A4B7A]">{u.email}</div>
@@ -363,7 +363,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
                     {u.department}
                   </td>
                   <td className="p-3 text-center">
-                    <button onClick={() => onToggleUserStatus(u.id)} className={`px-2 py-0.5 rounded-full text-xs font-semibold transition-colors ${u.status === 'active'
+                    <button onClick={() => onToggleUserStatus(u.id)} className={`whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-semibold transition-colors ${u.status === 'active'
                 ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                 : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
                       {u.status === 'active' ? 'เปิดใช้งาน' : 'ระงับชั่วคราว'}
@@ -422,7 +422,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
           <Input type="text" placeholder="ค้นหาตามผู้ใช้งาน รหัสวิชา รายละเอียด หรือ IP" aria-label="ค้นหาตามผู้ใช้งาน รหัสวิชา รายละเอียด หรือ IP" value={searchLog} onChange={(e) => setSearchLog(e.target.value)} className="pl-9"/>
         </div>
 
-        <div className="flex items-center space-x-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-slate-600">ประเภทกิจกรรม:</span>
           <Select value={logActionFilter} onChange={(e) => setLogActionFilter(e.target.value)} className="w-auto sm:w-52">
             <option value="ALL">ทุกกิจกรรม</option>
@@ -439,7 +439,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
       {/* Logs Table */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full min-w-[1000px] text-left text-xs border-collapse">
             <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
               <tr>
                 <th className="p-3 w-36">วันและเวลา</th>
@@ -456,7 +456,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
                     ไม่พบรายการที่ตรงกับการค้นหา/ตัวกรอง
                   </td>
                 </tr>) : (filteredLogs.map((log) => (<tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="p-3 font-mono text-xs text-slate-500">{log.timestamp}</td>
+                  <td className="p-3 whitespace-nowrap font-mono text-xs text-slate-500">{log.timestamp}</td>
                   <td className="p-3">
                     <div className="font-bold text-slate-900">{log.userName}</div>
                     <div className="text-xs text-slate-500">
@@ -476,9 +476,9 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
                       {LOG_ACTION_LABELS[log.action] || log.action}
                     </Badge>
                   </td>
-                  <td className="p-3 font-mono font-bold text-[#1A4B7A]">{log.subjectId}</td>
+                  <td className="p-3 whitespace-nowrap font-mono font-bold text-[#1A4B7A]">{log.subjectId}</td>
                   <td className="p-3 text-xs text-slate-700">{log.details}</td>
-                  <td className="p-3 font-mono text-xs text-slate-500">{log.ipAddress}</td>
+                  <td className="p-3 whitespace-nowrap font-mono text-xs text-slate-500">{log.ipAddress}</td>
                 </tr>)))}
             </tbody>
           </table>
@@ -534,7 +534,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
                   เหตุผล: {req.reason}
                 </p>)}
             </div>
-            <div className="flex items-center space-x-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0 max-w-full">
               <Button size="sm" onClick={() => { setApprovingReq(req); setApprovePassword(''); setApproveRole(suggestRole(req.department)); setReqError(''); }} disabled={reqLoading} className="bg-emerald-600 hover:bg-emerald-700">
                 <Check className="w-3.5 h-3.5"/>
                 <span>อนุมัติ</span>
@@ -553,7 +553,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
             พิจารณาแล้ว <span className="text-slate-500 font-normal">({reviewedRequests.length})</span>
           </h3>
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm divide-y divide-slate-100">
-            {reviewedRequests.map((req) => (<div key={req.id} className="p-3 flex items-center justify-between gap-3 text-xs">
+            {reviewedRequests.map((req) => (<div key={req.id} className="p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div className="min-w-0">
                   <span className="font-semibold text-slate-800">{req.name}</span>
                   <span className="text-slate-500"> • {req.email} • </span>
@@ -710,7 +710,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
                 <p className="text-sm font-bold text-slate-900 truncate">{notif.title}</p>
                 <p className="text-xs text-slate-600 leading-relaxed">{notif.message}</p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 shrink-0 max-w-full">
                 <span className="text-xs text-slate-500 whitespace-nowrap">{notif.timestamp}</span>
                 {!notif.isRead && (<span className="w-2 h-2 rounded-full bg-[#1A4B7A] shrink-0" aria-label="ยังไม่ได้อ่าน"/>)}
               </div>
@@ -758,7 +758,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
                     ขอเมื่อ {new Date(req.created_at).toLocaleString('th-TH')}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0 max-w-full">
                   <Button size="sm" onClick={() => handleApplyPwRequest(req)} className="bg-emerald-600 hover:bg-emerald-700">
                     <Check className="w-3.5 h-3.5"/>
                     <span>เปลี่ยนรหัสผ่านให้</span>
@@ -777,7 +777,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
             ดำเนินการแล้ว <span className="text-slate-400 font-normal">({donePw.length})</span>
           </h3>
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm divide-y divide-slate-100">
-            {donePw.map((req) => (<div key={req.id} className="p-3 flex items-center justify-between gap-3 text-xs">
+            {donePw.map((req) => (<div key={req.id} className="p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div className="min-w-0">
                   <span className="font-semibold text-slate-800">{req.email}</span>
                   <span className="text-slate-400"> • {new Date(req.created_at).toLocaleString('th-TH')}</span>

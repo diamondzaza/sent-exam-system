@@ -18,7 +18,7 @@ const STATUS_STYLES = {
 };
 
 export function StatusBadge({ status = 'pending', label, className }) {
-  return (<span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold', STATUS_STYLES[status], className)}>
+  return (<span className={cn('inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold', STATUS_STYLES[status], className)}>
       {label}
     </span>);
 }

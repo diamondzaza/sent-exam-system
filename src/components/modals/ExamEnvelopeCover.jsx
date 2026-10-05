@@ -109,9 +109,9 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded, editable = t
     return (<div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-slate-300 overflow-hidden flex flex-col max-h-[94vh]">
         {/* Modal Header */}
-        <div className="no-print bg-[#1A4B7A] text-white px-6 py-4 flex items-center justify-between border-b border-[#153D63]">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-white/10 text-white/80 rounded-lg border border-white/20">
+        <div className="no-print bg-[#1A4B7A] text-white px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-[#153D63]">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 bg-white/10 text-white/80 rounded-lg border border-white/20 shrink-0">
               <FileText className="w-5 h-5"/>
             </div>
             <div>
@@ -121,7 +121,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded, editable = t
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button onClick={handlePrint} size="sm" className="px-3.5" title="พิมพ์ใบปะหน้าซองข้อสอบ (พร้อมบันทึก Audit Log)">
               <Printer className="w-3.5 h-3.5"/>
               <span>พิมพ์ใบปะหน้า</span>
@@ -133,7 +133,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded, editable = t
         </div>
 
         {/* Tabs (สลับระหว่างฟอร์มกรอก กับ เอกสารใบปะหน้า) */}
-        {editable && (<div className="no-print flex space-x-2 px-6 pt-4 border-b border-slate-200 text-xs font-medium">
+        {editable && (<div className="no-print flex flex-wrap gap-2 px-4 sm:px-6 pt-4 border-b border-slate-200 text-xs font-medium">
           <button onClick={() => setTab('form')} className={`px-4 py-2.5 rounded-t-xl transition-all flex items-center gap-1.5 ${tab === 'form' ? 'bg-slate-100 text-[#1A4B7A] font-bold border-t-2 border-[#1A4B7A]' : 'text-slate-500 hover:text-slate-800'}`}>
             {formComplete && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true"/>}
             1. ฟอร์มกรอกข้อมูล
@@ -208,7 +208,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded, editable = t
                 </p>
               </div>
 
-              <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+              <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs text-slate-500">กรอกเสร็จแล้วสลับไปแท็บ "ใบปะหน้า" เพื่อดูตัวอย่างและสั่งพิมพ์</p>
                 <Button onClick={() => setTab('doc')} size="sm">
                   ไปที่ใบปะหน้า
@@ -218,7 +218,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded, editable = t
 
           {/* ═══ แท็บ 2: ใบปะหน้า (เอกสาร — ค่าเป็นตัวอักษรบนเส้นประ) ═══ */}
           {/* id="printable-envelope" — CSS @media print ซ่อนทุกอย่างแล้วเปิดเฉพาะ element นี้ (REQ-0013) */}
-          {(!editable || tab === 'doc') && (<div id="printable-envelope" className="bg-white shadow border border-slate-300 mx-auto max-w-3xl px-8 py-8 text-slate-900 min-h-[900px]">
+          {(!editable || tab === 'doc') && (<div className="overflow-x-auto"><div id="printable-envelope" className="bg-white shadow border border-slate-300 mx-auto min-w-[640px] max-w-3xl px-8 py-8 text-slate-900 min-h-[900px]">
 
               {/* ── โลโก้ (ช่องวาง — นำภาพมาใส่เองภายหลัง) ── */}
               <div className="flex justify-center mb-3">
@@ -345,11 +345,11 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded, editable = t
                 <span className="shrink-0">หมายเหตุ</span>
                 <Line value={form.note} className="flex-1"/>
               </div>
-            </div>)}
+            </div></div>)}
         </div>
 
         {/* Modal Footer */}
-        <div className="no-print bg-white border-t border-slate-200 px-6 py-3 flex items-center justify-between">
+        <div className="no-print bg-white border-t border-slate-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs text-slate-500">
             พิมพ์ได้เฉพาะหน้าใบปะหน้า — ตราสัญลักษณ์คณะแสดงอัตโนมัติ
           </div>

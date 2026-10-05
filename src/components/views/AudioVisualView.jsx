@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Printer, CheckCircle, Eye, AlertTriangle, Search, Send, CheckCheck, RotateCcw, User, Phone, X, FileText, MoveHorizontal, } from 'lucide-react';
-import { formatThaiDate } from '@/lib/formatDate';
+import { ExamSchedule } from '@/components/ui/exam-schedule';
 import { useEscape } from '@/hooks/useEscape';
 export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queue', onNavigate, onPreviewExam, onOpenEnvelope, onUpdateExamStatus, onPrintExam, }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -136,7 +136,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5"/>
           <Input type="text" placeholder="ค้นหาเลขที่ข้อสอบ รหัสวิชา ชื่อวิชา หรืออาจารย์" aria-label="ค้นหาเลขที่ข้อสอบ รหัสวิชา ชื่อวิชา หรืออาจารย์" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 rounded-xl"/>
         </div>
-        <div className="flex items-center space-x-2 text-xs shrink-0">
+        <div className="flex flex-wrap items-center gap-2 text-xs shrink-0">
           <span className="text-slate-600">กรองสถานะ:</span>
           <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-auto rounded-xl">
             <option value="ALL">ทุกสถานะ</option>
@@ -165,28 +165,28 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
             const statusConfig = STATUS_LABELS[exam.status];
             return (<div key={exam.E_No} className="p-6 hover:bg-slate-50/50 transition-colors space-y-4">
                   {/* หัวแถว + ปุ่มเครื่องมือ */}
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="exam-row-layout justify-between">
                     <div className="space-y-1.5 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-sm font-bold bg-[#1A4B7A]/10 text-[#1A4B7A] px-2.5 py-0.5 rounded-md border border-[#1A4B7A]/20">
+                        <span className="whitespace-nowrap shrink-0 font-mono text-sm font-bold bg-[#1A4B7A]/10 text-[#1A4B7A] px-2.5 py-0.5 rounded-md border border-[#1A4B7A]/20">
                           {exam.E_No}
                         </span>
-                        <span className="font-mono text-sm font-bold text-slate-900">{exam.Subject_ID}</span>
-                        <span className="inline-flex items-center rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2 py-0.5 text-xs font-bold">
+                        <span className="whitespace-nowrap shrink-0 font-mono text-sm font-bold text-slate-900">{exam.Subject_ID}</span>
+                        <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md bg-[#1A4B7A]/10 text-[#1A4B7A] border border-[#1A4B7A]/20 px-2 py-0.5 text-xs font-bold">
                           ชุด {exam.exam_set || 'A'}
                         </span>
                         <h4 className="font-display text-base font-bold text-slate-900">{exam.Subject_Name}</h4>
                         <Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-600 pt-1">
+                      <div className="exam-metadata text-xs text-slate-600 pt-1">
                         <div>
                           <span className="text-slate-500">อาจารย์: </span>
                           <span className="font-medium text-slate-800">{exam.teacher_name}</span>
                         </div>
                         <div>
                           <span className="text-slate-500">วัน/เวลาสอบ: </span>
-                          <span>{formatThaiDate(exam.E_Date)} ({exam.E_Time})</span>
+                          <ExamSchedule date={exam.E_Date} time={exam.E_Time}/>
                         </div>
                         <div>
                           <span className="text-slate-500">ห้องสอบ: </span>
@@ -194,14 +194,14 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
                         </div>
                         <div>
                           <span className="text-slate-500">ยอดพิมพ์: </span>
-                          <span className="font-bold text-[#1A4B7A]">
+                          <span className="whitespace-nowrap font-bold text-[#1A4B7A]">
                             {exam.total_copies + exam.copies_reserve} ชุด
                           </span>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1">
-                        <span>อัปโหลดเมื่อ: {exam.upload_date}</span>
+                        <span className="inline-flex flex-wrap gap-x-1"><span className="whitespace-nowrap">อัปโหลดเมื่อ:</span><span className="whitespace-nowrap">{exam.upload_date}</span></span>
                         {exam.checked_by && <span>• ตรวจสอบโดย: {exam.checked_by}</span>}
                       </div>
 
@@ -210,7 +210,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
                         </div>)}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
                       <Button variant="outline" size="sm" onClick={() => onPreviewExam(exam)} title="เปิดดูตัวอย่างไฟล์ข้อสอบ" className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
                         <Eye className="w-3.5 h-3.5 text-[#1A4B7A]"/>
                         <span>ตรวจข้อสอบ</span>
@@ -291,7 +291,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5"/>
           <Input type="text" placeholder="ค้นหารหัสวิชา ชื่อวิชา หรืออาจารย์ผู้สอน" aria-label="ค้นหารหัสวิชา ชื่อวิชา หรืออาจารย์ผู้สอน" value={directorySearch} onChange={(e) => setDirectorySearch(e.target.value)} className="pl-9 rounded-xl"/>
         </div>
-        <div className="flex items-center space-x-2 text-xs shrink-0">
+        <div className="flex flex-wrap items-center gap-2 text-xs shrink-0">
           <span className="text-slate-600">กรองสถานะ:</span>
           <Select value={directoryStatusFilter} onChange={(e) => setDirectoryStatusFilter(e.target.value)} className="w-auto rounded-xl">
             <option value="ALL">ทุกสถานะ</option>
@@ -303,7 +303,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
       {/* ตารางรายวิชา */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[900px] text-left text-xs">
             <thead className="bg-slate-50 text-slate-700 border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4 font-semibold">รหัสวิชาและชื่อวิชา</th>
@@ -349,7 +349,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
                       </td>
 
                       <td className="py-3 px-4 text-slate-600">
-                        <div className="flex items-center space-x-1 font-mono text-xs">
+                        <div className="flex items-center gap-1 whitespace-nowrap font-mono text-xs">
                           <Phone className="w-3 h-3 text-slate-500"/>
                           <span>{item.teacherTel}</span>
                         </div>
@@ -357,7 +357,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
 
                       <td className="py-3 px-4 text-slate-600">
                         {exam ? (<div>
-                            <div>{formatThaiDate(exam.E_Date)} ({exam.E_Time})</div>
+                            <ExamSchedule date={exam.E_Date} time={exam.E_Time}/>
                             <div className="text-slate-500 text-xs">ห้อง: {exam.room}</div>
                           </div>) : (<span className="text-slate-500">ยังไม่กำหนด</span>)}
                       </td>
