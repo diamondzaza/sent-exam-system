@@ -77,6 +77,12 @@ export const LoginPage = ({ onLogin }) => {
                 setError('ไม่พบข้อมูลผู้ใช้ในระบบ — ติดต่อผู้ดูแลระบบ');
                 return;
             }
+            // บัญชีถูกระงับ — บังคับออกจากระบบทันที ไม่ให้เข้าใช้งาน
+            if (profile.status && profile.status !== 'active') {
+                await supabase.auth.signOut();
+                setError('บัญชีนี้ถูกระงับการใช้งาน — กรุณาติดต่อผู้ดูแลระบบ');
+                return;
+            }
             onLogin(profile);
         }
         catch {

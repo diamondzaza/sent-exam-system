@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Upload, UploadCloud, RefreshCw, Trash2, Eye, AlertTriangle, AlertCircle, Plus, Printer, Download, MoreVertical, Check, FileText, FileCheck, LoaderCircle, CheckCircle2, } from 'lucide-react';
+import { Upload, UploadCloud, RefreshCw, Trash2, Eye, AlertTriangle, AlertCircle, Plus, Printer, Download, MoreVertical, Check, FileText, FileCheck, LoaderCircle, CheckCircle2, Inbox, } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { formatThaiDate } from '@/lib/formatDate';
 // ข้อความสรุปสถานะสำหรับ banner หน้าติดตามสถานะ
@@ -851,7 +851,7 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], onD
         </div>)}
     </div>);
 };
-export const TeacherView = ({ currentUser, courses, exams, page = 'courses', onNavigate, selectedCourseId, onSelectCourse, selectedExamNo, onSelectExam, uploadContext = null, onUploadSubmit, onOpenUpload, onPreviewExam, onRemoveExam, onAddNewCourse, onOpenEnvelope, onDownloadLogged, onEnvelopePrintRecorded, }) => {
+export const TeacherView = ({ currentUser, courses, exams, notifications = [], onMarkNotificationRead, page = 'courses', onNavigate, selectedCourseId, onSelectCourse, selectedExamNo, onSelectExam, uploadContext = null, onUploadSubmit, onOpenUpload, onPreviewExam, onRemoveExam, onAddNewCourse, onOpenEnvelope, onDownloadLogged, onEnvelopePrintRecorded, }) => {
     const [newCourseCode, setNewCourseCode] = useState('');
     const [newCourseName, setNewCourseName] = useState('');
     const [newCourseTerm, setNewCourseTerm] = useState('1');
@@ -1424,6 +1424,53 @@ export const TeacherView = ({ currentUser, courses, exams, page = 'courses', onN
         </aside>
       </div>
     </>);
+    // ───────── หน้า 5: การแจ้งปัญหาจากทุก role ─────────
+    const renderIssuesPage = () => {
+        // รายงานปัญหามาพร้อม notification ที่ title ขึ้นต้นด้วย "แจ้งปัญหา:" (จาก /api/issues)
+        const issueReports = notifications.filter((n) => n.title && n.title.startsWith('แจ้งปัญหา:'));
+        const unreadIssues = issueReports.filter((n) => !n.isRead).length;
+        return (<>
+      {/* Hero */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900">
+            การแจ้งปัญหา
+          </h1>
+          <p className="text-sm text-slate-500 mt-2">
+            รวมปัญหาการใช้งานที่ผู้ใช้ทุก role แจ้งเข้ามา — ตรวจสอบและติดตามการแก้ไข
+          </p>
+        </div>
+        {unreadIssues > 0 && (<Badge className="bg-amber-50 text-amber-800 border-amber-300 shrink-0">
+            ใหม่ {unreadIssues} รายการ
+          </Badge>)}
+      </div>
+
+      <div className="space-y-3">
+        {issueReports.length === 0 ? (<div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
+            <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-3"/>
+            <p className="text-sm text-slate-500">ยังไม่มีรายงานปัญหาเข้ามา</p>
+            <p className="text-xs text-slate-500 mt-1">
+              เมื่อผู้ใช้กด "แจ้งปัญหา" จากเมนูของตัวเอง รายงานจะแสดงที่นี่
+            </p>
+          </div>) : (issueReports.map((notif) => (<div key={notif.id} onClick={() => !notif.isRead && onMarkNotificationRead?.(notif.id)} className={`rounded-2xl border px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 cursor-pointer transition-colors ${!notif.isRead
+                ? 'bg-white border-[#1A4B7A]/30 shadow-sm'
+                : 'bg-white/70 border-slate-200'}`}>
+              <div className="min-w-0 space-y-1">
+                <p className="text-sm font-bold text-slate-900 truncate">{notif.title}</p>
+                <p className="text-xs text-slate-600 leading-relaxed">{notif.message}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-slate-500 whitespace-nowrap">{notif.timestamp}</span>
+                {!notif.isRead && (<span className="w-2 h-2 rounded-full bg-[#1A4B7A] shrink-0" aria-label="ยังไม่ได้อ่าน"/>)}
+              </div>
+            </div>)))}
+      </div>
+
+      {issueReports.length > 0 && (<p className="text-xs text-slate-400">
+          กดที่รายการเพื่อทำเครื่องหมายว่าอ่านแล้ว · ปัญหาทุกรายการถูกส่งถึงผู้ดูแลระบบพร้อมบันทึก Audit Log
+        </p>)}
+    </>);
+    };
     // ───────── หน้า 4: ยืนยันการยกเลิก ─────────
     const renderCancelPage = () => {
         if (!selectedCourse) {
@@ -1533,6 +1580,6 @@ export const TeacherView = ({ currentUser, courses, exams, page = 'courses', onN
         </div>
       </div>
 
-      {page === 'tracking' ? renderTrackingPage() : page === 'cancel' ? renderCancelPage() : page === 'new-course' ? renderNewCoursePage() : page === 'upload' ? renderUploadPage() : renderCoursesPage()}
+      {page === 'tracking' ? renderTrackingPage() : page === 'cancel' ? renderCancelPage() : page === 'new-course' ? renderNewCoursePage() : page === 'upload' ? renderUploadPage() : page === 'issues' ? renderIssuesPage() : renderCoursesPage()}
     </div>);
 };

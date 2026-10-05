@@ -100,7 +100,7 @@ export async function PATCH(request) {
         }
 
         // ── approve: สร้างบัญชีจริง (Auth + โปรไฟล์) ก่อนมาร์คสถานะ ──
-        const password = String(body.password ?? '');
+        const password = String(body.password ?? '').trim();
         if (password.length < 6) {
             return NextResponse.json({ error: 'กรุณากำหนดรหัสผ่านเริ่มต้นอย่างน้อย 6 ตัว' }, { status: 400 });
         }

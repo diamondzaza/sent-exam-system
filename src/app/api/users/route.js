@@ -34,8 +34,9 @@ export async function POST(request) {
         return error;
     try {
         const body = await request.json();
-        const password = body.password ?? '';
-        if (!body.name || !body.email || !body.role || password.length < 6) {
+        const password = String(body.password ?? '').trim();
+        const email = String(body.email ?? '').trim().toLowerCase();
+        if (!body.name || !email || !body.role || password.length < 6) {
             return NextResponse.json(
                 { error: 'ข้อมูลไม่ครบ (ชื่อ-นามสกุล, email, role และรหัสผ่านอย่างน้อย 6 ตัว)' },
                 { status: 400 }
@@ -44,7 +45,7 @@ export async function POST(request) {
         // 1) สร้างบัญชี Auth — role ใส่ใน user_metadata เพื่อให้ RLS ตรวจสิทธิ์ได้
         const admin = createAdminClient();
         const { data: authData, error: authError } = await admin.auth.admin.createUser({
-            email: body.email,
+            email,
             password,
             email_confirm: true,
             user_metadata: { role: body.role, name: body.name },
@@ -84,14 +85,15 @@ export async function PATCH(request) {
         if (!body.id) {
             return NextResponse.json({ error: 'ไม่พบรหัสผู้ใช้' }, { status: 400 });
         }
-        // เปลี่ยนรหัสผ่าน (ถ้าระบุมา)
+        // เปลี่ยนรหัสผ่าน (ถ้าระบุมา) — ตัดช่องว่างส่วนเกินออกก่อน
         if (body.password) {
-            if (body.password.length < 6) {
+            const newPassword = String(body.password).trim();
+            if (newPassword.length < 6) {
                 return NextResponse.json({ error: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัว' }, { status: 400 });
             }
             const admin = createAdminClient();
             const { error: pwError } = await admin.auth.admin.updateUserById(body.id, {
-                password: body.password,
+                password: newPassword,
             });
             if (pwError) {
                 return NextResponse.json({ error: pwError.message }, { status: 500 });
@@ -115,6 +117,12 @@ export async function PATCH(request) {
             if (dbError) {
                 return NextResponse.json({ error: dbError.message }, { status: 500 });
             }
+        }
+        // ระงับบัญชีจริง — เมื่อเปลี่ยนสถานะเป็น inactive ให้ revoke session ทั้งหมดของบัญชีนั้น
+        // (บัญชีที่ล็อกอินค้างอยู่จะถูกออกจากระบบทันที ไม่ใช่แค่เปลี่ยนตัวเลขใน DB)
+        if (dbPatch.status === 'inactive') {
+            const admin = createAdminClient();
+            await admin.auth.admin.signOut(id);
         }
         // ถ้าแอดมินแก้โปรไฟล์ตัวเอง — คืนข้อมูลใหม่ให้ frontend อัปเดตทันที
         const { data: row } = await supabase.from('users').select('*').eq('id', id).single();

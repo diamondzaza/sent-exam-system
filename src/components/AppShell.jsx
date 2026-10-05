@@ -75,8 +75,15 @@ export default function AppShell() {
                 .select('*')
                 .eq('id', data.user.id)
                 .single();
-            if (profile)
-                setCurrentUser(profile);
+            if (!profile)
+                return;
+            // บัญชีถูกระงับระหว่างใช้งาน — บีบออกจากระบบทันที
+            if (profile.status && profile.status !== 'active') {
+                await supabase.auth.signOut();
+                setCurrentUser(null);
+                return;
+            }
+            setCurrentUser(profile);
         });
     }, [authStatus, setCurrentUser]);
     // Realtime — ฟังการเปลี่ยนแปลงในฐานข้อมูล แล้วดึงข้อมูลใหม่ทันที
@@ -533,6 +540,7 @@ export default function AppShell() {
         { id: 'courses', label: 'ตารางรายวิชา', icon: LayoutDashboard, onClick: () => setRolePage('courses') },
         { id: 'tracking', label: 'ติดตามข้อสอบ', icon: ClipboardList, onClick: () => setRolePage('tracking') },
         { id: 'new-course', label: 'เพิ่มรายวิชา', icon: BookOpen, onClick: () => setRolePage('new-course') },
+        { id: 'issues', label: 'การแจ้งปัญหา', icon: Flag, onClick: () => setRolePage('issues') },
         archiveNavItem,
         reportIssueNavItem,
     ];
@@ -548,11 +556,12 @@ export default function AppShell() {
         { id: 'intake', label: 'รับมอบซอง', icon: ClipboardList, onClick: () => setRolePage('intake') },
         reportIssueNavItem,
     ];
-    // Admin — ผู้ใช้ / Audit Log / คำขอเปิดบัญชี / นโยบาย (ไม่มีเมนูแจ้งปัญหา — ผู้ดูแลคือผู้รับแจ้ง)
+    // Admin — ผู้ใช้ / Audit Log / คำขอเปิดบัญชี / การแจ้งปัญหา (ผู้รับแจ้งหลัก) / นโยบาย
     const adminNavItems = [
         { id: 'users', label: 'จัดการผู้ใช้งาน', icon: Users, onClick: () => setRolePage('users') },
         { id: 'logs', label: 'บันทึกความปลอดภัย', icon: Shield, onClick: () => setRolePage('logs') },
         { id: 'requests', label: 'คำขอเปิดบัญชี', icon: ClipboardList, onClick: () => setRolePage('requests') },
+        { id: 'issues', label: 'การแจ้งปัญหา', icon: Flag, onClick: () => setRolePage('issues') },
         { id: 'policies', label: 'นโยบายป้องกันข้อสอบรั่วไหล', icon: Sliders, onClick: () => setRolePage('policies') },
     ];
     // เลือก nav ตามบทบาท
@@ -581,13 +590,13 @@ export default function AppShell() {
 
         {rolePageNow === 'report-issue' && (<ReportIssueView currentUser={currentUser}/>)}
 
-        {rolePageNow !== 'archive' && rolePageNow !== 'report-issue' && currentUser.role === 'Teacher' && (<TeacherView key={currentUser.id} currentUser={currentUser} courses={courses} exams={exams} page={rolePageNow} onNavigate={setRolePage} selectedCourseId={teacherCourseId} onSelectCourse={setTeacherCourseId} selectedExamNo={teacherExamNo} onSelectExam={setTeacherExamNo} uploadContext={uploadContext} onUploadSubmit={handleSubmitExamUpload} onOpenUpload={handleOpenUpload} onPreviewExam={handlePreviewExam} onRemoveExam={handleRemoveExam} onAddNewCourse={handleAddNewCourse} onOpenEnvelope={handlePrintEnvelope} onDownloadLogged={handleDownloadLogged} onEnvelopePrintRecorded={handleWizardEnvelopePrint}/>)}
+        {rolePageNow !== 'archive' && rolePageNow !== 'report-issue' && currentUser.role === 'Teacher' && (<TeacherView key={currentUser.id} currentUser={currentUser} courses={courses} exams={exams} page={rolePageNow === 'issues' ? 'issues' : rolePageNow} onNavigate={setRolePage} notifications={notifications} onMarkNotificationRead={handleMarkNotificationRead} selectedCourseId={teacherCourseId} onSelectCourse={setTeacherCourseId} selectedExamNo={teacherExamNo} onSelectExam={setTeacherExamNo} uploadContext={uploadContext} onUploadSubmit={handleSubmitExamUpload} onOpenUpload={handleOpenUpload} onPreviewExam={handlePreviewExam} onRemoveExam={handleRemoveExam} onAddNewCourse={handleAddNewCourse} onOpenEnvelope={handlePrintEnvelope} onDownloadLogged={handleDownloadLogged} onEnvelopePrintRecorded={handleWizardEnvelopePrint}/>)}
 
         {rolePageNow !== 'archive' && rolePageNow !== 'report-issue' && currentUser.role === 'AudioVisual' && (<AudioVisualView currentUser={currentUser} courses={courses} exams={exams} page={rolePageNow} onNavigate={setRolePage} onPreviewExam={handlePreviewExam} onOpenEnvelope={handlePrintEnvelope} onUpdateExamStatus={handleUpdateExamStatus} onPrintExam={handlePrintExam}/>)}
 
         {rolePageNow !== 'archive' && rolePageNow !== 'report-issue' && currentUser.role === 'Operations' && (<OperationsView currentUser={currentUser} exams={exams} page={rolePageNow} onNavigate={setRolePage} onOpenEnvelope={handlePrintEnvelope} onUpdateExamStatus={handleUpdateExamStatus}/>)}
 
-        {rolePageNow !== 'archive' && rolePageNow !== 'report-issue' && currentUser.role === 'Admin' && (<AdminView currentUser={currentUser} users={users} auditLogs={auditLogs} page={rolePageNow} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onToggleUserStatus={handleToggleUserStatus} onDeleteUser={handleDeleteUser} onRefreshUsers={refreshUsers}/>)}
+        {rolePageNow !== 'archive' && rolePageNow !== 'report-issue' && currentUser.role === 'Admin' && (<AdminView currentUser={currentUser} users={users} auditLogs={auditLogs} notifications={notifications} onMarkNotificationRead={handleMarkNotificationRead} page={rolePageNow} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onToggleUserStatus={handleToggleUserStatus} onDeleteUser={handleDeleteUser} onRefreshUsers={refreshUsers}/>)}
 
         {/* Modals (ใช้ร่วมทุกบทบาท) */}
         {previewExam && (<ExamPreviewModal exam={previewExam} currentUser={currentUser} onClose={() => setPreviewExam(null)} onDownloadLogged={handleDownloadLogged} onToast={showToast}/>)}

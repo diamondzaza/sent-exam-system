@@ -26,6 +26,25 @@ export async function PATCH(request, { params }) {
         if (Object.keys(dbPatch).length === 0) {
             return NextResponse.json({ error: 'ไม่มีข้อมูลที่ต้องการแก้ไข' }, { status: 400 });
         }
+        // กั้นสิทธิ์การเปลี่ยนสถานะ — อาจารย์ (re-upload) ตั้งได้เฉพาะ SUBMITTED,
+        // สถานะอื่นทั้งหมดเฉพาะโสตฯ/ดำเนินการ/แอดมิน (กัน role อื่นยิง API ตรง)
+        if (updates.status !== undefined) {
+            const STAFF_STATUS_ROLES = ['AudioVisual', 'Operations', 'Admin'];
+            if (profile.role === 'Teacher') {
+                if (updates.status !== 'SUBMITTED') {
+                    return NextResponse.json(
+                        { error: 'อาจารย์ตั้งสถานะได้เฉพาะ "ส่งแล้ว" เท่านั้น' },
+                        { status: 403 }
+                    );
+                }
+            }
+            else if (!STAFF_STATUS_ROLES.includes(profile.role)) {
+                return NextResponse.json(
+                    { error: `บัญชีของคุณ (${profile.role}) ไม่มีสิทธิ์เปลี่ยนสถานะข้อสอบ — หาก role ไม่ถูกต้อง กรุณาติดต่อผู้ดูแลระบบ` },
+                    { status: 403 }
+                );
+            }
+        }
         // อาจารย์ (re-upload) — RLS ไม่ให้อาจารย์ update ตาราง exams จึงตรวจ
         // ความเป็นเจ้าของแล้วอัปเดตผ่าน admin client / โสตฯ-ดำเนินการ-แอดมิน อัปเดตผ่าน RLS ได้ตามปกติ
         let writer = supabase;

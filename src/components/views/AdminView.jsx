@@ -18,10 +18,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, UserPlus, ShieldAlert, Edit2, Trash2, X, Check, XCircle, AlertCircle, MoveHorizontal, } from 'lucide-react';
+import { Search, UserPlus, ShieldAlert, Edit2, Trash2, X, Check, XCircle, AlertCircle, MoveHorizontal, Inbox, } from 'lucide-react';
 import { useDialogA11y } from '@/hooks/useEscape';
 import { ROLE_OPTIONS, ROLE_BADGE_LABEL } from '@/lib/statusLabels';
-export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAddUser, onUpdateUser, onToggleUserStatus, onDeleteUser, onRefreshUsers, }) => {
+export const AdminView = ({ currentUser, users, auditLogs, notifications = [], onMarkNotificationRead, page = 'users', onAddUser, onUpdateUser, onToggleUserStatus, onDeleteUser, onRefreshUsers, }) => {
     // User Management State
     const [searchUser, setSearchUser] = useState('');
     const [roleFilter, setRoleFilter] = useState('ALL');
@@ -47,6 +47,13 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     const [approveRole, setApproveRole] = useState('Teacher');
     const [reqError, setReqError] = useState('');
     const [reqLoading, setReqLoading] = useState(false);
+    // แนะนำบทบาทจากสังกัดที่ผู้สมัครเลือก — กันอนุมัติผิดบทบาท (สาเหตุที่โสตฯ กดเปลี่ยนสถานะไม่ได้)
+    const DEPARTMENT_ROLE_MAP = {
+        'อาจารย์ผู้สอน (สาขาวิชาต่างๆ)': 'Teacher',
+        'หน่วยเทคโนโลยีการศึกษา (ฝ่ายโสตฯ)': 'AudioVisual',
+        'ฝ่ายดำเนินการสอบและทะเบียนกลาง': 'Operations',
+    };
+    const suggestRole = (dept) => DEPARTMENT_ROLE_MAP[dept] || 'Teacher';
 
     const refreshAccountRequests = async () => {
         try {
@@ -181,21 +188,27 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
         e.preventDefault();
         if (!formData.firstName.trim())
             return;
-        // รวมชื่อ + นามสกุล เป็น name เดียว
+        // รวมชื่อ + นามสกุล เป็น name เดียว + ตัดช่องว่างส่วนเกินของอีเมล/รหัสผ่าน
         const fullName = [formData.firstName.trim(), formData.lastName.trim()].filter(Boolean).join(' ');
+        const payload = {
+            ...formData,
+            firstName: formData.firstName.trim(),
+            lastName: formData.lastName.trim(),
+            email: formData.email.trim(),
+            password: formData.password.trim(),
+            name: fullName,
+        };
         if (editingUser) {
             onUpdateUser({
                 ...editingUser,
-                ...formData,
-                name: fullName,
+                ...payload,
             });
         }
         else {
             // สร้างบัญชีจริง — server จะสร้างบัญชี Auth (ล็อกอินได้) + โปรไฟล์
             // และกำหนด id เป็น uuid เอง (ไม่สร้าง id เองอีกต่อไป)
             const newUser = {
-                ...formData,
-                name: fullName,
+                ...payload,
                 status: 'active',
             };
             onAddUser(newUser);
@@ -456,7 +469,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
                 </p>)}
             </div>
             <div className="flex items-center space-x-2 shrink-0">
-              <Button size="sm" onClick={() => { setApprovingReq(req); setApprovePassword(''); setApproveRole('Teacher'); setReqError(''); }} disabled={reqLoading} className="bg-emerald-600 hover:bg-emerald-700">
+              <Button size="sm" onClick={() => { setApprovingReq(req); setApprovePassword(''); setApproveRole(suggestRole(req.department)); setReqError(''); }} disabled={reqLoading} className="bg-emerald-600 hover:bg-emerald-700">
                 <Check className="w-3.5 h-3.5"/>
                 <span>อนุมัติ</span>
               </Button>
@@ -509,10 +522,13 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
                 <Select value={approveRole} onChange={(e) => setApproveRole(e.target.value)}>
                   {ROLE_OPTIONS.map((r) => (<option key={r.value} value={r.value}>{r.label}</option>))}
                 </Select>
+                {approvingReq && approveRole !== suggestRole(approvingReq.department) && (<p className="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                    ⚠ สังกัดผู้สมัครคือ "{approvingReq.department}" ซึ่งน่าจะเป็น {ROLE_BADGE_LABEL[suggestRole(approvingReq.department)] || 'Teacher'} — ตรวจสอบก่อนอนุมัติ
+                  </p>)}
               </div>
               <div>
                 <Label className="mb-1">รหัสผ่านเริ่มต้น (แจ้งผู้ใช้โดยตรง) *</Label>
-                <Input type="text" value={approvePassword} onChange={(e) => setApprovePassword(e.target.value)} placeholder="อย่างน้อย 6 ตัวอักษร" minLength={6}/>
+                <Input type="password" placeholder="อย่างน้อย 6 ตัวอักษร" autoComplete="new-password" value={approvePassword} onChange={(e) => setApprovePassword(e.target.value)} minLength={6}/>
                 <p className="mt-1 text-xs text-slate-500">
                   ระบบจะสร้างบัญชีล็อกอินด้วยอีเมล {approvingReq.email} + รหัสผ่านนี้ทันที
                 </p>
@@ -581,12 +597,58 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
         </div>
       </div>
     </>);
-    return (<div className="max-w-6xl mx-auto space-y-6">
-      {page === 'logs' ? renderLogsPage() : page === 'requests' ? renderRequestsPage() : page === 'policies' ? renderPoliciesPage() : renderUsersPage()}
+    // ───────── หน้า 5: การแจ้งปัญหาจากผู้ใช้ทุก role ─────────
+    const renderIssuesPage = () => {
+        // รายงานปัญหามาพร้อม notification ที่ title ขึ้นต้นด้วย "แจ้งปัญหา:" (จาก /api/issues)
+        const issueReports = notifications.filter((n) => n.title && n.title.startsWith('แจ้งปัญหา:'));
+        const unreadIssues = issueReports.filter((n) => !n.isRead).length;
+        return (<>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900">
+            การแจ้งปัญหา
+          </h1>
+          <p className="text-sm text-slate-500 mt-2">
+            รวมปัญหาการใช้งานที่ผู้ใช้ทุก role แจ้งเข้ามา — ตรวจสอบและติดต่อกลับผู้แจ้ง
+          </p>
+        </div>
+        {unreadIssues > 0 && (<Badge className="bg-amber-50 text-amber-800 border-amber-300 shrink-0">
+            ใหม่ {unreadIssues} รายการ
+          </Badge>)}
+      </div>
 
-      {/* Add / Edit User Modal */}
+      <div className="space-y-3">
+        {issueReports.length === 0 ? (<div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
+            <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-3"/>
+            <p className="text-sm text-slate-500">ยังไม่มีรายงานปัญหาเข้ามา</p>
+            <p className="text-xs text-slate-500 mt-1">
+              เมื่อผู้ใช้กด "แจ้งปัญหา" จากเมนูของตัวเอง รายงานจะแสดงที่นี่
+            </p>
+          </div>) : (issueReports.map((notif) => (<div key={notif.id} onClick={() => !notif.isRead && onMarkNotificationRead?.(notif.id)} className={`rounded-2xl border px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 cursor-pointer transition-colors ${!notif.isRead
+                ? 'bg-white border-[#1A4B7A]/30 shadow-sm'
+                : 'bg-white/70 border-slate-200'}`}>
+              <div className="min-w-0 space-y-1">
+                <p className="text-sm font-bold text-slate-900 truncate">{notif.title}</p>
+                <p className="text-xs text-slate-600 leading-relaxed">{notif.message}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-slate-500 whitespace-nowrap">{notif.timestamp}</span>
+                {!notif.isRead && (<span className="w-2 h-2 rounded-full bg-[#1A4B7A] shrink-0" aria-label="ยังไม่ได้อ่าน"/>)}
+              </div>
+            </div>)))}
+      </div>
+
+      {issueReports.length > 0 && (<p className="text-xs text-slate-400">
+          กดที่รายการเพื่อทำเครื่องหมายว่าอ่านแล้ว · ติดต่อกลับผู้แจ้งได้ตามข้อมูลบัญชีในตารางผู้ใช้
+        </p>)}
+    </>);
+    };
+    return (<div className="max-w-6xl mx-auto space-y-6">
+      {page === 'logs' ? renderLogsPage() : page === 'requests' ? renderRequestsPage() : page === 'policies' ? renderPoliciesPage() : page === 'issues' ? renderIssuesPage() : renderUsersPage()}
+
+      {/* Add / Edit User Modal — ฟอร์มซ้าย + คำแนะนำขวา (ธีมเดียวกับฟอร์มอื่นทั้งระบบ) */}
       {showAddUserModal && (<div role="dialog" aria-modal="true" aria-labelledby="user-form-title" className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div ref={userDialogRef} className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden">
+          <div ref={userDialogRef} className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden">
             <div className="bg-[#1A4B7A] text-white px-6 py-4 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <UserPlus className="w-5 h-5 text-white/80"/>
@@ -599,64 +661,94 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
               </button>
             </div>
 
-            <form onSubmit={handleSaveUser} className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 p-6">
+              {/* ฟอร์ม */}
+              <form onSubmit={handleSaveUser} className="lg:col-span-3 space-y-4 text-sm">
+                {reqError && (<div className="flex items-start space-x-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-rose-700">
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0"/>
+                    <span className="leading-relaxed">{reqError}</span>
+                  </div>)}
+
+                {/* ข้อมูลผู้ใช้ */}
                 <div>
-                  <Label className="mb-1">ชื่อ (พร้อมคำนำหน้า) *</Label>
-                  <Input type="text" placeholder="ชื่อพร้อมคำนำหน้า" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} required/>
+                  <p className="font-display font-bold text-sm text-slate-900 mb-2.5">ข้อมูลผู้ใช้</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="mb-1">ชื่อ (พร้อมคำนำหน้า) <span className="text-rose-500">*</span></Label>
+                      <Input type="text" placeholder="ชื่อพร้อมคำนำหน้า" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} required/>
+                    </div>
+                    <div>
+                      <Label className="mb-1">นามสกุล <span className="text-rose-500">*</span></Label>
+                      <Input type="text" placeholder="นามสกุล" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} required/>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Label className="mb-1">บทบาท *</Label>
+                    <Select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
+                      <option value="Teacher">อาจารย์ผู้สอน (Teacher)</option>
+                      <option value="AudioVisual">ฝ่ายโสตฯ (AudioVisual)</option>
+                      <option value="Operations">ฝ่ายดำเนินการสอบ (Operations)</option>
+                      <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
+                    </Select>
+                  </div>
                 </div>
+
+                {/* ข้อมูลเข้าสู่ระบบ */}
+                <div className="pt-2">
+                  <p className="font-display font-bold text-sm text-slate-900 mb-2.5">ข้อมูลเข้าสู่ระบบ</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="mb-1">อีเมลสำหรับล็อกอิน <span className="text-rose-500">*</span></Label>
+                      <Input type="email" placeholder="อีเมลสำหรับล็อกอิน" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required/>
+                    </div>
+                    <div>
+                      <Label className="mb-1">เบอร์โทรศัพท์</Label>
+                      <Input type="text" placeholder="เบอร์โทรศัพท์ที่ติดต่อได้" value={formData.tel} onChange={(e) => setFormData({ ...formData, tel: e.target.value })}/>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Label className="mb-1">
+                      {editingUser ? 'รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)' : 'รหัสผ่านสำหรับล็อกอิน *'}
+                    </Label>
+                    <Input type="password" placeholder="อย่างน้อย 6 ตัวอักษร" autoComplete="new-password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required={!editingUser} minLength={6}/>
+                  </div>
+                </div>
+
                 <div>
-                  <Label className="mb-1">นามสกุล <span className="text-rose-500">*</span></Label>
-                  <Input type="text" placeholder="นามสกุล" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} required/>
-                </div>
-              </div>
-
-              <div>
-                <Label className="mb-1">บทบาท *</Label>
-                <Select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
-                  <option value="Teacher">อาจารย์ผู้สอน (Teacher)</option>
-                  <option value="AudioVisual">ฝ่ายโสตฯ (AudioVisual)</option>
-                  <option value="Operations">ฝ่ายดำเนินการสอบ (Operations)</option>
-                  <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="mb-1">อีเมลสำหรับล็อกอิน *</Label>
-                  <Input type="email" placeholder="อีเมลสำหรับล็อกอิน" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required/>
+                  <Label className="mb-1">หน่วยงาน / ภาควิชา</Label>
+                  <Input type="text" placeholder="เช่น สาขาวิชาวิทยาการคอมพิวเตอร์ คณะวิทยาศาสตร์" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })}/>
                 </div>
 
-                <div>
-                  <Label className="mb-1">เบอร์โทรศัพท์</Label>
-                  <Input type="text" placeholder="เบอร์โทรศัพท์ที่ติดต่อได้" value={formData.tel} onChange={(e) => setFormData({ ...formData, tel: e.target.value })}/>
+                <div className="pt-3 border-t border-slate-200 flex items-center justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setShowAddUserModal(false)}>
+                    ยกเลิก
+                  </Button>
+                  <Button type="submit">
+                    {editingUser ? 'บันทึกการแก้ไข' : 'บันทึกผู้ใช้'}
+                  </Button>
                 </div>
-              </div>
+              </form>
 
-              <div>
-                <Label className="mb-1">
-                  {editingUser ? 'รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)' : 'รหัสผ่านสำหรับล็อกอิน *'}
-                </Label>
-                <Input type="password" placeholder="อย่างน้อย 6 ตัวอักษร" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required={!editingUser} minLength={6}/>
-                {!editingUser && (<p className="mt-1 text-xs text-slate-500">
-                    ผู้ใช้จะล็อกอินด้วยอีเมลด้านบน + รหัสผ่านนี้ทันทีหลังบันทึก
-                  </p>)}
-              </div>
-
-              <div>
-                <Label className="mb-1">หน่วยงาน / ภาควิชา</Label>
-                <Input type="text" placeholder="เช่น สาขาวิชาวิทยาการคอมพิวเตอร์ คณะวิทยาศาสตร์" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })}/>
-              </div>
-
-              <div className="pt-3 border-t border-slate-200 flex items-center justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setShowAddUserModal(false)}>
-                  ยกเลิก
-                </Button>
-                <Button type="submit" className="">
-                  {editingUser ? 'บันทึกการแก้ไข' : 'บันทึกผู้ใช้'}
-                </Button>
-              </div>
-            </form>
+              {/* คำแนะนำขวา */}
+              <aside className="lg:col-span-2">
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5 space-y-4 text-xs lg:sticky lg:top-4">
+                  <div>
+                    <p className="font-display font-bold text-sm text-slate-900">เกณฑ์ข้อมูล</p>
+                    <ul className="mt-2.5 space-y-2 text-slate-600">
+                      <li className="flex gap-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5"/><span>อีเมลต้องไม่ซ้ำกับบัญชีที่มีอยู่</span></li>
+                      <li className="flex gap-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5"/><span>รหัสผ่านอย่างน้อย 6 ตัวอักษร</span></li>
+                      <li className="flex gap-2"><Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5"/><span>บทบาทกำหนดสิทธิ์การเข้าถึงของผู้ใช้</span></li>
+                    </ul>
+                  </div>
+                  <div className="border-t border-slate-200 pt-3.5">
+                    <p className="font-semibold text-slate-800">หลังบันทึกผู้ใช้</p>
+                    <p className="text-slate-600 mt-1.5 leading-relaxed">
+                      ระบบสร้างบัญชีล็อกอินทันที — แจ้งอีเมลและรหัสผ่านเริ่มต้นให้ผู้ใช้โดยตรง
+                    </p>
+                  </div>
+                </div>
+              </aside>
+            </div>
           </div>
         </div>)}
     </div>);
