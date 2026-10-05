@@ -298,6 +298,11 @@ export default function AppShell() {
             notifTitle = 'ข้อสอบถูกส่งกลับแก้ไข';
             notifType = 'warning';
         }
+        // ส่งแจ้งเตือนให้ role ที่เกี่ยวข้องเท่านั้น — ไม่ใช่ทุก role
+        // (VERIFIED/PRINTING/READY_FOR_EXAM/REJECTED → อาจารย์เจ้าของ, PRINTED/DELIVERED_OD → ดำเนินการ)
+        const notifTargetRole = ['PRINTED', 'DELIVERED_OD'].includes(newStatus)
+            ? 'Operations'
+            : 'Teacher';
         const res = await authFetch(`/api/exams/${encodeURIComponent(examNo)}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -318,7 +323,7 @@ export default function AppShell() {
                 notify: {
                     title: notifTitle,
                     message: `วิชา ${subjectId} ${subjectName} : ${note || 'สถานะอัปเดตเป็น ' + newStatus}`,
-                    targetRole: 'ALL',
+                    targetRole: notifTargetRole,
                     type: notifType,
                     relatedExamNo: examNo,
                 },
@@ -556,12 +561,13 @@ export default function AppShell() {
         { id: 'intake', label: 'รับมอบซอง', icon: ClipboardList, onClick: () => setRolePage('intake') },
         reportIssueNavItem,
     ];
-    // Admin — ผู้ใช้ / Audit Log / คำขอเปิดบัญชี / การแจ้งปัญหา (ผู้รับแจ้งหลัก) / นโยบาย
+    // Admin — ผู้ใช้ / Audit Log / คำขอเปิดบัญชี / การแจ้งปัญหา (ผู้รับแจ้งหลัก) / คำขอเปลี่ยนรหัสผ่าน / นโยบาย
     const adminNavItems = [
         { id: 'users', label: 'จัดการผู้ใช้งาน', icon: Users, onClick: () => setRolePage('users') },
         { id: 'logs', label: 'บันทึกความปลอดภัย', icon: Shield, onClick: () => setRolePage('logs') },
         { id: 'requests', label: 'คำขอเปิดบัญชี', icon: ClipboardList, onClick: () => setRolePage('requests') },
         { id: 'issues', label: 'การแจ้งปัญหา', icon: Flag, onClick: () => setRolePage('issues') },
+        { id: 'password-requests', label: 'คำขอเปลี่ยนรหัสผ่าน', icon: KeyRound, onClick: () => setRolePage('password-requests') },
         { id: 'policies', label: 'นโยบายป้องกันข้อสอบรั่วไหล', icon: Sliders, onClick: () => setRolePage('policies') },
     ];
     // เลือก nav ตามบทบาท

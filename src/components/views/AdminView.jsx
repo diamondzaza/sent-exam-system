@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, UserPlus, ShieldAlert, Edit2, Trash2, X, Check, XCircle, AlertCircle, MoveHorizontal, Inbox, } from 'lucide-react';
+import { Search, UserPlus, ShieldAlert, Edit2, Trash2, X, Check, XCircle, AlertCircle, MoveHorizontal, Inbox, KeyRound, } from 'lucide-react';
 import { useDialogA11y } from '@/hooks/useEscape';
 import { validatePassword } from '@/lib/password';
 import { ROLE_OPTIONS, ROLE_BADGE_LABEL } from '@/lib/statusLabels';
@@ -41,6 +41,63 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
     // Logs Search & Filter
     const [searchLog, setSearchLog] = useState('');
     const [logActionFilter, setLogActionFilter] = useState('ALL');
+    // คำขอเปลี่ยนรหัสผ่าน (จากหน้า login — ผู้ใช้ลืมรหัส)
+    const [pwRequests, setPwRequests] = useState([]);
+    const refreshPasswordRequests = async () => {
+        try {
+            const res = await authFetch('/api/password-requests');
+            if (!res.ok)
+                return;
+            const data = await res.json();
+            setPwRequests(data.requests ?? []);
+        }
+        catch { /* ข้าม */ }
+    };
+    useEffect(() => {
+        refreshPasswordRequests();
+    }, []);
+    const pendingPwRequests = pwRequests.filter((r) => r.status === 'pending');
+    const donePwRequests = pwRequests.filter((r) => r.status !== 'pending');
+    const handleApplyPwRequest = async (req) => {
+        setPwReqError('');
+        try {
+            const res = await authFetch('/api/password-requests', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: req.id, action: 'apply' }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                setPwReqError(err.error || 'เปลี่ยนรหัสผ่านไม่สำเร็จ');
+                return;
+            }
+            await refreshPasswordRequests();
+            setPwReqError('');
+        }
+        catch {
+            setPwReqError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        }
+    };
+    const handleRejectPwRequest = async (req) => {
+        setPwReqError('');
+        try {
+            const res = await authFetch('/api/password-requests', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: req.id, action: 'reject' }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                setPwReqError(err.error || 'ปฏิเสธไม่สำเร็จ');
+                return;
+            }
+            await refreshPasswordRequests();
+        }
+        catch {
+            setPwReqError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        }
+    };
+    const [pwReqError, setPwReqError] = useState('');
     // Account Requests State
     const [accountRequests, setAccountRequests] = useState([]);
     const [approvingReq, setApprovingReq] = useState(null);
@@ -665,8 +722,76 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
         </p>)}
     </>);
     };
+    // ───────── หน้า 5: คำขอเปลี่ยนรหัสผ่าน ─────────
+    const renderPasswordRequestsPage = () => {
+        const pendingPw = pwRequests.filter((r) => r.status === 'pending');
+        const donePw = pwRequests.filter((r) => r.status !== 'pending');
+        return (<>
+      <div>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900">
+          คำขอเปลี่ยนรหัสผ่าน
+        </h1>
+        <p className="text-sm text-slate-500 mt-2">
+          ผู้ใช้ที่ลืมรหัสผ่านจะกรอกอีเมล + รหัสผ่านใหม่ที่ต้องการส่งมาที่นี่ — กด "เปลี่ยนรหัสผ่านให้" แล้วติดต่อกลับผู้ใช้
+        </p>
+      </div>
+
+      {pwReqError && (<div className="flex items-start space-x-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-rose-700">
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0"/>
+          <span className="leading-relaxed">{pwReqError}</span>
+        </div>)}
+
+      <h3 className="font-display font-bold text-base text-slate-900">
+        รอดำเนินการ <span className="text-slate-400 font-normal">({pendingPw.length})</span>
+      </h3>
+
+      {pendingPw.length === 0 ? (<div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
+          <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-3"/>
+          <p className="text-sm text-slate-500">ไม่มีคำขอเปลี่ยนรหัสผ่านค้างอยู่</p>
+        </div>) : (<div className="space-y-3">
+          {pendingPw.map((req) => (<div key={req.id} className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-bold text-slate-900 truncate">{req.email}</p>
+                  {req.name && (<p className="text-xs text-slate-500">{req.name}</p>)}
+                  <p className="text-xs text-slate-500">
+                    ขอเมื่อ {new Date(req.created_at).toLocaleString('th-TH')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button size="sm" onClick={() => handleApplyPwRequest(req)} className="bg-emerald-600 hover:bg-emerald-700">
+                    <Check className="w-3.5 h-3.5"/>
+                    <span>เปลี่ยนรหัสผ่านให้</span>
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleRejectPwRequest(req)} className="text-rose-600 hover:bg-rose-50">
+                    <XCircle className="w-3.5 h-3.5"/>
+                    <span>ปฏิเสธ</span>
+                  </Button>
+                </div>
+              </div>
+            </div>))}
+        </div>)}
+
+      {donePw.length > 0 && (<div className="pt-2">
+          <h3 className="font-display font-bold text-base text-slate-900 mb-2">
+            ดำเนินการแล้ว <span className="text-slate-400 font-normal">({donePw.length})</span>
+          </h3>
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm divide-y divide-slate-100">
+            {donePw.map((req) => (<div key={req.id} className="p-3 flex items-center justify-between gap-3 text-xs">
+                <div className="min-w-0">
+                  <span className="font-semibold text-slate-800">{req.email}</span>
+                  <span className="text-slate-400"> • {new Date(req.created_at).toLocaleString('th-TH')}</span>
+                </div>
+                <Badge className={`shrink-0 rounded ${req.status === 'done' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-rose-50 text-rose-700 border-rose-300'}`}>
+                  {req.status === 'done' ? 'เปลี่ยนรหัสผ่านแล้ว' : 'ปฏิเสธแล้ว'}
+                </Badge>
+              </div>))}
+          </div>
+        </div>)}
+    </>);
+    };
     return (<div className="max-w-6xl mx-auto space-y-6">
-      {page === 'logs' ? renderLogsPage() : page === 'requests' ? renderRequestsPage() : page === 'policies' ? renderPoliciesPage() : page === 'issues' ? renderIssuesPage() : renderUsersPage()}
+      {page === 'logs' ? renderLogsPage() : page === 'requests' ? renderRequestsPage() : page === 'policies' ? renderPoliciesPage() : page === 'password-requests' ? renderPasswordRequestsPage() : page === 'issues' ? renderIssuesPage() : renderUsersPage()}
 
       {/* Add / Edit User Modal — ฟอร์มซ้าย + คำแนะนำขวา (ธีมเดียวกับฟอร์มอื่นทั้งระบบ) */}
       {showAddUserModal && (<div role="dialog" aria-modal="true" aria-labelledby="user-form-title" className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">

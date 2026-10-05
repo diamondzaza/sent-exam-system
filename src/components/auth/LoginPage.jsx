@@ -14,7 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UploadCloud, Printer, ShieldCheck, LogIn, AlertCircle, UserPlus, Eye, EyeOff, Loader2, } from 'lucide-react';
+import { UploadCloud, Printer, ShieldCheck, LogIn, AlertCircle, UserPlus, Eye, EyeOff, Loader2, KeyRound, Send, CheckCircle2 as ResetCheck, } from 'lucide-react';
+import { validatePassword } from '@/lib/password';
 import { createClient } from '@/lib/supabase/client';
 
 // แปลข้อความ error ของ Supabase เป็นภาษาไทย
@@ -33,6 +34,42 @@ export const LoginPage = ({ onLogin }) => {
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [loading, setLoading] = useState(false);
+    // ฟอร์มลืมรหัสผ่าน — ส่งคำขอเปลี่ยนรหัสผ่านถึงผู้ดูแลระบบ
+    const [showReset, setShowReset] = useState(false);
+    const [resetForm, setResetForm] = useState({ email: '', password: '' });
+    const [resetLoading, setResetLoading] = useState(false);
+    const [resetSent, setResetSent] = useState(false);
+    const [resetError, setResetError] = useState('');
+    const resetIssues = validatePassword(resetForm.password);
+
+    const handleResetSubmit = async (e) => {
+        e.preventDefault();
+        if (resetIssues.length > 0 || !resetForm.email.trim()) {
+            setResetError('กรุณากรอกอีเมลและรหัสผ่านให้ผ่านเงื่อนไขครบถ้วน');
+            return;
+        }
+        setResetError('');
+        setResetLoading(true);
+        try {
+            const res = await fetch('/api/password-requests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: resetForm.email.trim(), password: resetForm.password }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                setResetError(err.error || 'ส่งคำขอไม่สำเร็จ กรุณาลองใหม่');
+                return;
+            }
+            setResetSent(true);
+        }
+        catch {
+            setResetError('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+        }
+        finally {
+            setResetLoading(false);
+        }
+    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -104,13 +141,66 @@ export const LoginPage = ({ onLogin }) => {
         <Card className="relative z-10 shadow-xl w-full max-w-md bg-white rounded-2xl border border-slate-100">
           <div className="p-7 sm:p-9">
             <h2 className="font-display text-2xl sm:text-3xl font-bold text-slate-900">
-              เข้าสู่ระบบ
+              {showReset ? 'ลืมรหัสผ่าน' : 'เข้าสู่ระบบ'}
             </h2>
             <p className="text-sm text-slate-500 mt-1.5 mb-7">
-              ยืนยันตัวตนเพื่อเข้าใช้งานตามบทบาทของท่าน
+              {showReset
+                ? 'กรอกอีเมลและรหัสผ่านใหม่ที่ต้องการ — ผู้ดูแลระบบจะเปลี่ยนให้และติดต่อกลับ'
+                : 'ยืนยันตัวตนเพื่อเข้าใช้งานตามบทบาทของท่าน'}
             </p>
 
-            <form onSubmit={handleLogin} className="space-y-5" noValidate>
+            {showReset ? (resetSent ? (<div className="py-6 text-center space-y-3">
+                  <ResetCheck className="w-12 h-12 text-emerald-500 mx-auto"/>
+                  <p className="font-display font-bold text-base text-slate-900">ส่งคำขอแล้ว</p>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    ผู้ดูแลระบบได้รับแจ้งแล้ว — เมื่อเปลี่ยนรหัสผ่านเสร็จ<br/>
+                    จะติดต่อกลับที่ {resetForm.email.trim()}
+                  </p>
+                  <Button variant="outline" onClick={() => { setShowReset(false); setResetSent(false); setResetForm({ email: '', password: '' }); }} className="mt-2 border-slate-300">
+                    กลับไปเข้าสู่ระบบ
+                  </Button>
+                </div>) : (<form onSubmit={handleResetSubmit} className="space-y-4" noValidate>
+                  {resetError && (<div role="alert" className="flex items-start space-x-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-rose-700">
+                      <AlertCircle className="w-4 h-4 mt-0.5 shrink-0"/>
+                      <span className="leading-relaxed">{resetError}</span>
+                    </div>)}
+                  <div>
+                    <Label htmlFor="reset-email" className="font-medium mb-2 block text-slate-800">
+                      อีเมลของบัญชี
+                    </Label>
+                    <Input id="reset-email" type="email" placeholder="อีเมลของท่าน" value={resetForm.email} onChange={(e) => setResetForm({ ...resetForm, email: e.target.value })} required/>
+                  </div>
+                  <div>
+                    <Label htmlFor="reset-password" className="font-medium mb-2 block text-slate-800">
+                      รหัสผ่านใหม่ที่ต้องการ
+                    </Label>
+                    <Input id="reset-password" type="password" placeholder="อย่างน้อย 8 ตัว มีตัวเลขและพิมพ์ใหญ่-เล็ก" autoComplete="new-password" value={resetForm.password} onChange={(e) => setResetForm({ ...resetForm, password: e.target.value })} required minLength={8}/>
+                    <div className="mt-2 grid grid-cols-1 gap-y-1 text-xs">
+                      {[
+                      { ok: resetForm.password.length >= 8, label: 'ยาวอย่างน้อย 8 ตัวอักษร' },
+                      { ok: /[0-9]/.test(resetForm.password), label: 'มีตัวเลข' },
+                      { ok: /[A-Z]/.test(resetForm.password), label: 'มีตัวอักษรพิมพ์ใหญ่' },
+                      { ok: /[a-z]/.test(resetForm.password), label: 'มีตัวอักษรพิมพ์เล็ก' },
+                      { ok: /[^A-Za-z0-9]/.test(resetForm.password), label: 'มีอักขระพิเศษ' },
+                  ].map((c) => (<p key={c.label} className={`flex items-center gap-1.5 ${c.ok ? 'text-emerald-600' : 'text-slate-500'}`}>
+                          <ResetCheck className="w-3 h-3 shrink-0"/>
+                          <span>{c.label}</span>
+                        </p>))}
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">
+                      คำขอจะถูกส่งถึงผู้ดูแลระบบเพื่อเปลี่ยนรหัสผ่านให้ — แล้วติดต่อกลับที่อีเมลนี้
+                    </p>
+                  </div>
+                  <Button type="submit" className="w-full py-2.5" disabled={resetLoading}>
+                    {resetLoading ? (<Loader2 className="w-4 h-4 animate-spin" aria-hidden="true"/>) : (<KeyRound className="w-4 h-4"/>)}
+                    <span>{resetLoading ? 'กำลังส่งคำขอ...' : 'ส่งคำขอเปลี่ยนรหัสผ่าน'}</span>
+                  </Button>
+                  <div className="text-center">
+                    <a href="#" onClick={(e) => { e.preventDefault(); setShowReset(false); setResetSent(false); setResetError(''); }} className="text-xs text-slate-500 hover:text-[#1A4B7A] hover:underline underline-offset-2 transition-colors">
+                      กลับไปเข้าสู่ระบบ
+                    </a>
+                  </div>
+                </form>)) : (<form onSubmit={handleLogin} className="space-y-5" noValidate>
               {/* อีเมล */}
               <div>
                 <Label htmlFor="login-email" className="font-medium mb-2 block text-slate-800">
@@ -139,7 +229,7 @@ export const LoginPage = ({ onLogin }) => {
                     <span>{passwordError}</span>
                   </p>)}
                 <div className="mt-2 text-right">
-                  <a href="#" className="text-xs text-slate-500 hover:text-[#1A4B7A] hover:underline underline-offset-2 transition-colors">
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowReset(true); setEmailError(''); setPasswordError(''); setError(null); }} className="text-xs text-slate-500 hover:text-[#1A4B7A] hover:underline underline-offset-2 transition-colors">
                     ลืมรหัสผ่าน?
                   </a>
                 </div>
@@ -155,15 +245,15 @@ export const LoginPage = ({ onLogin }) => {
                 {loading ? (<Loader2 className="w-4 h-4 animate-spin" aria-hidden="true"/>) : (<LogIn className="w-4 h-4"/>)}
                 <span>{loading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}</span>
               </Button>
-            </form>
+            </form>)}
 
-            <p className="mt-6 text-center text-xs text-slate-500">
+            {!showReset && (<p className="mt-6 text-center text-xs text-slate-500">
               ยังไม่มีบัญชี?{' '}
               <a href="/request-account" className="inline-flex items-center space-x-1 font-semibold text-[#1A4B7A] hover:text-[#153D63] hover:underline underline-offset-2">
                 <UserPlus className="w-3.5 h-3.5"/>
                 <span>ขอสมัครบัญชีจากผู้ดูแลระบบ</span>
               </a>
-            </p>
+            </p>)}
           </div>
         </Card>
       </div>

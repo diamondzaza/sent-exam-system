@@ -1,4 +1,5 @@
 /**แปลงชื่อฟิลด์ระหว่าง frontend (camelCase เช่น E_No, Subject_ID)*/
+import { relativeTimeThai } from './formatDate';
 
 // ── Exam ──
 export function examToDb(e) {
@@ -203,7 +204,9 @@ export function notificationFromDb(r) {
         id: r.id,
         title: r.title,
         message: r.message,
-        timestamp: r.timestamp,
+        // เวลาแบบสัมพัทธ์ คำนวณใหม่ทุกครั้งที่ดึงข้อมูล — ไม่ค้างที่ข้อความตอนสร้าง
+        timestamp: relativeTimeThai(r.created_at) || r.timestamp,
+        createdAt: r.created_at ?? undefined,
         targetRole: r.target_role ?? 'ALL',
         type: r.type,
         isRead: r.is_read,
