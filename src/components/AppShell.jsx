@@ -29,7 +29,7 @@ import { TeacherView } from '@/components/views/TeacherView';
 import { AudioVisualView } from '@/components/views/AudioVisualView';
 import { OperationsView } from '@/components/views/OperationsView';
 import { AdminView } from '@/components/views/AdminView';
-import { CheckCircle2, LayoutDashboard, ClipboardList, BookOpen, Users, Shield, Sliders, Archive, Flag } from 'lucide-react';
+import { CheckCircle2, LayoutDashboard, ClipboardList, BookOpen, Users, Shield, Sliders, Archive, Flag, KeyRound } from 'lucide-react';
 import { ExamArchiveView } from '@/components/views/ExamArchiveView';
 import { ReportIssueView } from '@/components/views/ReportIssueView';
 import { createClient, authFetch } from '@/lib/supabase/client';
