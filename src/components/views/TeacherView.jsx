@@ -179,18 +179,20 @@ const EXAM_UPLOAD_STEPS = [
     { n: 3, label: 'ใบปะหน้าซอง' },
     { n: 4, label: 'ตรวจสอบและส่ง' },
 ];
-const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], onDone, onUploadSubmit, onPreviewExam, onEnvelopePrintRecorded, }) => {
+const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], prefillExam = null, onDone, onUploadSubmit, onPreviewExam, onEnvelopePrintRecorded, }) => {
     const [step, setStep] = useState(1);
-    const [examType, setExamType] = useState(existingExam?.exam_type || '');
-    const [examDate, setExamDate] = useState(existingExam?.E_Date || '');
-    const [examTime, setExamTime] = useState(existingExam?.E_Time || '');
-    const [room, setRoom] = useState(existingExam?.room || '');
-    const [totalPages, setTotalPages] = useState(existingExam?.total_pages ?? '');
-    const [totalCopies, setTotalCopies] = useState(existingExam?.total_copies || '');
-    const [copiesReserve, setCopiesReserve] = useState(existingExam?.copies_reserve ?? '');
-    const [envelopeNotes, setEnvelopeNotes] = useState(existingExam?.envelope_notes || '');
+    // ค่าเริ่มต้น: อัปโหลดซ้ำ = จากข้อสอบเดิม / ชุดใหม่ = ดึงจากชุดล่าสุดของวิชาเดียวกัน (ไม่ต้องกรอกซ้ำ)
+    const prefill = existingExam ?? prefillExam ?? {};
+    const [examType, setExamType] = useState(prefill.exam_type || '');
+    const [examDate, setExamDate] = useState(prefill.E_Date || '');
+    const [examTime, setExamTime] = useState(prefill.E_Time || '');
+    const [room, setRoom] = useState(prefill.room || '');
+    const [totalPages, setTotalPages] = useState(prefill.total_pages ?? '');
+    const [totalCopies, setTotalCopies] = useState(prefill.total_copies || '');
+    const [copiesReserve, setCopiesReserve] = useState(prefill.copies_reserve ?? '');
+    const [envelopeNotes, setEnvelopeNotes] = useState(prefill.envelope_notes || '');
     // ค่าเริ่มต้นของสิ่งที่อนุญาต (ส่งพร้อม payload เหมือนเดิม — ไม่มี UI ให้แก้แล้ว)
-    const [selectedMaterials] = useState(existingExam?.allowed_materials || ['เครื่องคิดเลขวิทยาศาสตร์', 'ปากกาน้ำเงิน/ดำ', 'ดินสอ 2B']);
+    const [selectedMaterials] = useState(prefill.allowed_materials || ['เครื่องคิดเลขวิทยาศาสตร์', 'ปากกาน้ำเงิน/ดำ', 'ดินสอ 2B']);
     const [fileName, setFileName] = useState(existingExam?.file_name || '');
     const [fileSize, setFileSize] = useState(existingExam?.file_size || '');
     const [fileObject, setFileObject] = useState(null); // ไฟล์จริงส่งขึ้น Supabase Storage
@@ -1570,7 +1572,10 @@ export const TeacherView = ({ currentUser, courses, exams, notifications = [], o
             onNavigate?.('courses');
             return null;
         }
-        return (<ExamUploadWizard key={`${uploadContext.course.Course_id}-${uploadContext.existingExam?.E_No ?? 'new'}-${uploadContext.isReupload}`} course={uploadContext.course} existingExam={uploadContext.existingExam} isReupload={uploadContext.isReupload} usedSets={exams.filter((e) => e.Subject_ID === uploadContext.course.Course_id && e.E_No !== uploadContext.existingExam?.E_No).map((e) => e.exam_set || 'A')} onDone={() => onNavigate?.('courses')} onUploadSubmit={onUploadSubmit} onPreviewExam={onPreviewExam} onEnvelopePrintRecorded={onEnvelopePrintRecorded}/>);
+        // ชุดใหม่ — ดึงข้อมูลการสอบจากชุดล่าสุดของวิชาเดียวกันมาเติมให้ ไม่ต้องกรอกซ้ำ
+        const courseExamList = exams.filter((e) => e.Subject_ID === uploadContext.course.Course_id && e.E_No !== uploadContext.existingExam?.E_No);
+        const prefillExam = courseExamList[courseExamList.length - 1] || null;
+        return (<ExamUploadWizard key={`${uploadContext.course.Course_id}-${uploadContext.existingExam?.E_No ?? 'new'}-${uploadContext.isReupload}`} course={uploadContext.course} existingExam={uploadContext.existingExam} isReupload={uploadContext.isReupload} usedSets={courseExamList.map((e) => e.exam_set || 'A')} prefillExam={prefillExam} onDone={() => onNavigate?.('courses')} onUploadSubmit={onUploadSubmit} onPreviewExam={onPreviewExam} onEnvelopePrintRecorded={onEnvelopePrintRecorded}/>);
     };
     return (<div className="max-w-6xl mx-auto space-y-6">
       {/* แถบบน: ภาคเรียน/ปี (ชื่อระบบอยู่ที่แถบบนของ SidebarShell แล้ว) */}

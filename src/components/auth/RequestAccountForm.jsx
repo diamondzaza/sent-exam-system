@@ -153,7 +153,7 @@ export function RequestAccountForm() {
                   <option>ฝ่ายดำเนินการสอบและทะเบียนกลาง</option>
                   <option>อื่นๆ (ระบุในหมายเหตุ)</option>
                 </Select>
-              </div>d
+              </div>
 
               <div>
                 <Label className="mb-1.5">หมายเหตุ / เหตุผลการขอใช้งาน</Label>

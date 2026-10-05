@@ -178,10 +178,13 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
     };
     const handleOpenEditUser = (u) => {
         setEditingUser(u);
-        // ชื่อเดิมเป็นชื่อเต็ม — ใส่ทั้งหมดในช่องชื่อ ให้ผู้ใช้แยกนามสกุลเองตามต้องการ
+        // แยกชื่อเต็มกลับเป็น ชื่อ(พร้อมคำนำหน้า) + นามสกุล — คำสุดท้ายคือนามสกุล
+        const tokens = (u.name || '').trim().split(/\s+/);
+        const lastName = tokens.length > 1 ? tokens[tokens.length - 1] : '';
+        const firstName = tokens.length > 1 ? tokens.slice(0, -1).join(' ') : (u.name || '');
         setFormData({
-            firstName: u.name,
-            lastName: '',
+            firstName,
+            lastName,
             role: u.role,
             email: u.email,
             tel: u.tel,
@@ -534,7 +537,20 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
               </div>
               <div>
                 <Label className="mb-1">รหัสผ่านเริ่มต้น (แจ้งผู้ใช้โดยตรง) *</Label>
-                <Input type="password" placeholder="อย่างน้อย 6 ตัวอักษร" autoComplete="new-password" value={approvePassword} onChange={(e) => setApprovePassword(e.target.value)} minLength={6}/>
+                <Input type="password" placeholder="อย่างน้อย 8 ตัว มีตัวเลข พิมพ์ใหญ่ เล็ก และอักขระพิเศษ" autoComplete="new-password" value={approvePassword} onChange={(e) => setApprovePassword(e.target.value)} minLength={8}/>
+                {/* เช็คลิสต์ความแข็งแรงของรหัสผ่าน — เหมือนฟอร์มเพิ่มผู้ใช้ */}
+                <div className="mt-2 grid grid-cols-1 gap-y-1 text-xs">
+                  {[
+                  { ok: approvePassword.length >= 8, label: 'ยาวอย่างน้อย 8 ตัวอักษร' },
+                  { ok: /[0-9]/.test(approvePassword), label: 'มีตัวเลข' },
+                  { ok: /[A-Z]/.test(approvePassword), label: 'มีตัวอักษรพิมพ์ใหญ่' },
+                  { ok: /[a-z]/.test(approvePassword), label: 'มีตัวอักษรพิมพ์เล็ก' },
+                  { ok: /[^A-Za-z0-9]/.test(approvePassword), label: 'มีอักขระพิเศษ' },
+              ].map((c) => (<p key={c.label} className={`flex items-center gap-1.5 ${c.ok ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      <Check className="w-3 h-3 shrink-0"/>
+                      <span>{c.label}</span>
+                    </p>))}
+                </div>
                 <p className="mt-1 text-xs text-slate-500">
                   ระบบจะสร้างบัญชีล็อกอินด้วยอีเมล {approvingReq.email} + รหัสผ่านนี้ทันที
                 </p>
@@ -543,7 +559,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
                 <Button variant="outline" size="sm" onClick={() => setApprovingReq(null)}>
                   ยกเลิก
                 </Button>
-                <Button size="sm" onClick={handleApproveRequest} disabled={reqLoading || approvePassword.length < 6} className="bg-emerald-600 hover:bg-emerald-700">
+                <Button size="sm" onClick={handleApproveRequest} disabled={reqLoading || approvePassword.length < 8} className="bg-emerald-600 hover:bg-emerald-700">
                   <Check className="w-3.5 h-3.5"/>
                   <span>{reqLoading ? 'กำลังสร้างบัญชี...' : 'ยืนยันอนุมัติ'}</span>
                 </Button>
