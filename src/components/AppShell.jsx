@@ -607,6 +607,6 @@ export default function AppShell() {
         {/* Modals (ใช้ร่วมทุกบทบาท) */}
         {previewExam && (<ExamPreviewModal exam={previewExam} currentUser={currentUser} onClose={() => setPreviewExam(null)} onDownloadLogged={handleDownloadLogged} onToast={showToast}/>)}
 
-        {envelopeExam && (<ExamEnvelopeCover exam={envelopeExam} onClose={() => setEnvelopeExam(null)} onPrintRecorded={handleEnvelopePrintRecorded}/>)}
+        {envelopeExam && (<ExamEnvelopeCover exam={envelopeExam} editable={currentUser.role !== 'AudioVisual'} onClose={() => setEnvelopeExam(null)} onPrintRecorded={handleEnvelopePrintRecorded}/>)}
       </SidebarShell>);
 }

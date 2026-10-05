@@ -82,8 +82,8 @@ const Line = ({ value, className = '' }) => (
 /** เส้นประเปล่า */
 const Dots = ({ className = '' }) => <span className={`block border-b border-dotted border-slate-600 ${className}`} />;
 
-export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
-    const [tab, setTab] = useState('form'); // 'form' | 'doc'
+export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded, editable = true }) => {
+    const [tab, setTab] = useState(editable ? 'form' : 'doc'); // 'form' | 'doc'
     const [form, setForm] = useState(() => buildFormFromExam(exam));
     const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
     // ข้อ 6: tab ถือว่ากรอกครบเมื่อข้อมูลการสอบหลักครบ (auto-fill ให้ส่วนใหญ่แล้ว)
@@ -97,7 +97,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
             window.print();
             setTimeout(() => document.body.classList.remove('printing-envelope'), 500);
         };
-        if (tab !== 'doc') {
+        if (editable && tab !== 'doc') {
             // สลับไปหน้าเอกสารก่อน แล้วค่อยสั่งพิมพ์ (รอ render สั้นๆ)
             setTab('doc');
             setTimeout(doPrint, 200);
@@ -117,7 +117,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
             <div>
               <h3 className="font-display font-semibold text-base">ใบปะหน้าซองข้อสอบ</h3>
               <p className="text-xs text-slate-400">
-                {exam ? `${exam.Subject_ID} : ${exam.Subject_Name}` : 'ตัวอย่างแบบฟอร์ม'} — กรอกฟอร์มแล้วดูตัวอย่าง/สั่งพิมพ์
+                {exam ? `${exam.Subject_ID} : ${exam.Subject_Name}` : 'ตัวอย่างแบบฟอร์ม'} — {editable ? 'กรอกฟอร์มแล้วดูตัวอย่าง/สั่งพิมพ์' : 'ดูตัวอย่าง/สั่งพิมพ์ใบปะหน้า'}
               </p>
             </div>
           </div>
@@ -133,7 +133,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
         </div>
 
         {/* Tabs (สลับระหว่างฟอร์มกรอก กับ เอกสารใบปะหน้า) */}
-        <div className="no-print flex space-x-2 px-6 pt-4 border-b border-slate-200 text-xs font-medium">
+        {editable && (<div className="no-print flex space-x-2 px-6 pt-4 border-b border-slate-200 text-xs font-medium">
           <button onClick={() => setTab('form')} className={`px-4 py-2.5 rounded-t-xl transition-all flex items-center gap-1.5 ${tab === 'form' ? 'bg-slate-100 text-[#1A4B7A] font-bold border-t-2 border-[#1A4B7A]' : 'text-slate-500 hover:text-slate-800'}`}>
             {formComplete && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true"/>}
             1. ฟอร์มกรอกข้อมูล
@@ -142,12 +142,12 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
             {formComplete && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true"/>}
             2. ใบปะหน้า (ตัวอย่าง/พิมพ์)
           </button>
-        </div>
+        </div>)}
 
         <div className="flex-1 overflow-y-auto bg-slate-100 p-4 sm:p-6">
 
           {/* ═══ แท็บ 1: ฟอร์มกรอกข้อมูล ═══ */}
-          {tab === 'form' && (<div className="bg-white shadow border border-slate-200 rounded-xl mx-auto max-w-3xl p-6 space-y-6">
+          {editable && tab === 'form' && (<div className="bg-white shadow border border-slate-200 rounded-xl mx-auto max-w-3xl p-6 space-y-6">
               {/* ข้อมูลการสอบ */}
               <div>
                 <p className="font-display font-bold text-sm text-slate-900 mb-3">ข้อมูลการสอบ</p>
@@ -218,7 +218,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
 
           {/* ═══ แท็บ 2: ใบปะหน้า (เอกสาร — ค่าเป็นตัวอักษรบนเส้นประ) ═══ */}
           {/* id="printable-envelope" — CSS @media print ซ่อนทุกอย่างแล้วเปิดเฉพาะ element นี้ (REQ-0013) */}
-          {tab === 'doc' && (<div id="printable-envelope" className="bg-white shadow border border-slate-300 mx-auto max-w-3xl px-8 py-8 text-slate-900 min-h-[900px]">
+          {(!editable || tab === 'doc') && (<div id="printable-envelope" className="bg-white shadow border border-slate-300 mx-auto max-w-3xl px-8 py-8 text-slate-900 min-h-[900px]">
 
               {/* ── โลโก้ (ช่องวาง — นำภาพมาใส่เองภายหลัง) ── */}
               <div className="flex justify-center mb-3">
