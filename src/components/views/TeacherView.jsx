@@ -43,9 +43,9 @@ const THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', '�
 const Line = ({ value, className = '' }) => (<span className={`block border-b border-dotted border-slate-600 text-center text-sm leading-snug min-h-[1.6rem] pb-1.5 break-words ${className}`}>
     {value}
   </span>);
-/** ตัวอย่างใบปะหน้าซองข้อสอบ (id="printable-envelope" — CSS @media print พิมพ์เฉพาะ element นี้)
+/** ตัวอย่างใบปะหน้าซองข้อสอบสำหรับดูบนหน้าจอเท่านั้น
  *  ส่วนจำนวนเข้าสอบ/ขาดสอบ/ผู้คุมสอบ/หมายเหตุ เว้นบรรทัดไว้เขียนด้วยลายมือที่หน้างานจริง */
-const EnvelopeDocument = ({ form }) => (<div id="printable-envelope" className="bg-white shadow border border-slate-300 mx-auto max-w-3xl px-8 py-8 text-slate-900 min-h-[900px]">
+const EnvelopeDocument = ({ form }) => (<div className="no-print bg-white shadow border border-slate-300 mx-auto max-w-3xl px-8 py-8 text-slate-900 min-h-[900px]">
 
     {/* ── โลโก้ ── */}
     <div className="flex justify-center mb-3">
@@ -158,7 +158,7 @@ const EnvelopeDocument = ({ form }) => (<div id="printable-envelope" className="
 
     {/* ── ผู้คุมสอบ (เขียนด้วยลายมือ) ── */}
     <div className="space-y-3 text-sm mb-5">
-      {form.proctors.map((p, i) => (<div key={i} className="flex items-end">
+      {['', '', ''].map((p, i) => (<div key={i} className="flex items-end">
           <span className="shrink-0">{i + 1}.</span>
           <Line value={p} className="flex-1"/>
           <span className="shrink-0">ผู้คุมสอบ</span>
@@ -179,7 +179,7 @@ const EXAM_UPLOAD_STEPS = [
     { n: 3, label: 'ใบปะหน้าซอง' },
     { n: 4, label: 'ตรวจสอบและส่ง' },
 ];
-const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], prefillExam = null, onDone, onUploadSubmit, onPreviewExam, onEnvelopePrintRecorded, }) => {
+const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], prefillExam = null, onDone, onUploadSubmit, onPreviewExam, }) => {
     const [step, setStep] = useState(1);
     // ค่าเริ่มต้น: อัปโหลดซ้ำ = จากข้อสอบเดิม / ชุดใหม่ = ดึงจากชุดล่าสุดของวิชาเดียวกัน (ไม่ต้องกรอกซ้ำ)
     const prefill = existingExam ?? prefillExam ?? {};
@@ -191,7 +191,6 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
     const [totalCopies, setTotalCopies] = useState(prefill.total_copies || '');
     const [copiesReserve, setCopiesReserve] = useState(prefill.copies_reserve ?? '');
     const [envelopeNotes, setEnvelopeNotes] = useState(prefill.envelope_notes || '');
-    // ค่าเริ่มต้นของสิ่งที่อนุญาต (ส่งพร้อม payload เหมือนเดิม — ไม่มี UI ให้แก้แล้ว)
     const [selectedMaterials] = useState(prefill.allowed_materials || ['เครื่องคิดเลขวิทยาศาสตร์', 'ปากกาน้ำเงิน/ดำ', 'ดินสอ 2B']);
     const [fileName, setFileName] = useState(existingExam?.file_name || '');
     const [fileSize, setFileSize] = useState(existingExam?.file_size || '');
@@ -227,7 +226,6 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
             examYearBE: valid ? String(d.getFullYear() + 543) : '',
             examTime: examTime ?? '',
             examRoom: room ?? '',
-            envelopeNo: '',
             studentCount: String(course.student_count ?? ''),
             examCopies: String(totalCopies || ''),
             facultyName: 'คณะวิทยาศาสตร์',
@@ -240,7 +238,6 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
             office: '',
             attendedCount: '', absentCount: '',
             absentees: [{ code: '', name: '' }, { code: '', name: '' }, { code: '', name: '' }],
-            proctors: [existingExam?.proctors?.[0] ?? '', existingExam?.proctors?.[1] ?? '', existingExam?.proctors?.[2] ?? ''],
             note: envelopeNotes ?? '',
         };
     });
@@ -371,13 +368,6 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
             return;
         }
     };
-    // พิมพ์ใบปะหน้าซอง — บันทึก Audit Log แล้วสั่งพิมพ์เฉพาะ element ใบปะหน้า (CSS printing-envelope)
-    const handlePrintEnvelope = () => {
-        onEnvelopePrintRecorded?.(course);
-        document.body.classList.add('printing-envelope');
-        window.print();
-        setTimeout(() => document.body.classList.remove('printing-envelope'), 500);
-    };
     const handleSubmit = async () => {
         if (!fileUploaded || !fileName) {
             setErrorMsg('กรุณาเลือกไฟล์ข้อสอบก่อนส่ง');
@@ -416,7 +406,7 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
             upload_date: new Date().toISOString(), // ISO — DB เป็น timestamptz (แสดงผลไทยตอนอ่าน)
             envelope_notes: envelopeNotes,
             allowed_materials: selectedMaterials,
-            proctors: [course.teacher_name, 'กรรมการคุมสอบร่วมประจำห้อง'],
+            proctors: [],
         };
         setSending(true);
         setErrorMsg('');
@@ -694,7 +684,6 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
             ['พ.ศ.', 'examYearBE'],
             ['เวลา', 'examTime'],
             ['ห้องสอบ', 'examRoom'],
-            ['เลขประจำซอง', 'envelopeNo'],
             ['จำนวนนักศึกษา (คน)', 'studentCount'],
             ['ซองนี้มีจำนวนข้อสอบ (ชุด)', 'examCopies'],
             ['นศ. คณะ', 'facultyName'],
@@ -704,6 +693,11 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
                   <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
                   <input type="text" value={env[key] ?? ''} onChange={(e) => setEnv({ ...env, [key]: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-white"/>
                 </div>))}
+              <div>
+                <Label htmlFor="envelope-number" className="block text-xs font-medium text-slate-600 mb-1">เลขประจำซองข้อสอบ</Label>
+                <Input id="envelope-number" type="text" value={examSet} readOnly aria-describedby="envelope-number-help"/>
+                <p id="envelope-number-help" className="mt-1 text-xs text-slate-500">ตรงกับชุดข้อสอบที่เลือก เช่น A, B, C — เปลี่ยนได้ที่ขั้นตอนข้อมูลการสอบ</p>
+              </div>
             </div>
           </div>
 
@@ -827,18 +821,14 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
             <div>
               <h3 className="font-display font-bold text-base text-slate-900">ตัวอย่างใบปะหน้าซองข้อสอบ</h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                ผิดหรือต้องการแก้ไข — กดย้อนกลับไปขั้นตอน "ใบปะหน้าซอง" ได้ · ส่วนเข้าสอบ/ขาดสอบ/ผู้คุมสอบ/หมายเหตุ เว้นไว้เขียนด้วยลายมือที่หน้างานจริง
+                ดูอย่างเดียว (พิมพ์ผ่านเมนู ⋮ "ใบปะหน้าซอง") · แก้ได้ที่ขั้นตอน "ใบปะหน้าซอง" · ส่วนเข้าสอบ/ขาดสอบ/ผู้คุมสอบ/หมายเหตุ เว้นไว้เขียนด้วยลายมือที่หน้างานจริง
               </p>
             </div>
-            <Button type="button" onClick={handlePrintEnvelope} size="sm" className="no-print shrink-0" title="พิมพ์ใบปะหน้าซองข้อสอบ (พร้อมบันทึก Audit Log)">
-              <Printer className="w-3.5 h-3.5"/>
-              <span>พิมพ์ใบปะหน้า</span>
-            </Button>
           </div>
           {/* ตัวอย่างเอกสาร — จอแคบเลื่อนดูแนวนอนได้ ไม่ถูกตัดขอบ */}
           <div className="overflow-x-auto px-2 sm:px-4 pb-4">
             <div className="min-w-[640px]">
-              <EnvelopeDocument form={env}/>
+              <EnvelopeDocument form={{ ...env, envelopeNo: examSet }}/>
             </div>
           </div>
         </div>)}

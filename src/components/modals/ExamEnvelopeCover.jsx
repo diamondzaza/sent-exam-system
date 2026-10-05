@@ -48,6 +48,7 @@ const buildFormFromExam = (exam) => {
         examYearBE: validDate ? String(d.getFullYear() + 543) : '',
         examTime: exam.E_Time ?? '',
         examRoom: exam.room ?? '',
+        envelopeNo: exam.exam_set || 'A',
         studentCount: String(exam.total_copies ?? ''),
         examCopies: String(exam.total_copies ?? ''),
         facultyName: 'คณะวิทยาศาสตร์',
@@ -59,13 +60,14 @@ const buildFormFromExam = (exam) => {
 };
 
 /** ช่อง input**/
-const Input = ({ label, value, onChange, className = '' }) => (
+const Input = ({ label, value, onChange, readOnly = false, className = '' }) => (
     <div className={className}>
         <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
         <input
             type="text"
             value={value}
             onChange={onChange}
+            readOnly={readOnly}
             className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-white"
         />
     </div>
@@ -157,7 +159,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded }) => {
                   <Input label="พ.ศ." value={form.examYearBE} onChange={set('examYearBE')}/>
                   <Input label="เวลา" value={form.examTime} onChange={set('examTime')}/>
                   <Input label="ห้องสอบ" value={form.examRoom} onChange={set('examRoom')}/>
-                  <Input label="เลขประจำซอง" value={form.envelopeNo} onChange={set('envelopeNo')}/>
+                  <Input label="เลขประจำซองข้อสอบ (ตามชุดข้อสอบ)" value={form.envelopeNo} readOnly/>
                   <Input label="จำนวนนักศึกษา (คน)" value={form.studentCount} onChange={set('studentCount')}/>
                   <Input label="ซองนี้มีจำนวนข้อสอบ (จุด)" value={form.examCopies} onChange={set('examCopies')}/>
                   <Input label="นศ. คณะ" value={form.facultyName} onChange={set('facultyName')}/>
