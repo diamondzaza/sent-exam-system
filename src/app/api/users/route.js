@@ -36,12 +36,26 @@ export async function POST(request) {
         const body = await request.json();
         const password = String(body.password ?? '').trim();
         const email = String(body.email ?? '').trim().toLowerCase();
-        if (!body.name || !email || !body.role || password.length < 6) {
+        if (!body.name || !email || !body.role || password.length < 8) {
             return NextResponse.json(
-                { error: 'ข้อมูลไม่ครบ (ชื่อ-นามสกุล, email, role และรหัสผ่านอย่างน้อย 6 ตัว)' },
+                { error: 'ข้อมูลไม่ครบ (ชื่อ-นามสกุล, email, role และรหัสผ่านอย่างน้อย 8 ตัว)' },
                 { status: 400 }
             );
         }
+        // นโยบายรหัสผ่าน: ≥8 ตัว + ตัวเลข + พิมพ์ใหญ่ + พิมพ์เล็ก + อักขระพิเศษ
+        const pwIssues = [];
+        if (!/[0-9]/.test(password)) pwIssues.push('มีตัวเลข');
+        if (!/[A-Z]/.test(password)) pwIssues.push('มีตัวอักษรพิมพ์ใหญ่');
+        if (!/[a-z]/.test(password)) pwIssues.push('มีตัวอักษรพิมพ์เล็ก');
+        if (!/[^A-Za-z0-9]/.test(password)) pwIssues.push('มีอักขระพิเศษ');
+        if (pwIssues.length > 0) {
+            return NextResponse.json(
+                { error: `รหัสผ่านต้อง${pwIssues.join(', ')}` },
+                { status: 400 }
+            );
+        }
+        // username ยังเป็น not null ใน DB — ใช้อีเมลแทน (unique แน่นอนเพราะอีเมล unique)
+        body.username = email;
         // 1) สร้างบัญชี Auth — role ใส่ใน user_metadata เพื่อให้ RLS ตรวจสิทธิ์ได้
         const admin = createAdminClient();
         const { data: authData, error: authError } = await admin.auth.admin.createUser({
@@ -85,11 +99,19 @@ export async function PATCH(request) {
         if (!body.id) {
             return NextResponse.json({ error: 'ไม่พบรหัสผู้ใช้' }, { status: 400 });
         }
-        // เปลี่ยนรหัสผ่าน (ถ้าระบุมา) — ตัดช่องว่างส่วนเกินออกก่อน
+        // เปลี่ยนรหัสผ่าน (ถ้าระบุมา) — ตัดช่องว่าง + บังคับนโยบายเดียวกัน
         if (body.password) {
             const newPassword = String(body.password).trim();
-            if (newPassword.length < 6) {
-                return NextResponse.json({ error: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัว' }, { status: 400 });
+            if (newPassword.length < 8) {
+                return NextResponse.json({ error: 'รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร' }, { status: 400 });
+            }
+            const pwIssues = [];
+            if (!/[0-9]/.test(newPassword)) pwIssues.push('มีตัวเลข');
+            if (!/[A-Z]/.test(newPassword)) pwIssues.push('มีตัวอักษรพิมพ์ใหญ่');
+            if (!/[a-z]/.test(newPassword)) pwIssues.push('มีตัวอักษรพิมพ์เล็ก');
+            if (!/[^A-Za-z0-9]/.test(newPassword)) pwIssues.push('มีอักขระพิเศษ');
+            if (pwIssues.length > 0) {
+                return NextResponse.json({ error: `รหัสผ่านต้อง${pwIssues.join(', ')}` }, { status: 400 });
             }
             const admin = createAdminClient();
             const { error: pwError } = await admin.auth.admin.updateUserById(body.id, {

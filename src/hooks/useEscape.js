@@ -26,13 +26,15 @@ export const useEscape = (active, onEscape) => {
 };
 export const useDialogA11y = ({ active, onClose }) => {
     const ref = useRef(null);
+    // เก็บ onClose ล่าสุดไว้ใน ref — กัน effect รีรันทุกครั้งที่พิมพ์ (ไม่งั้น focus จะหลุดไปช่องแรกตลอด)
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
     useEffect(() => {
         if (!active)
             return;
-        // Escape ปิด modal
         const onKey = (e) => {
             if (e.key === 'Escape') {
-                onClose();
+                onCloseRef.current();
                 return;
             }
             // Focus trap — กัก Tab ให้วนใน modal เท่านั้น
@@ -61,6 +63,6 @@ export const useDialogA11y = ({ active, onClose }) => {
             window.removeEventListener('keydown', onKey);
             clearTimeout(focusTimer);
         };
-    }, [active, onClose]);
+    }, [active]);
     return ref;
 };

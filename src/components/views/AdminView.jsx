@@ -20,6 +20,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Search, UserPlus, ShieldAlert, Edit2, Trash2, X, Check, XCircle, AlertCircle, MoveHorizontal, Inbox, } from 'lucide-react';
 import { useDialogA11y } from '@/hooks/useEscape';
+import { validatePassword } from '@/lib/password';
 import { ROLE_OPTIONS, ROLE_BADGE_LABEL } from '@/lib/statusLabels';
 export const AdminView = ({ currentUser, users, auditLogs, notifications = [], onMarkNotificationRead, page = 'users', onAddUser, onUpdateUser, onToggleUserStatus, onDeleteUser, onRefreshUsers, }) => {
     // User Management State
@@ -129,6 +130,11 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
     const [restrictIPs, setRestrictIPs] = useState(true);
     const approveDialogRef = useDialogA11y({ active: Boolean(approvingReq), onClose: () => setApprovingReq(null) });
     const userDialogRef = useDialogA11y({ active: showAddUserModal, onClose: () => setShowAddUserModal(false) });
+    // เงื่อนไขรหัสผ่าน — ต้องผ่านครบจึงบันทึกได้ (ตอนสร้างบัญชีใหม่)
+    const pwIssues = validatePassword(formData.password);
+    const passwordOk = editingUser
+        ? formData.password === '' || pwIssues.length === 0
+        : pwIssues.length === 0;
     // ป้ายกิจกรรมภาษาไทยสำหรับ Audit Log (โค้ดดิบใช้เป็น fallback)
     const LOG_ACTION_LABELS = {
         VIEW_EXAM: 'เข้าดูข้อสอบ',
@@ -710,7 +716,19 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
                     <Label className="mb-1">
                       {editingUser ? 'รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)' : 'รหัสผ่านสำหรับล็อกอิน *'}
                     </Label>
-                    <Input type="password" placeholder="อย่างน้อย 6 ตัวอักษร" autoComplete="new-password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required={!editingUser} minLength={6}/>
+                    <Input type="password" placeholder="อย่างน้อย 8 ตัว มีตัวเลขและพิมพ์ใหญ่-เล็ก" autoComplete="new-password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required={!editingUser} minLength={8}/>
+                    {/* เช็คลิสต์ความแข็งแรงของรหัสผ่าน — ต้องผ่านครบจึงบันทึกได้ */}
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                      {[
+                      { ok: /[0-9]/.test(formData.password), label: 'มีตัวเลข' },
+                      { ok: /[A-Z]/.test(formData.password), label: 'มีตัวอักษรพิมพ์ใหญ่' },
+                      { ok: /[a-z]/.test(formData.password), label: 'มีตัวอักษรพิมพ์เล็ก' },
+                      { ok: /[^A-Za-z0-9]/.test(formData.password), label: 'มีอักขระพิเศษ เช่น !@#$%' },
+                  ].map((c) => (<p key={c.label} className={`flex items-center gap-1.5 ${c.ok ? 'text-emerald-600' : 'text-slate-500'}`}>
+                          <Check className="w-3 h-3 shrink-0"/>
+                          <span>{c.label}</span>
+                        </p>))}
+                    </div>
                   </div>
                 </div>
 
@@ -723,7 +741,7 @@ export const AdminView = ({ currentUser, users, auditLogs, notifications = [], o
                   <Button type="button" variant="outline" onClick={() => setShowAddUserModal(false)}>
                     ยกเลิก
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" disabled={!passwordOk} title={passwordOk ? '' : 'กรุณาให้รหัสผ่านผ่านเงื่อนไขครบก่อน'}>
                     {editingUser ? 'บันทึกการแก้ไข' : 'บันทึกผู้ใช้'}
                   </Button>
                 </div>

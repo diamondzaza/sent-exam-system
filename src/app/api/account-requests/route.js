@@ -34,7 +34,8 @@ export async function POST(request) {
             { auth: { persistSession: false } }
         );
         const { error: dbError } = await supabase.from('account_requests').insert({
-            username: body.username ? String(body.username).trim() : null,
+            // username ยังเป็น not null ใน DB — ใช้อีเมลแทน (unique เพราะอีเมล unique)
+            username: String(body.email).trim().toLowerCase(),
             name: String(body.name).trim(),
             email: String(body.email).trim().toLowerCase(),
             tel: body.tel ? String(body.tel).trim() : null,
@@ -101,6 +102,13 @@ export async function PATCH(request) {
 
         // ── approve: สร้างบัญชีจริง (Auth + โปรไฟล์) ก่อนมาร์คสถานะ ──
         const password = String(body.password ?? '').trim();
+        // นโยบายรหัสผ่านเดียวกับทั้งระบบ: ≥8 ตัว + ตัวเลข + พิมพ์ใหญ่ + พิมพ์เล็ก + อักขระพิเศษ
+        if (password.length < 8 || !/[0-9]/.test(password) || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+            return NextResponse.json(
+                { error: 'รหัสผ่านต้องยาวอย่างน้อย 8 ตัว และมีตัวเลข ตัวอักษรพิมพ์ใหญ่ พิมพ์เล็ก และอักขระพิเศษ' },
+                { status: 400 }
+            );
+        }
         if (password.length < 6) {
             return NextResponse.json({ error: 'กรุณากำหนดรหัสผ่านเริ่มต้นอย่างน้อย 6 ตัว' }, { status: 400 });
         }
