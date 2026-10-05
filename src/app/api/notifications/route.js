@@ -12,13 +12,17 @@ import { requireUser } from '@/lib/api-helpers';
 import { notificationFromDb } from '@/lib/mappers';
 
 export async function GET(request) {
-    const { supabase, error } = await requireUser(request);
+    const { supabase, profile, error } = await requireUser(request);
     if (error)
         return error;
-    const { data, error: dbError } = await supabase
+    let query = supabase
         .from('notifications')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
+    // ซ่อนรายงานเก่าที่เคยส่งผิดถึง Teacher ด้วย — รายงานปัญหาให้ Admin อ่านเท่านั้น
+    if (profile?.role !== 'Admin') {
+        query = query.not('title', 'like', 'แจ้งปัญหา:%');
+    }
+    const { data, error: dbError } = await query.order('created_at', { ascending: false });
     if (dbError) {
         return NextResponse.json({ error: dbError.message }, { status: 500 });
     }

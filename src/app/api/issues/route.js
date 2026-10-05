@@ -25,7 +25,7 @@ export async function POST(request) {
         const title = String(body.title).trim();
         const detail = String(body.detail).trim();
         const admin = createAdminClient();
-        // Notification ถึง Admin และ Teacher — ทั้งสองฝ่ายติดตามรายงานได้ทันที
+        // รายงานปัญหาส่งถึง Admin เท่านั้น
         const notifBase = {
             title: `แจ้งปัญหา: ${title}`,
             message: `[${category}] ${detail} — จาก ${profile.name} (${profile.role})`,
@@ -33,7 +33,6 @@ export async function POST(request) {
         };
         const { error: notifError } = await admin.from('notifications').insert([
             notificationToDb({ ...notifBase, targetRole: 'Admin' }),
-            notificationToDb({ ...notifBase, targetRole: 'Teacher' }),
         ]);
         if (notifError) {
             return NextResponse.json({ error: 'ส่งรายงานไม่สำเร็จ กรุณาลองใหม่' }, { status: 500 });
