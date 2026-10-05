@@ -60,14 +60,14 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
       <aside className={`bg-[#1A4B7A] text-white shrink-0 lg:sticky lg:top-0 lg:h-screen flex flex-col transition-[width] duration-200 ${sidebarCollapsed ? 'lg:w-[76px]' : 'lg:w-64'}`}>
         {/* แบรนด์ — มือถือ */}
         <div className="px-6 pt-6 pb-2 shrink-0 lg:hidden">
-          <p className="font-display text-lg font-bold tracking-wide">SCI / EXAM</p>
+          <p className="font-display text-lg font-bold tracking-wide">SENT EXAM SYSTEM</p>
           <p className="text-xs text-white/70 mt-0.5">คณะวิทยาศาสตร์</p>
         </div>
         {/* แบรนด์ + ปุ่มย่อ — จอใหญ่ */}
         <div className={`hidden lg:flex shrink-0 items-center ${sidebarCollapsed ? 'flex-col gap-2 px-2 pt-5 pb-2' : 'justify-between px-6 pt-6 pb-2'}`}>
           <div className={sidebarCollapsed ? 'text-center' : 'min-w-0'}>
             <p className={`font-display font-bold whitespace-nowrap ${sidebarCollapsed ? 'text-sm' : 'text-lg tracking-wide'}`}>
-              {sidebarCollapsed ? 'SCI' : 'SCI / EXAM'}
+              {sidebarCollapsed ? 'SENT EXAM' : 'SENT EXAM SYSTEM'}
             </p>
             {!sidebarCollapsed && (<p className="text-xs text-white/70 mt-0.5">คณะวิทยาศาสตร์</p>)}
           </div>
