@@ -18,9 +18,9 @@ import { userToDb, userFromDb } from '@/lib/mappers';
 export async function POST(request) {
     try {
         const body = await request.json();
-        if (!body.username || !body.name || !body.email) {
+        if (!body.name || !body.email) {
             return NextResponse.json(
-                { error: 'กรุณากรอก ชื่อผู้ใช้, ชื่อ-นามสกุล และอีเมลให้ครบ' },
+                { error: 'กรุณากรอก ชื่อ-นามสกุล และอีเมลให้ครบ' },
                 { status: 400 }
             );
         }
@@ -34,7 +34,7 @@ export async function POST(request) {
             { auth: { persistSession: false } }
         );
         const { error: dbError } = await supabase.from('account_requests').insert({
-            username: String(body.username).trim(),
+            username: body.username ? String(body.username).trim() : null,
             name: String(body.name).trim(),
             email: String(body.email).trim().toLowerCase(),
             tel: body.tel ? String(body.tel).trim() : null,

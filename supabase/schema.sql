@@ -20,7 +20,7 @@ create type notif_type as enum ('info', 'success', 'warning', 'error');
 -- ── ผู้ใช้ (REQ-0002) ──
 create table users (
   id         text primary key,              -- เช่น T001, AVD01 (หรือ uuid จาก auth.users)
-  username   text not null unique,
+  username   text,                   -- (ไม่ใช้แล้ว) เดิมเป็นชื่อผู้ใช้ — ระบุตัวตนด้วย email แทน
   role       user_role not null,
   name       text not null,
   email      text not null,

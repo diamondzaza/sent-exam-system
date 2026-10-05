@@ -10,7 +10,6 @@
  */
 'use client';
 import React, { useState } from 'react';
-import { STATUS_LABELS } from '@/lib/statusLabels';
 import { formatThaiDate } from '@/lib/formatDate';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,11 +18,13 @@ const TERM_LABELS = { '1': 'ภาคเรียนที่ 1', '2': 'ภา�
 export const ExamArchiveView = ({ currentUser, exams, onPreviewExam, onDownloadLogged, }) => {
     // ปีการศึกษาที่มีข้อสอบจัดเก็บ — เรียงใหม่ → เก่า
     const years = Array.from(new Set(exams.map((e) => e.Course_year).filter(Boolean))).sort().reverse();
-    const [year, setYear] = useState(years[0] || '');
+    // เลือกปี/เทอม — คำนวณแบบ derived เสมอ (กันข้อมูลโหลดช้าแล้ว state ค้างค่าว่าง)
+    const [pickedYear, setPickedYear] = useState(null);
+    const [pickedTerm, setPickedTerm] = useState(null);
+    const year = pickedYear && years.includes(pickedYear) ? pickedYear : (years[0] || '');
     const termsInYear = Array.from(new Set(exams.filter((e) => e.Course_year === year).map((e) => e.term))).sort();
-    const [term, setTerm] = useState(termsInYear[0] || '1');
-    // ถ้าเลือกปีใหม่แล้วเทอมที่เคยเลือกไม่มีในปีนั้น — สลับไปเทอมแรกที่มี
-    const activeTerm = termsInYear.includes(term) ? term : (termsInYear[0] || term);
+    const term = pickedTerm && termsInYear.includes(pickedTerm) ? pickedTerm : (termsInYear[0] || '1');
+    const activeTerm = term;
     const archivedExams = exams.filter((e) => e.Course_year === year && e.term === activeTerm);
     return (<div className="max-w-6xl mx-auto space-y-6">
       {/* Hero */}
@@ -42,7 +43,7 @@ export const ExamArchiveView = ({ currentUser, exams, onPreviewExam, onDownloadL
       <div>
         <p className="text-xs font-semibold text-slate-500 mb-2">ปีการศึกษา</p>
         <div className="flex flex-wrap gap-2">
-          {years.length === 0 ? (<span className="text-xs text-slate-500">ยังไม่มีข้อสอบจัดเก็บในระบบ</span>) : (years.map((y) => (<button key={y} onClick={() => setYear(y)} aria-pressed={year === y} className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${year === y
+          {years.length === 0 ? (<span className="text-xs text-slate-500">ยังไม่มีข้อสอบจัดเก็บในระบบ</span>) : (years.map((y) => (<button key={y} onClick={() => setPickedYear(y)} aria-pressed={year === y} className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${year === y
                 ? 'bg-[#1A4B7A] text-white'
                 : 'bg-white border border-slate-200 text-slate-600 hover:border-[#1A4B7A]/40 hover:text-[#1A4B7A]'}`}>
                 ปีการศึกษา {y}
@@ -54,7 +55,7 @@ export const ExamArchiveView = ({ currentUser, exams, onPreviewExam, onDownloadL
       {years.length > 0 && (<div>
           <p className="text-xs font-semibold text-slate-500 mb-2">ภาคเรียน</p>
           <div className="flex flex-wrap gap-2">
-            {termsInYear.map((t) => (<button key={t} onClick={() => setTerm(t)} aria-pressed={activeTerm === t} className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${activeTerm === t
+            {termsInYear.map((t) => (<button key={t} onClick={() => setPickedTerm(t)} aria-pressed={activeTerm === t} className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${activeTerm === t
                 ? 'bg-white text-[#1A4B7A] font-semibold border-2 border-[#1A4B7A]'
                 : 'bg-white border border-slate-200 text-slate-600 hover:border-[#1A4B7A]/40'}`}>
                 {TERM_LABELS[t] || `ภาคเรียนที่ ${t}`}
@@ -86,12 +87,9 @@ export const ExamArchiveView = ({ currentUser, exams, onPreviewExam, onDownloadL
                         ชุด {exam.exam_set || 'A'}
                       </span>
                       <h4 className="font-display text-sm font-bold text-slate-900">{exam.Subject_Name}</h4>
-                      <Badge className={(STATUS_LABELS[exam.status] || STATUS_LABELS.DRAFT).badgeClass}>
-                        {(STATUS_LABELS[exam.status] || STATUS_LABELS.DRAFT).label}
-                      </Badge>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
-                      อาจารย์: {exam.teacher_name} · สอบ {formatThaiDate(exam.E_Date)} ({exam.E_Time}) · ห้อง {exam.room}
+                      สอบ {formatThaiDate(exam.E_Date)} ({exam.E_Time})
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -107,11 +105,5 @@ export const ExamArchiveView = ({ currentUser, exams, onPreviewExam, onDownloadL
                 </div>)))}
           </div>
         </div>)}
-
-      {/* หมายเหตุ */}
-      {years.length > 0 && (<p className="text-xs text-slate-500 flex items-center gap-1.5">
-          <Archive className="w-3.5 h-3.5"/>
-          <span>ข้อสอบทุกรายการในคลังนี้เปิดดู/ดาวน์โหลดได้ตามสิทธิ์ — ระบบบันทึก Audit Log ทุกครั้ง</span>
-        </p>)}
     </div>);
 };

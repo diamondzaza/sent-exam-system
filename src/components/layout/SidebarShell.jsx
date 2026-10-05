@@ -11,11 +11,30 @@
  */
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Bell, CheckCheck, LogOut, Info, CheckCircle, AlertTriangle, } from 'lucide-react';
+import { Bell, CheckCheck, LogOut, Info, CheckCircle, AlertTriangle, PanelLeftClose, PanelLeftOpen, } from 'lucide-react';
 
 export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotificationRead, onMarkAllNotificationsRead, onOpenNotification, navItems = [], activeNavId = null, statusNote = null, children, }) => {
     const [showNotifMenu, setShowNotifMenu] = useState(false);
     const bellRef = React.useRef(null);
+    // ย่อ/ขยายแถบข้าง (จอใหญ่) — จำสถานะไว้ในเครื่องผู้ใช้
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+        try {
+            return window.localStorage.getItem('sci-sidebar-collapsed') === '1';
+        }
+        catch {
+            return false;
+        }
+    });
+    const toggleSidebar = () => {
+        setSidebarCollapsed((c) => {
+            const next = !c;
+            try {
+                window.localStorage.setItem('sci-sidebar-collapsed', next ? '1' : '0');
+            }
+            catch { /* เครื่องไม่อนุญาต */ }
+            return next;
+        });
+    };
     // ปิด dropdown แจ้งเตือนด้วยปุ่ม Escape แล้วคืนโฟกัสที่ปุ่มกระดิ่ง
     useEffect(() => {
         if (!showNotifMenu)
@@ -37,28 +56,40 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
       {/* พื้นหลังดักคลิก — ปิด dropdown แจ้งเตือนเมื่อคลิกนอกเมนู */}
       {showNotifMenu && (<div className="fixed inset-0 z-30" onClick={() => setShowNotifMenu(false)} aria-hidden="true"/>)}
 
-      {/* ═══ แถบข้าง (Sidebar) ═══ */}
-      <aside className="bg-[#1A4B7A] text-white lg:w-64 shrink-0 lg:sticky lg:top-0 lg:h-screen flex flex-col">
-        {/* แบรนด์ */}
-        <div className="px-6 pt-6 pb-2 shrink-0">
+      {/* ═══ แถบข้าง (Sidebar) — ย่อ/ขยายได้บนจอใหญ่ ═══ */}
+      <aside className={`bg-[#1A4B7A] text-white shrink-0 lg:sticky lg:top-0 lg:h-screen flex flex-col transition-[width] duration-200 ${sidebarCollapsed ? 'lg:w-[76px]' : 'lg:w-64'}`}>
+        {/* แบรนด์ — มือถือ */}
+        <div className="px-6 pt-6 pb-2 shrink-0 lg:hidden">
           <p className="font-display text-lg font-bold tracking-wide">SCI / EXAM</p>
           <p className="text-xs text-white/70 mt-0.5">คณะวิทยาศาสตร์</p>
         </div>
+        {/* แบรนด์ + ปุ่มย่อ — จอใหญ่ */}
+        <div className={`hidden lg:flex shrink-0 items-center ${sidebarCollapsed ? 'flex-col gap-2 px-2 pt-5 pb-2' : 'justify-between px-6 pt-6 pb-2'}`}>
+          <div className={sidebarCollapsed ? 'text-center' : 'min-w-0'}>
+            <p className={`font-display font-bold whitespace-nowrap ${sidebarCollapsed ? 'text-sm' : 'text-lg tracking-wide'}`}>
+              {sidebarCollapsed ? 'SCI' : 'SCI / EXAM'}
+            </p>
+            {!sidebarCollapsed && (<p className="text-xs text-white/70 mt-0.5">คณะวิทยาศาสตร์</p>)}
+          </div>
+          <button onClick={toggleSidebar} aria-label={sidebarCollapsed ? 'ขยายเมนูข้าง' : 'ย่อเมนูข้าง'} aria-expanded={!sidebarCollapsed} className="p-1.5 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors shrink-0">
+            {sidebarCollapsed ? (<PanelLeftOpen className="w-4 h-4"/>) : (<PanelLeftClose className="w-4 h-4"/>)}
+          </button>
+        </div>
 
         {/* เมนูนำทาง — รับจาก props (active ตามหน้าปัจจุบัน) */}
-        <nav className="px-3 py-4 space-y-1 flex lg:flex-col gap-1 overflow-x-auto shrink-0" aria-label="เมนูหลัก">
-          {navItems.map((item) => (<button key={item.id || item.label} onClick={item.onClick} aria-current={activeNavId === item.id ? 'page' : undefined} className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors ${activeNavId === item.id
+        <nav className={`py-4 space-y-1 flex lg:flex-col gap-1 overflow-x-auto shrink-0 ${sidebarCollapsed ? 'lg:px-2' : 'px-3'}`} aria-label="เมนูหลัก">
+          {navItems.map((item) => (<button key={item.id || item.label} onClick={item.onClick} aria-current={activeNavId === item.id ? 'page' : undefined} title={item.label} className={`flex items-center py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${sidebarCollapsed ? 'lg:justify-center' : 'gap-3 px-3.5'} ${activeNavId === item.id
             ? 'bg-white/15 text-white'
             : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
               <item.icon className="w-4 h-4 shrink-0"/>
-              <span>{item.label}</span>
+              <span className={sidebarCollapsed ? 'lg:hidden' : ''}>{item.label}</span>
             </button>))}
         </nav>
 
         {/* ส่วนท้ายแถบข้าง */}
-        <div className="mt-auto px-3 pb-5 pt-4 space-y-3 shrink-0">
-          {/* สถานะระบบ (ซ่อนบนมือถือ — sidebar ยุบเป็นแถบบนให้กระชับ) */}
-          <div className="hidden lg:block rounded-xl bg-white/10 px-3.5 py-3 text-xs">
+        <div className={`mt-auto shrink-0 space-y-3 pb-5 pt-4 ${sidebarCollapsed ? 'lg:px-2' : 'px-3'}`}>
+          {/* สถานะระบบ (ซ่อนบนมือถือและตอนย่อ) */}
+          <div className={`rounded-xl bg-white/10 px-3.5 py-3 text-xs ${sidebarCollapsed ? 'hidden' : 'hidden lg:block'}`}>
             <p className="flex items-center gap-2 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
               สถานะระบบ: ปกติ
@@ -67,12 +98,12 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
           </div>
 
           {/* ผู้ใช้ + ออกจากระบบ */}
-          <div className="border-t border-white/20 pt-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
+          <div className={`border-t border-white/20 pt-3 ${sidebarCollapsed ? 'lg:flex lg:flex-col lg:items-center lg:gap-2' : 'flex items-center justify-between gap-2'}`}>
+            <div className={`flex items-center min-w-0 ${sidebarCollapsed ? 'lg:justify-center' : 'gap-2.5'}`}>
               <div className="w-8 h-8 rounded-lg bg-white/15 text-white font-bold text-xs flex items-center justify-center shrink-0">
                 {currentUser.name.charAt(0)}
               </div>
-              <div className="min-w-0">
+              <div className={`min-w-0 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
                 <p className="text-xs font-bold leading-none truncate">{currentUser.name}</p>
                 <p className="text-xs text-white/70 mt-1 truncate">{currentUser.department || 'อาจารย์ผู้สอน'}</p>
               </div>

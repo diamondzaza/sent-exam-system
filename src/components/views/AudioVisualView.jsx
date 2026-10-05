@@ -110,7 +110,7 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
     const renderQueuePage = () => (<>
       {/* Hero */}
       <div>        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
-          คิวตรวจสอบและผลิตข้อสอบ
+          คิวตรวจข้อสอบและพิมพ์ข้อสอบ
         </h1>
         <p className="text-sm text-slate-500 mt-2">
           สวัสดี {currentUser.name} — ตรวจรับไฟล์ จัดพิมพ์ และส่งมอบซองข้อสอบให้ฝ่ายจัดสอบ
@@ -195,15 +195,12 @@ export const AudioVisualView = ({ currentUser, courses = [], exams, page = 'queu
                         <div>
                           <span className="text-slate-500">ยอดพิมพ์: </span>
                           <span className="font-bold text-[#1A4B7A]">
-                            {exam.total_copies} + {exam.copies_reserve} = {exam.total_copies + exam.copies_reserve} ชุด
+                            {exam.total_copies + exam.copies_reserve} ชุด
                           </span>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1">
-                        <span className="font-mono bg-slate-100 px-2 py-0.5 rounded">
-                          ไฟล์: {exam.file_name} ({exam.file_size})
-                        </span>
                         <span>อัปโหลดเมื่อ: {exam.upload_date}</span>
                         {exam.checked_by && <span>• ตรวจสอบโดย: {exam.checked_by}</span>}
                       </div>

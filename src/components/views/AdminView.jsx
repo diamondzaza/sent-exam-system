@@ -27,14 +27,14 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     const [roleFilter, setRoleFilter] = useState('ALL');
     const [showAddUserModal, setShowAddUserModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
-    // Form fields for Add/Edit User (password ใช้ตอนสร้างบัญชี หรือเปลี่ยนรหัสผ่านตอนแก้ไข)
+    // Form fields for Add/Edit User — ชื่อ + นามสกุล แยกช่อง แล้วรวมเป็น name ตอนบันทึก
     const [formData, setFormData] = useState({
-        username: '',
-        name: '',
+        firstName: '',
+        lastName: '',
         role: 'Teacher',
         email: '',
         tel: '',
-        department: 'สาขาวิชาวิทยาการคอมพิวเตอร์ คณะวิทยาศาสตร์',
+        department: 'คณะวิทยาศาสตร์',
         password: '',
     });
     // Logs Search & Filter
@@ -120,8 +120,6 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     const [watermarkEnabled, setWatermarkEnabled] = useState(true);
     const [requireOTPDownload, setRequireOTPDownload] = useState(true);
     const [restrictIPs, setRestrictIPs] = useState(true);
-    useEscape(Boolean(approvingReq), () => setApprovingReq(null));
-    useEscape(showAddUserModal, () => setShowAddUserModal(false));
     const approveDialogRef = useDialogA11y({ active: Boolean(approvingReq), onClose: () => setApprovingReq(null) });
     const userDialogRef = useDialogA11y({ active: showAddUserModal, onClose: () => setShowAddUserModal(false) });
     // ป้ายกิจกรรมภาษาไทยสำหรับ Audit Log (โค้ดดิบใช้เป็น fallback)
@@ -138,7 +136,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     };
     const filteredUsers = users.filter((u) => {
         const matchesSearch = u.name.toLowerCase().includes(searchUser.toLowerCase()) ||
-            u.username.toLowerCase().includes(searchUser.toLowerCase()) ||
+            (u.username || '').toLowerCase().includes(searchUser.toLowerCase()) ||
             u.email.toLowerCase().includes(searchUser.toLowerCase()) ||
             u.id.toLowerCase().includes(searchUser.toLowerCase());
         const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
@@ -155,8 +153,8 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     const handleOpenAddUser = () => {
         setEditingUser(null);
         setFormData({
-            username: '',
-            name: '',
+            firstName: '',
+            lastName: '',
             role: 'Teacher',
             email: '',
             tel: '',
@@ -167,9 +165,10 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     };
     const handleOpenEditUser = (u) => {
         setEditingUser(u);
+        // ชื่อเดิมเป็นชื่อเต็ม — ใส่ทั้งหมดในช่องชื่อ ให้ผู้ใช้แยกนามสกุลเองตามต้องการ
         setFormData({
-            username: u.username,
-            name: u.name,
+            firstName: u.name,
+            lastName: '',
             role: u.role,
             email: u.email,
             tel: u.tel,
@@ -180,12 +179,15 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
     };
     const handleSaveUser = (e) => {
         e.preventDefault();
-        if (!formData.username || !formData.name)
+        if (!formData.firstName.trim())
             return;
+        // รวมชื่อ + นามสกุล เป็น name เดียว
+        const fullName = [formData.firstName.trim(), formData.lastName.trim()].filter(Boolean).join(' ');
         if (editingUser) {
             onUpdateUser({
                 ...editingUser,
                 ...formData,
+                name: fullName,
             });
         }
         else {
@@ -193,6 +195,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
             // และกำหนด id เป็น uuid เอง (ไม่สร้าง id เองอีกต่อไป)
             const newUser = {
                 ...formData,
+                name: fullName,
                 status: 'active',
             };
             onAddUser(newUser);
@@ -253,7 +256,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
               <tr>
                 <th className="p-3 w-20">รหัส</th>
                 <th className="p-3">ชื่อ - นามสกุล</th>
-                <th className="p-3">Username / อีเมล</th>
+                <th className="p-3">อีเมล</th>
                 <th className="p-3">บทบาท</th>
                 <th className="p-3">หน่วยงาน / ภาควิชา</th>
                 <th className="p-3 w-24 text-center">สถานะ</th>
@@ -272,8 +275,7 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
                     <div className="text-xs text-slate-500">{u.tel}</div>
                   </td>
                   <td className="p-3">
-                    <div className="font-mono text-[#1A4B7A]">{u.username}</div>
-                    <div className="text-xs text-slate-500">{u.email}</div>
+                    <div className="text-[#1A4B7A]">{u.email}</div>
                   </td>
                   <td className="p-3">
                     <Badge className="bg-slate-100 text-slate-700 border-slate-200">{ROLE_BADGE_LABEL[u.role] || u.role}</Badge>
@@ -598,26 +600,25 @@ export const AdminView = ({ currentUser, users, auditLogs, page = 'users', onAdd
             </div>
 
             <form onSubmit={handleSaveUser} className="p-6 space-y-4 text-xs">
-              <div>
-                <Label className="mb-1">ชื่อ - นามสกุล (พร้อมคำนำหน้า) *</Label>
-                <Input type="text" placeholder="ชื่อ-นามสกุลพร้อมคำนำหน้า" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required/>
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="mb-1">ชื่อผู้ใช้งาน (Username) *</Label>
-                  <Input type="text" placeholder="ชื่อผู้ใช้ภาษาอังกฤษ ไม่มีช่องว่าง" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required/>
+                  <Label className="mb-1">ชื่อ (พร้อมคำนำหน้า) *</Label>
+                  <Input type="text" placeholder="ชื่อพร้อมคำนำหน้า" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} required/>
                 </div>
-
                 <div>
-                  <Label className="mb-1">บทบาท *</Label>
-                  <Select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
-                    <option value="Teacher">อาจารย์ผู้สอน (Teacher)</option>
-                    <option value="AudioVisual">ฝ่ายโสตฯ (AudioVisual)</option>
-                    <option value="Operations">ฝ่ายดำเนินการสอบ (Operations)</option>
-                    <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
-                  </Select>
+                  <Label className="mb-1">นามสกุล <span className="text-rose-500">*</span></Label>
+                  <Input type="text" placeholder="นามสกุล" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} required/>
                 </div>
+              </div>
+
+              <div>
+                <Label className="mb-1">บทบาท *</Label>
+                <Select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
+                  <option value="Teacher">อาจารย์ผู้สอน (Teacher)</option>
+                  <option value="AudioVisual">ฝ่ายโสตฯ (AudioVisual)</option>
+                  <option value="Operations">ฝ่ายดำเนินการสอบ (Operations)</option>
+                  <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

@@ -20,7 +20,7 @@ import { Select } from '@/components/ui/select';
 
 export function RequestAccountForm() {
     const [form, setForm] = useState({
-        username: '', name: '', email: '', tel: '',
+        firstName: '', lastName: '', email: '', tel: '',
         department: '', reason: '', lineId: '',
     });
     const [error, setError] = useState('');
@@ -36,10 +36,12 @@ export function RequestAccountForm() {
         try {
             // ข้อมูลติดต่อเพิ่มเติม (LINE ID) — แนบรวมเข้าช่องเหตุผล (API รับ field เดิม)
             const extraContact = form.lineId.trim() ? ` [ช่องทางติดต่อเพิ่มเติม: LINE ${form.lineId.trim()}]` : '';
+            // ชื่อ + นามสกุล รวมเป็น name เดียวสำหรับระบบ
+            const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
             const res = await fetch('/api/account-requests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...form, reason: `${form.reason.trim()}${extraContact}` }),
+                body: JSON.stringify({ ...form, name: fullName, reason: `${form.reason.trim()}${extraContact}` }),
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
@@ -105,12 +107,12 @@ export function RequestAccountForm() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label className="mb-1.5">ชื่อผู้ใช้งาน (Username) <span className="text-rose-500">*</span></Label>
-                  <Input value={form.username} onChange={set('username')} placeholder="ชื่อผู้ใช้ภาษาอังกฤษ ไม่มีช่องว่าง" required/>
+                  <Label className="mb-1.5">ชื่อ (พร้อมคำนำหน้า) <span className="text-rose-500">*</span></Label>
+                  <Input value={form.firstName} onChange={set('firstName')} placeholder="ชื่อพร้อมคำนำหน้า" required/>
                 </div>
                 <div>
-                  <Label className="mb-1.5">ชื่อ-นามสกุล <span className="text-rose-500">*</span></Label>
-                  <Input value={form.name} onChange={set('name')} placeholder="ชื่อ-นามสกุลพร้อมคำนำหน้า" required/>
+                  <Label className="mb-1.5">นามสกุล <span className="text-rose-500">*</span></Label>
+                  <Input value={form.lastName} onChange={set('lastName')} placeholder="นามสกุล" required/>
                 </div>
               </div>
 
@@ -151,7 +153,7 @@ export function RequestAccountForm() {
                   <option>ฝ่ายดำเนินการสอบและทะเบียนกลาง</option>
                   <option>อื่นๆ (ระบุในหมายเหตุ)</option>
                 </Select>
-              </div>
+              </div>d
 
               <div>
                 <Label className="mb-1.5">หมายเหตุ / เหตุผลการขอใช้งาน</Label>
@@ -200,12 +202,6 @@ export function RequestAccountForm() {
                   </p>
                   <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
                     อีเมลและเบอร์โทรใช้ติดต่อกลับเมื่อคำขอได้รับการพิจารณา — หากมี LINE ID กรอกเพิ่มได้เพื่อความรวดเร็ว
-                  </p>
-                </div>
-                <div className="border-t border-slate-200 pt-4">
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    หากมีปัญหาการใช้งาน ติดต่อเจ้าหน้าที่<br/>
-                    <span className="font-semibold text-slate-700">หน่วยเทคโนโลยีการศึกษา ชั้น 2</span>
                   </p>
                 </div>
               </div>

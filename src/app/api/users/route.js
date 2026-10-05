@@ -35,9 +35,9 @@ export async function POST(request) {
     try {
         const body = await request.json();
         const password = body.password ?? '';
-        if (!body.username || !body.email || !body.role || password.length < 6) {
+        if (!body.name || !body.email || !body.role || password.length < 6) {
             return NextResponse.json(
-                { error: 'ข้อมูลไม่ครบ (username, email, role และรหัสผ่านอย่างน้อย 6 ตัว)' },
+                { error: 'ข้อมูลไม่ครบ (ชื่อ-นามสกุล, email, role และรหัสผ่านอย่างน้อย 6 ตัว)' },
                 { status: 400 }
             );
         }
@@ -47,7 +47,7 @@ export async function POST(request) {
             email: body.email,
             password,
             email_confirm: true,
-            user_metadata: { username: body.username, role: body.role, name: body.name },
+            user_metadata: { role: body.role, name: body.name },
         });
         if (authError) {
             const conflict = authError.code === 'email_exists';

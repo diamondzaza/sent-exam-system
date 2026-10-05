@@ -100,7 +100,7 @@ export function examPatchToDb(patch) {
 export function userToDb(u) {
     return {
         id: u.id,
-        username: u.username,
+        username: u.username ?? null,
         role: u.role,
         name: u.name,
         email: u.email,

@@ -1052,9 +1052,6 @@ export const TeacherView = ({ currentUser, courses, exams, page = 'courses', onN
                               <h4 className="font-display text-sm font-bold text-slate-900">{exam.Subject_Name}</h4>
                               <Badge className={statusConfig.badgeClass}>{statusConfig.label}</Badge>
                             </div>
-                            <p className="text-xs text-slate-500 mt-1">
-                              {exam.E_No} · วันสอบ: {formatThaiDate(exam.E_Date)} ({exam.E_Time}) · ห้อง: {exam.room} · ยอดพิมพ์ {exam.total_copies}+{exam.copies_reserve} ชุด
-                            </p>
                           </div>
 
                           <div className="flex items-center gap-2 md:justify-end shrink-0">
@@ -1204,10 +1201,10 @@ export const TeacherView = ({ currentUser, courses, exams, page = 'courses', onN
                 {STATUS_HEADLINE[exam.status] || statusConfig.label}
               </p>
               <p className={`text-xs mt-0.5 ${exam.status === 'REJECTED' ? 'text-rose-800' : 'text-emerald-800/80'}`}>
-                สอบ {formatThaiDate(exam.E_Date)} เวลา {exam.E_Time} · เลขที่ข้อสอบ EX-{year}-{String(exam.E_No).padStart(4, '0')}
+                สอบ {formatThaiDate(exam.E_Date)} เวลา {exam.E_Time} · เลขที่ข้อสอบ {exam.E_No}
               </p>
             </div>
-            {examIdx === 0 && (<Button variant="outline" onClick={() => onNavigate?.('courses')} className="shrink-0 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
+            {examIdx === 0 && (<Button variant="outline" onClick={() => { onSelectCourse?.(null); onNavigate?.('tracking'); }} className="shrink-0 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-700">
               กลับรายวิชา
             </Button>)}
           </div>
