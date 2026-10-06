@@ -67,7 +67,7 @@ export const SidebarShell = ({ currentUser, notifications, onLogout, onMarkNotif
         <div className={`hidden lg:flex shrink-0 items-center ${sidebarCollapsed ? 'flex-col gap-2 px-2 pt-5 pb-2' : 'justify-between px-6 pt-6 pb-2'}`}>
           <div className={sidebarCollapsed ? 'text-center' : 'min-w-0'}>
             <p className={`font-display font-bold whitespace-nowrap ${sidebarCollapsed ? 'text-sm' : 'text-lg tracking-wide'}`}>
-              {sidebarCollapsed ? 'SENT EXAM' : 'SENT EXAM SYSTEM'}
+              {sidebarCollapsed ? 'SCI' : 'SENT EXAM SYSTEM'}
             </p>
             {!sidebarCollapsed && (<p className="text-xs text-white/70 mt-0.5">คณะวิทยาศาสตร์</p>)}
           </div>
