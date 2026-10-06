@@ -1,6 +1,6 @@
 /**หน้าที่ของหน้านี้: ใบปะหน้าซองข้อสอบ */
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Printer, X, FileText, CheckCircle2 } from 'lucide-react';
 import { ENVELOPE_OPTIONS, envelopeOptionsFromMaterials } from '@/lib/envelope-options';
@@ -86,7 +86,12 @@ const Dots = ({ className = '' }) => <span className={`block border-b border-dot
 
 export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded, editable = true }) => {
     const [tab, setTab] = useState(editable ? 'form' : 'doc'); // 'form' | 'doc'
-    const [form, setForm] = useState(() => buildFormFromExam(exam));
+    const [editableForm, setForm] = useState(() => buildFormFromExam(exam));
+    useEffect(() => {
+        setForm(buildFormFromExam(exam));
+    }, [exam]);
+    // ฝ่ายโสตอ่านจากข้อมูลข้อสอบล่าสุดทุกครั้ง ไม่ใช้สำเนาตอนเปิดหน้าต่าง
+    const form = editable ? editableForm : buildFormFromExam(exam);
     const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
     // ข้อ 6: tab ถือว่ากรอกครบเมื่อข้อมูลการสอบหลักครบ (auto-fill ให้ส่วนใหญ่แล้ว)
     const formComplete = [form.subject, form.subjectCode, form.examDay, form.examMonth, form.examYearBE, form.examTime, form.examRoom, form.studentCount, form.examCopies]

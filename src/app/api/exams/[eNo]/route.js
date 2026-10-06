@@ -82,7 +82,11 @@ export async function PATCH(request, { params }) {
         }
         if (body.notify?.title) {
             // ผ่าน admin client — ตาราง notifications ไม่มีนโยบาย INSERT ใน RLS
-            await admin.from('notifications').insert(notificationToDb(body.notify));
+            await admin.from('notifications').insert(notificationToDb({
+                ...body.notify,
+                // ผูกกับข้อสอบที่กำลังแก้ไขจริง เพื่อเลือกผู้รับจากเจ้าของข้อสอบ
+                relatedExamNo: eNo,
+            }));
         }
         return NextResponse.json({ ok: true });
     }
