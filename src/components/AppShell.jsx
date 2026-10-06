@@ -545,7 +545,6 @@ export default function AppShell() {
         { id: 'courses', label: 'ตารางรายวิชา', icon: LayoutDashboard, onClick: () => setRolePage('courses') },
         { id: 'tracking', label: 'ติดตามข้อสอบ', icon: ClipboardList, onClick: () => setRolePage('tracking') },
         { id: 'new-course', label: 'เพิ่มรายวิชา', icon: BookOpen, onClick: () => setRolePage('new-course') },
-        { id: 'issues', label: 'การแจ้งปัญหา', icon: Flag, onClick: () => setRolePage('issues') },
         archiveNavItem,
         reportIssueNavItem,
     ];
@@ -596,7 +595,7 @@ export default function AppShell() {
 
         {rolePageNow === 'report-issue' && (<ReportIssueView currentUser={currentUser}/>)}
 
-        {rolePageNow !== 'archive' && rolePageNow !== 'report-issue' && currentUser.role === 'Teacher' && (<TeacherView key={currentUser.id} currentUser={currentUser} courses={courses} exams={exams} page={rolePageNow === 'issues' ? 'issues' : rolePageNow} onNavigate={setRolePage} notifications={notifications} onMarkNotificationRead={handleMarkNotificationRead} selectedCourseId={teacherCourseId} onSelectCourse={setTeacherCourseId} selectedExamNo={teacherExamNo} onSelectExam={setTeacherExamNo} uploadContext={uploadContext} onUploadSubmit={handleSubmitExamUpload} onOpenUpload={handleOpenUpload} onPreviewExam={handlePreviewExam} onRemoveExam={handleRemoveExam} onAddNewCourse={handleAddNewCourse} onOpenEnvelope={handlePrintEnvelope} onDownloadLogged={handleDownloadLogged} onEnvelopePrintRecorded={handleWizardEnvelopePrint}/>)}
+        {rolePageNow !== 'archive' && rolePageNow !== 'report-issue' && currentUser.role === 'Teacher' && (<TeacherView key={currentUser.id} currentUser={currentUser} courses={courses} exams={exams} page={rolePageNow} onNavigate={setRolePage} selectedCourseId={teacherCourseId} onSelectCourse={setTeacherCourseId} selectedExamNo={teacherExamNo} onSelectExam={setTeacherExamNo} uploadContext={uploadContext} onUploadSubmit={handleSubmitExamUpload} onOpenUpload={handleOpenUpload} onPreviewExam={handlePreviewExam} onRemoveExam={handleRemoveExam} onAddNewCourse={handleAddNewCourse} onOpenEnvelope={handlePrintEnvelope} onDownloadLogged={handleDownloadLogged} onEnvelopePrintRecorded={handleWizardEnvelopePrint}/>)}
 
         {rolePageNow !== 'archive' && rolePageNow !== 'report-issue' && currentUser.role === 'AudioVisual' && (<AudioVisualView currentUser={currentUser} courses={courses} exams={exams} page={rolePageNow} onNavigate={setRolePage} onPreviewExam={handlePreviewExam} onOpenEnvelope={handlePrintEnvelope} onUpdateExamStatus={handleUpdateExamStatus} onPrintExam={handlePrintExam}/>)}
 

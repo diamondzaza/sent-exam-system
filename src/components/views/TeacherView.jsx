@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, UploadCloud, RefreshCw, Trash2, Eye, AlertTriangle, AlertCircle, Plus, Printer, Download, MoreVertical, Check, FileText, FileCheck, LoaderCircle, CheckCircle2, Inbox, } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { ExamSchedule } from '@/components/ui/exam-schedule';
+import { ENVELOPE_OPTIONS, envelopeOptionsFromMaterials, envelopeOptionsToMaterials } from '@/lib/envelope-options';
 // ข้อความสรุปสถานะสำหรับ banner หน้าติดตามสถานะ
 const STATUS_HEADLINE = {
     SUBMITTED: 'รับไฟล์แล้ว · รอเจ้าหน้าที่ตรวจสอบ',
@@ -108,9 +109,7 @@ const EnvelopeDocument = ({ form }) => (<div className="no-print bg-white shadow
     <div className="border-t border-slate-300 pt-3 mb-6 text-sm">
       <p className="font-semibold mb-2">อุปกรณ์ที่ใช้หรือคำแนะนำผู้คุมสอบเพิ่มเติม</p>
       <div className="space-y-1.5 pl-2">
-        {[['optBooks', 'นำตำราเข้าห้องสอบได้'],
-          ['optCalculator', 'นำเครื่องคิดเลขเข้าห้องสอบได้'],
-          ['optNoRuler', 'ห้ามนำไม้บรรทัดมีสูตรคณิตศาสตร์เข้าสอบ']].map(([key, label]) => (<div key={key} className="flex items-center gap-2">
+        {ENVELOPE_OPTIONS.map(([key, label]) => (<div key={key} className="flex items-center gap-2">
               <span>(</span>
               <span className="w-6 inline-block border-b border-slate-500 text-center text-xs">
                 {form[key] ? '✓' : ''}
@@ -191,7 +190,6 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
     const [totalCopies, setTotalCopies] = useState(prefill.total_copies || '');
     const [copiesReserve, setCopiesReserve] = useState(prefill.copies_reserve ?? '');
     const [envelopeNotes, setEnvelopeNotes] = useState(prefill.envelope_notes || '');
-    const [selectedMaterials] = useState(prefill.allowed_materials || ['เครื่องคิดเลขวิทยาศาสตร์', 'ปากกาน้ำเงิน/ดำ', 'ดินสอ 2B']);
     const [fileName, setFileName] = useState(existingExam?.file_name || '');
     const [fileSize, setFileSize] = useState(existingExam?.file_size || '');
     const [fileObject, setFileObject] = useState(null); // ไฟล์จริงส่งขึ้น Supabase Storage
@@ -214,33 +212,34 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
         }
         return 'A';
     });
-    // ฟอร์มใบปะหน้าซองข้อสอบ — auto-fill จากข้อมูลที่ระบบมี ส่วนเข้าสอบ/ขาดสอบ/ผู้คุมสอบ/หมายเหตุ เว้นไว้เขียนมือที่หน้างาน
-    const [env, setEnv] = useState(() => {
-        const d = examDate ? new Date(examDate) : null;
-        const valid = d && !isNaN(d.getTime());
-        return {
-            subject: course.Course_Name ?? '',
-            subjectCode: course.Course_id ?? '',
-            examDay: valid ? String(d.getDate()) : '',
-            examMonth: valid ? THAI_MONTHS[d.getMonth()] : '',
-            examYearBE: valid ? String(d.getFullYear() + 543) : '',
-            examTime: examTime ?? '',
-            examRoom: room ?? '',
-            studentCount: String(course.student_count ?? ''),
-            examCopies: String(totalCopies || ''),
+    // เก็บเฉพาะข้อมูลเพิ่มเติมของใบปะหน้า — ข้อมูลการสอบใช้ค่าต้นทางชุดเดียวกันทุกขั้นตอน
+    const [envDetails, setEnv] = useState(() => ({
             facultyName: 'คณะวิทยาศาสตร์',
-            section: course.sec || '',
-            reserveSets: String(copiesReserve || ''),
-            optBooks: false,
-            optCalculator: false,
-            optNoRuler: false,
-            examAuthor: course.teacher_name ?? '',
+            ...envelopeOptionsFromMaterials(prefill.allowed_materials),
             office: '',
             attendedCount: '', absentCount: '',
             absentees: [{ code: '', name: '' }, { code: '', name: '' }, { code: '', name: '' }],
-            note: envelopeNotes ?? '',
-        };
-    });
+    }));
+    const envelopeDate = examDate ? new Date(examDate) : null;
+    const validEnvelopeDate = envelopeDate && !isNaN(envelopeDate.getTime());
+    const env = {
+        ...envDetails,
+        subject: course.Course_Name ?? '',
+        subjectCode: course.Course_id ?? '',
+        examDay: validEnvelopeDate ? String(envelopeDate.getDate()) : '',
+        examMonth: validEnvelopeDate ? THAI_MONTHS[envelopeDate.getMonth()] : '',
+        examYearBE: validEnvelopeDate ? String(envelopeDate.getFullYear() + 543) : '',
+        examTime,
+        examRoom: room,
+        envelopeNo: examSet,
+        studentCount: String(course.student_count ?? ''),
+        examCopies: String(totalCopies ?? ''),
+        section: course.sec || '',
+        reserveSets: String(copiesReserve ?? ''),
+        examAuthor: course.teacher_name ?? '',
+        note: envelopeNotes,
+    };
+    const selectedMaterials = envelopeOptionsToMaterials(env, prefill.allowed_materials);
     const acceptFile = (file) => {
         if (!/\.(pdf|docx?)$/i.test(file.name) || file.size > 25 * 1024 * 1024) {
             setErrorMsg('รองรับเฉพาะไฟล์ PDF หรือ DOCX ขนาดไม่เกิน 25MB');
@@ -336,23 +335,8 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
         setErrorMsg('');
         setStep(3);
     };
-    // ขั้น 3 (ใบปะหน้าซอง) → ขั้น 4 (ตรวจสอบและส่ง) — ซิงก์ค่าจากขั้นตอนที่ 2 ลงฟอร์มใบปะหน้า (คงค่าที่แก้เองไว้)
+    // ขั้น 3 (ใบปะหน้าซอง) → ขั้น 4 (ตรวจสอบและส่ง) — ข้อมูลใบปะหน้าอัปเดตตามข้อมูลการสอบอยู่แล้ว
     const goNextToReview = () => {
-        setEnv((prev) => {
-            const d = examDate ? new Date(examDate) : null;
-            const valid = d && !isNaN(d.getTime());
-            return {
-                ...prev,
-                examRoom: room,
-                examTime: examTime,
-                examDay: valid ? String(d.getDate()) : prev.examDay,
-                examMonth: valid ? THAI_MONTHS[d.getMonth()] : prev.examMonth,
-                examYearBE: valid ? String(d.getFullYear() + 543) : prev.examYearBE,
-                examCopies: String(totalCopies || ''),
-                reserveSets: String(copiesReserve || ''),
-                note: envelopeNotes || prev.note,
-            };
-        });
         setErrorMsg('');
         setStep(4);
     };
@@ -668,7 +652,7 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
           <div>
             <h3 className="font-display font-bold text-base text-slate-900">ใบปะหน้าซองข้อสอบ</h3>
             <p className="text-xs text-slate-500 mt-1">
-              ตรวจสอบข้อมูลบนใบปะหน้า — ส่วนที่ระบบเติมให้แก้ได้ ส่วนที่เหลือเขียนด้วยลายมือที่หน้างานจริง
+              ข้อมูลการสอบเชื่อมให้อัตโนมัติ ไม่ต้องกรอกซ้ำ — หากต้องการแก้ไขให้ย้อนกลับไปขั้นตอน "ข้อมูลการสอบ"
             </p>
           </div>
 
@@ -691,7 +675,7 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
             ['ข้อสอบสำรอง (ชุด)', 'reserveSets'],
         ].map(([label, key]) => (<div key={key}>
                   <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
-                  <input type="text" value={env[key] ?? ''} onChange={(e) => setEnv({ ...env, [key]: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-white"/>
+                  <input type="text" value={env[key] ?? ''} readOnly={key !== 'facultyName'} onChange={key === 'facultyName' ? (e) => setEnv((prev) => ({ ...prev, [key]: e.target.value })) : undefined} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-white read-only:bg-slate-50"/>
                 </div>))}
               <div>
                 <Label htmlFor="envelope-number" className="block text-xs font-medium text-slate-600 mb-1">เลขประจำซองข้อสอบ</Label>
@@ -705,10 +689,8 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
           <div>
             <p className="font-display font-bold text-sm text-slate-900 mb-3">อุปกรณ์ที่ใช้หรือคำแนะนำผู้คุมสอบเพิ่มเติม</p>
             <div className="space-y-2 pl-1">
-              {[['optBooks', 'นำตำราเข้าห้องสอบได้'],
-            ['optCalculator', 'นำเครื่องคิดเลขเข้าห้องสอบได้'],
-            ['optNoRuler', 'ห้ามนำไม้บรรทัดมีสูตรคณิตศาสตร์เข้าสอบ']].map(([key, label]) => (<label key={key} className="flex items-center gap-2.5 text-sm cursor-pointer">
-                  <input type="checkbox" checked={env[key]} onChange={(e) => setEnv({ ...env, [key]: e.target.checked })} className="w-4 h-4 accent-[#1A4B7A]"/>
+              {ENVELOPE_OPTIONS.map(([key, label]) => (<label key={key} className="flex items-center gap-2.5 text-sm cursor-pointer">
+                  <input type="checkbox" checked={env[key]} onChange={(e) => setEnv((prev) => ({ ...prev, [key]: e.target.checked }))} className="w-4 h-4 accent-[#1A4B7A]"/>
                   <span>{label}</span>
                 </label>))}
             </div>
@@ -720,11 +702,11 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">ผู้ออกข้อสอบ</label>
-                <input type="text" value={env.examAuthor ?? ''} onChange={(e) => setEnv({ ...env, examAuthor: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-white"/>
+                <input type="text" value={env.examAuthor ?? ''} readOnly className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-slate-50"/>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">ห้องทำงาน</label>
-                <input type="text" value={env.office ?? ''} onChange={(e) => setEnv({ ...env, office: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-white"/>
+                <input type="text" value={env.office ?? ''} onChange={(e) => setEnv((prev) => ({ ...prev, office: e.target.value }))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#1A4B7A] focus:ring-1 focus:ring-[#1A4B7A] focus:outline-none bg-white"/>
               </div>
             </div>
           </div>
@@ -765,7 +747,7 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
             ['ห้องสอบ', room],
             ['จำนวนหน้าข้อสอบ', totalPages ? `${totalPages} หน้า` : ''],
             ['จำนวนชุดที่พิมพ์', `${totalCopies} ชุด + สำรอง ${copiesReserve || 0} ชุด`],
-            ['สิ่งที่อนุญาตให้นำเข้าห้อง', selectedMaterials.join(', ')],
+            ['อุปกรณ์/คำแนะนำผู้คุมสอบ', selectedMaterials.join(', ')],
             ['คำชี้แจงพิเศษ', envelopeNotes || '—'],
         ].map(([label, value]) => (<div key={label} className="flex flex-col sm:flex-row sm:items-start justify-between gap-x-4 gap-y-1 text-sm">
                   <dt className="text-slate-500 shrink-0">{label}</dt>
@@ -828,7 +810,7 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
           {/* ตัวอย่างเอกสาร — จอแคบเลื่อนดูแนวนอนได้ ไม่ถูกตัดขอบ */}
           <div className="overflow-x-auto px-2 sm:px-4 pb-4">
             <div className="min-w-[640px]">
-              <EnvelopeDocument form={{ ...env, envelopeNo: examSet }}/>
+              <EnvelopeDocument form={env}/>
             </div>
           </div>
         </div>)}
@@ -843,7 +825,7 @@ const ExamUploadWizard = ({ course, existingExam, isReupload, usedSets = [], pre
         </div>)}
     </div>);
 };
-export const TeacherView = ({ currentUser, courses, exams, notifications = [], onMarkNotificationRead, page = 'courses', onNavigate, selectedCourseId, onSelectCourse, selectedExamNo, onSelectExam, uploadContext = null, onUploadSubmit, onOpenUpload, onPreviewExam, onRemoveExam, onAddNewCourse, onOpenEnvelope, onDownloadLogged, onEnvelopePrintRecorded, }) => {
+export const TeacherView = ({ currentUser, courses, exams, page = 'courses', onNavigate, selectedCourseId, onSelectCourse, selectedExamNo, onSelectExam, uploadContext = null, onUploadSubmit, onOpenUpload, onPreviewExam, onRemoveExam, onAddNewCourse, onOpenEnvelope, onDownloadLogged, onEnvelopePrintRecorded, }) => {
     const [newCourseCode, setNewCourseCode] = useState('');
     const [newCourseName, setNewCourseName] = useState('');
     const [newCourseTerm, setNewCourseTerm] = useState('1');
@@ -1416,53 +1398,6 @@ export const TeacherView = ({ currentUser, courses, exams, notifications = [], o
         </aside>
       </div>
     </>);
-    // ───────── หน้า 5: การแจ้งปัญหาจากทุก role ─────────
-    const renderIssuesPage = () => {
-        // รายงานปัญหามาพร้อม notification ที่ title ขึ้นต้นด้วย "แจ้งปัญหา:" (จาก /api/issues)
-        const issueReports = notifications.filter((n) => n.title && n.title.startsWith('แจ้งปัญหา:'));
-        const unreadIssues = issueReports.filter((n) => !n.isRead).length;
-        return (<>
-      {/* Hero */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900">
-            การแจ้งปัญหา
-          </h1>
-          <p className="text-sm text-slate-500 mt-2">
-            รวมปัญหาการใช้งานที่ผู้ใช้ทุก role แจ้งเข้ามา — ตรวจสอบและติดตามการแก้ไข
-          </p>
-        </div>
-        {unreadIssues > 0 && (<Badge className="bg-amber-50 text-amber-800 border-amber-300 shrink-0">
-            ใหม่ {unreadIssues} รายการ
-          </Badge>)}
-      </div>
-
-      <div className="space-y-3">
-        {issueReports.length === 0 ? (<div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-12 text-center">
-            <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-3"/>
-            <p className="text-sm text-slate-500">ยังไม่มีรายงานปัญหาเข้ามา</p>
-            <p className="text-xs text-slate-500 mt-1">
-              เมื่อผู้ใช้กด "แจ้งปัญหา" จากเมนูของตัวเอง รายงานจะแสดงที่นี่
-            </p>
-          </div>) : (issueReports.map((notif) => (<div key={notif.id} onClick={() => !notif.isRead && onMarkNotificationRead?.(notif.id)} className={`rounded-2xl border px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 cursor-pointer transition-colors ${!notif.isRead
-                ? 'bg-white border-[#1A4B7A]/30 shadow-sm'
-                : 'bg-white/70 border-slate-200'}`}>
-              <div className="min-w-0 space-y-1">
-                <p className="text-sm font-bold text-slate-900 truncate">{notif.title}</p>
-                <p className="text-xs text-slate-600 leading-relaxed">{notif.message}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 shrink-0 max-w-full">
-                <span className="text-xs text-slate-500 whitespace-nowrap">{notif.timestamp}</span>
-                {!notif.isRead && (<span className="w-2 h-2 rounded-full bg-[#1A4B7A] shrink-0" aria-label="ยังไม่ได้อ่าน"/>)}
-              </div>
-            </div>)))}
-      </div>
-
-      {issueReports.length > 0 && (<p className="text-xs text-slate-400">
-          กดที่รายการเพื่อทำเครื่องหมายว่าอ่านแล้ว · ปัญหาทุกรายการถูกส่งถึงผู้ดูแลระบบพร้อมบันทึก Audit Log
-        </p>)}
-    </>);
-    };
     // ───────── หน้า 4: ยืนยันการยกเลิก ─────────
     const renderCancelPage = () => {
         if (!selectedCourse) {
@@ -1575,6 +1510,6 @@ export const TeacherView = ({ currentUser, courses, exams, notifications = [], o
         </div>
       </div>
 
-      {page === 'tracking' ? renderTrackingPage() : page === 'cancel' ? renderCancelPage() : page === 'new-course' ? renderNewCoursePage() : page === 'upload' ? renderUploadPage() : page === 'issues' ? renderIssuesPage() : renderCoursesPage()}
+      {page === 'tracking' ? renderTrackingPage() : page === 'cancel' ? renderCancelPage() : page === 'new-course' ? renderNewCoursePage() : page === 'upload' ? renderUploadPage() : renderCoursesPage()}
     </div>);
 };

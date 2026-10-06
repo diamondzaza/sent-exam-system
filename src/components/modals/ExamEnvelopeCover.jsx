@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Printer, X, FileText, CheckCircle2 } from 'lucide-react';
+import { ENVELOPE_OPTIONS, envelopeOptionsFromMaterials } from '@/lib/envelope-options';
 
 const initialForm = {
     subject: '',
@@ -54,6 +55,7 @@ const buildFormFromExam = (exam) => {
         facultyName: 'คณะวิทยาศาสตร์',
         reserveSets: String(exam.copies_reserve ?? ''),
         examAuthor: exam.teacher_name ?? '',
+        ...envelopeOptionsFromMaterials(exam.allowed_materials),
         // ผู้คุมสอบ / หมายเหตุ / จำนวนเข้าสอบ-ขาดสอบ / รายชื่อผู้ขาดสอบ — เว้นว่างไว้เขียนด้วยลายมือในห้องสอบ
         // (แสดงเป็นบรรทัดประว่างในเอกสารที่พิมพ์)
     };
@@ -172,9 +174,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded, editable = t
               <div>
                 <p className="font-display font-bold text-sm text-slate-900 mb-3">อุปกรณ์ที่ใช้หรือคำแนะนำผู้คุมสอบเพิ่มเติม</p>
                 <div className="space-y-2 pl-1">
-                  {[['optBooks', 'นำตำราเข้าห้องสอบได้'],
-                    ['optCalculator', 'นำเครื่องคิดเลขเข้าห้องสอบได้'],
-                    ['optNoRuler', 'ห้ามนำไม้บรรทัดมีสูตรคณิตศาสตร์เข้าสอบ']].map(([key, label]) => (
+                  {ENVELOPE_OPTIONS.map(([key, label]) => (
                       <label key={key} className="flex items-center gap-2.5 text-sm cursor-pointer">
                         <input
                           type="checkbox"
@@ -281,9 +281,7 @@ export const ExamEnvelopeCover = ({ exam, onClose, onPrintRecorded, editable = t
               <div className="border-t border-slate-300 pt-3 mb-6 text-sm">
                 <p className="font-semibold mb-2">อุปกรณ์ที่ใช้หรือคำแนะนำผู้คุมสอบเพิ่มเติม</p>
                 <div className="space-y-1.5 pl-2">
-                  {[['optBooks', 'นำตำราเข้าห้องสอบได้'],
-                    ['optCalculator', 'นำเครื่องคิดเลขเข้าห้องสอบได้'],
-                    ['optNoRuler', 'ห้ามนำไม้บรรทัดมีสูตรคณิตศาสตร์เข้าสอบ']].map(([key, label]) => (
+                  {ENVELOPE_OPTIONS.map(([key, label]) => (
                       <div key={key} className="flex items-center gap-2">
                         <span>(</span>
                         <span className="w-6 inline-block border-b border-slate-500 text-center text-xs">
